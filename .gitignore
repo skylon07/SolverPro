@@ -1,0 +1,10 @@
+# skylon07's .vscode/settings.json exclude list
+**/.svn
+**/.hg
+**/CVS
+**/.DS_Store
+**/*.pyc
+**/__pycache__
+
+# speaking of .vscode...
+.vscode
