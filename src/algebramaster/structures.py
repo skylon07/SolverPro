@@ -9,7 +9,7 @@ class Model(Displayable, AbstractClass):
     pass # intentionally empty; provides a common abstract type to inherit from
 
 
-class SubDict(Model, dict):
+class SubDict(dict, Model):
     def __init__(self, dictLike = {}, conditions = None):
         if conditions is None:
             if type(dictLike) is SubDict:
@@ -60,7 +60,7 @@ class SubDict(Model, dict):
         return isNumeric(val) or isinstance(val, sympy.Basic)
 
 
-class SubDictList(Model, list):
+class SubDictList(list, Model):
     def __init__(self, listLike = []):
         listLike = self._assertValidItems(listLike)
         super().__init__(listLike)
