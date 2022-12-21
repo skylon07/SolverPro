@@ -25,8 +25,8 @@ class SubDict(Model, dict):
         return repr(self)
 
     def __repr__(self):
-        dictRepr = super().__repr__(self)
-        conditionsRepr = str(self._conditions)[1:-1] if len(self._conditions) > 0 else ""
+        dictRepr = super().__repr__()
+        conditionsRepr = repr(self._conditions)[1:-1] if len(self._conditions) > 0 else ""
         return f"SD{dictRepr}<{conditionsRepr}>"
 
     @property
@@ -66,7 +66,7 @@ class SubDictList(Model, list):
         super().__init__(listLike)
 
     def __repr__(self):
-        return "SL{}".format(super().__repr__())
+        return f"SL{super().__repr__()}"
 
     def __str__(self):
         return repr(self)
