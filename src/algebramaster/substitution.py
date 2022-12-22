@@ -1,6 +1,6 @@
 import sympy
 
-from structures import *
+from .structures import *
 
 
 def substituteAllKnowns(expr, subDictList):
