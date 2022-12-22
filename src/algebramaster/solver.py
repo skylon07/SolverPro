@@ -55,53 +55,81 @@ class _BackSubstituterSolver:
         pass # TODO
 
     
-    class _SympySolveTools:
-        def solveSet(self, expr, atom):
-            pass # TODO
+class _SympySolveTools:
+    class _SolutionTypes:
+        @property
+        def NORMAL(self):
+            """ex. FiniteSet({3, a + 2, b * c})"""
+            return "NORMAL"
 
-        def _substituteNumericInBadTerms(self, numericAtom, numericAtomSub, expr):
-            pass # TODO
+        @property
+        def EMPTY(self):
+            """ex. EmptySet() == {}"""
+            return "EMPTY"
 
-        def _solveSetForNonNumeric(self, expr, atom):
-            pass # TODO (and assert atom is not numeric)
+        @property
+        def COMPLEXES(self):
+            """ex. TODO"""
+            return "COMPLEXES"
+
+        @property
+        def COMPLEMENT(self):
+            """ex. TODO"""
+            return "COMPLEMENT"
+
+        @property
+        def CONDITIONAL(self):
+            """ex. TODO"""
+            return "CONDITIONAL"
+    
+    solutionTypes = _SolutionTypes()
+
+    @classmethod
+    def solveSet(cls, expr, atom):
+        pass # TODO
+
+    @classmethod
+    def _substituteNumericInBadTerms(cls, numericAtom, numericAtomSub, expr):
+        pass # TODO
+
+    @classmethod
+    def _solveSetForNonNumeric(cls, expr, atom):
+        pass # TODO (and assert atom is not numeric)
+    
+    @classmethod
+    def _interpretSolution(cls, solution):
+        pass # TODO
+    
+    class _Solution:
+        def __init__(self, solutionSet):
+            self._solutionSet = solutionSet
+            self._type = self._getSetType(solutionSet)
+
+        @property
+        def type(self):
+            return self._type
+
+        @property
+        def set(self):
+            return self._solutionSet
         
-        def _interpretSolution(self, solution):
+        def _getSetType(self, solutionSet):
+            types = _SympySolveTools.solutionTypes
+            if type(solutionSet) is sympy.FiniteSet:
+                return types.NORMAL
+            elif solutionSet is sympy.EmptySet:
+                return types.EMPTY
+            elif type(solutionSet) is sympy.Complement:
+                return types.COMPLEMENT
+            elif solutionSet is sympy.Complexes:
+                return types.COMPLEXES
+            elif type(solutionSet) is sympy.ConditionSet:
+                return types.CONDITIONAL
+            else:
+                raise NotImplementedError("Solution ran into an unconsidered type scenario")
+
+        def reverseSubstitutionOfNumeric(self, subsDict):
+            self._solutionSet = self._performSubsOnSet(self._solutionSet, subsDict)
+
+        def _performSubsOnSet(self, sympySet, subsDict):
             pass # TODO
-
-        class _Solution:
-            class _SolutionTypes:
-                pass # TODO
-
-            types = _SolutionTypes()
-
-            def __init__(self, solutionSet):
-                self._solutionSet = solutionSet
-                self._type = self._getSetType(solutionSet)
-
-            @property
-            def type(self):
-                return self._type
-
-            @property
-            def set(self):
-                return self._solutionSet
-            
-            def _getSetType(self, solutionSet):
-                if type(solutionSet) is sympy.FiniteSet:
-                    return self.types.NORMAL
-                elif solutionSet is sympy.EmptySet:
-                    return self.types.EMPTY
-                elif type(solutionSet) is sympy.Complement:
-                    return self.types.COMPLEMENT
-                elif solutionSet is sympy.Complexes:
-                    return self.types.COMPLEXES
-                elif type(solutionSet) is sympy.ConditionSet:
-                    return self.types.CONDITIONAL
-                else:
-                    raise NotImplementedError("Solution ran into an unconsidered type scenario")
-
-            def reverseSubstitutionOfNumeric(self, subsDict):
-                self._solutionSet = self._performSubsOnSet(self._solutionSet, subsDict)
-
-            def _performSubsOnSet(self, sympySet, subsDict):
-                pass # TODO
