@@ -18,8 +18,14 @@ def substituteAllKnowns(expr, subDictList):
 
     _assertSubDictList(subDictList)
     
-    if isNumeric(expr):
-        return [expr]
+    try:
+        if isNumeric(expr):
+            return [expr]
+    except ValueError as error:
+        if "could not convert" in str(error):
+            _assertSympyExpr(expr)
+        else:
+            raise error
     _assertSympyExpr(expr)
 
     return SubDictList([
