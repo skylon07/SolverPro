@@ -9,7 +9,7 @@ def subToSubDictList(sub):
     return SubDictList([SubDict(sub)])
 
 
-class SubstituteAllKnownsTests:
+class SubstituteAllKnownsTester:
     def testSubstitutesVariables(self):
         expr1 = a + b
         subs1 = {
