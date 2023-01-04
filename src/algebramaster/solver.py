@@ -77,7 +77,7 @@ class _SympySolveTools:
         def CONDITIONAL(self):
             return "CONDITIONAL"
     
-    solutionTypes = _SolutionTypes()
+    _solutionTypes = _SolutionTypes()
 
     @classmethod
     def solveSet(cls, expr, atom):
@@ -88,9 +88,9 @@ class _SympySolveTools:
             exprWithNumericSubbed = cls._substituteNumericInBadTerms(atom, atomSub, expr)
             solution = cls._solveSetForAtom(exprWithNumericSubbed, atom)
             solution.reverseSubstitutionOfNumeric({atomSub: atom})
-            return solution
         else:
-            return cls._solveSetForAtom(expr, atom)
+            solution = cls._solveSetForAtom(expr, atom)
+        return cls._interpretSolution(solution)
 
     @classmethod
     def _substituteNumericInBadTerms(cls, numericAtom, numericAtomSub, expr):
@@ -111,13 +111,13 @@ class _SympySolveTools:
     @classmethod
     def _solveSetForAtom(cls, expr, atom):
         solutionSet = sympy.solveset(expr, atom)
-        return cls.Solution(solutionSet)
+        return cls._Solution(solutionSet)
     
     @classmethod
     def _interpretSolution(cls, solution):
-        types = cls.solutionTypes
+        types = cls._solutionTypes
         if solution.type is types.NORMAL:
-            return solution.set
+            return set(solution.set)
         elif solution.type is types.COMPLEXES:
             # this means a variable can be any value and still hold true in the relation,
             # which ultimately means the relation provided no new information for the symbol
@@ -131,14 +131,14 @@ class _SympySolveTools:
                 # this happens when the solver is forced to put a variable in the denominator of a fraction;
                 # this generates a solution with (calculus) "holes", which can be ignored
                 # (happens in cases like solving a/b - 4 for b)
-                return solution.set.args[0]
+                return set(solution.set.args[0])
             elif solution.set.args[0] is sympy.Complexes:
                 # this happens in cases similar to the above, except sort of reversed;
                 # here, the solver found that anything is possible *except* for certain
                 # "holes", which are actually the solutions (TODO: example case needed)
-                return solution.set.args[1]
+                return set(solution.set.args[1])
     
-    class Solution:
+    class _Solution:
         def __init__(self, solutionSet):
             self._solutionSet = solutionSet
             self._type = self._getSetType(solutionSet)
@@ -152,7 +152,7 @@ class _SympySolveTools:
             return self._solutionSet
         
         def _getSetType(self, solutionSet):
-            types = _SympySolveTools.solutionTypes
+            types = _SympySolveTools._solutionTypes
             if type(solutionSet) is sympy.FiniteSet:
                 return types.NORMAL
             elif solutionSet is sympy.EmptySet:
@@ -170,7 +170,7 @@ class _SympySolveTools:
             self._solutionSet = self._performSubsOnSet(self._solutionSet, subsDict)
 
         def _performSubsOnSet(self, sympySet, subsDict):
-            types = _SympySolveTools.solutionTypes
+            types = _SympySolveTools._solutionTypes
             setType = self._getSetType(sympySet)
             if setType is types.NORMAL:
                 returnSet = sympy.FiniteSet(*(
