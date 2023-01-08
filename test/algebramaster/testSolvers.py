@@ -17,10 +17,15 @@ class SympySolveToolsTester:
     def testSolveSetPerformsSolving(self):
         expr = a + b*c - 4
         
+        # a + b*c - 4 = 0
+        # a + b*c = 4
         actualSolution1 = {4}
         toolsSolution1 = _SympySolveTools.solveSet(expr, a + b*c)
         assert toolsSolution1 == actualSolution1
 
+        # a + b*c - 4 = 0
+        # a - 4 = -b*c
+        # -(a - 4) = b*c
         actualSolution2 = {b*c}
         toolsSolution2 = _SympySolveTools.solveSet(expr, -(a - 4))
         assert toolsSolution2 == actualSolution2
@@ -28,6 +33,9 @@ class SympySolveToolsTester:
     def testSolveSetSolvesForNumerics(self):
         expr = a + b**2 - 2
         
+        # a + b**2 - 2 = 0
+        # -2 = -(a + b**2)
+        # 2 = a + b**2      <-- should ignore `**2`!
         actualSolution1 = {a + b**2}
         toolsSolution1 = _SympySolveTools.solveSet(expr, 2)
         assert toolsSolution1 == actualSolution1
