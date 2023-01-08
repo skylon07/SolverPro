@@ -1,9 +1,11 @@
 from abc import ABC as AbstractClass, abstractmethod
 
+
 class Displayable(AbstractClass):
     @abstractmethod
     def __repr__(self):
         return  # a string representation of this object
+
 
 class Hashable(AbstractClass):    
     @abstractmethod

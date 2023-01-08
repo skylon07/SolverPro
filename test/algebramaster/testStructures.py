@@ -18,4 +18,4 @@ class SubDictListTester:
         origList = [{a: 2, b: 5}, {a: -2, b: -5}]
         subDictList = SubDictList([SubDict(origDict) for origDict in origList])
 
-        assert subDictList == origList        
+        assert subDictList == origList
