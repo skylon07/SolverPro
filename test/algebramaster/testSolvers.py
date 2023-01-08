@@ -31,6 +31,17 @@ class SympySolveToolsTester:
         assert toolsSolution2 == actualSolution2
 
     def testSolveSetSolvesForNumerics(self):
+        expr = 2 + 2*a + b
+        
+        # 2 + 2*a + b = 0
+        # 2 + 2*a = -b
+        # 2*(1 + a) = -b
+        # 2 = -b/(1 + a)
+        actualSolution1 = {-b/(1 + a)}
+        toolsSolution1 = _SympySolveTools.solveSet(expr, 2)
+        assert toolsSolution1 == actualSolution1
+    
+    def testSolveSetSolvesForNumerics_ignoresExponents(self):
         expr = a + b**2 - 2
         
         # a + b**2 - 2 = 0
