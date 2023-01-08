@@ -15,3 +15,14 @@ class Hashable(AbstractClass):
     @abstractmethod
     def __eq__(self, other):
         return # if self is equal to other
+
+
+class Comparable(AbstractClass):
+    @abstractmethod
+    def __lt__(self, other):
+        return # if self is less than other
+
+    @abstractmethod
+    def __eq__(self, other):
+        return # if self is equal to other
+
