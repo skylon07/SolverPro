@@ -26,3 +26,20 @@ class Comparable(AbstractClass):
     def __eq__(self, other):
         return # if self is equal to other
 
+
+class UnorderedList(list):
+    """
+    A list that contains elements that are logically considered unordered.
+    The main difference between this and a `set` is that `set`s require
+    their elements to be hashable. An `UnorderedList` does not.
+    """
+
+    def __eq__(self, other):
+        if not isinstance(other, UnorderedList):
+            return False
+
+        for item in self:
+            if item not in other:
+                return False
+        
+        return True
