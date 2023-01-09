@@ -19,3 +19,13 @@ class SubDictListTester:
         subDictList = SubDictList([SubDict(origDict) for origDict in origList])
 
         assert subDictList == origList
+        assert origList == subDictList
+
+    def testSubDictListEqualsLikeSets(self):
+        origList = [{a: 2, b: 5}, {a: -2, b: -5}]
+        subDictList = SubDictList([SubDict(origDict) for origDict in origList])
+
+        origListReversed = [{a: -2, b: -5}, {a: 2, b: 5}]
+
+        assert subDictList == origListReversed
+        assert origListReversed == subDictList

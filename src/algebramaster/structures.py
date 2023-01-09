@@ -2,7 +2,7 @@ from abc import ABC as AbstractClass
 
 import sympy
 
-from src.common.types import Displayable, Hashable
+from src.common.types import Displayable, Hashable, UnorderedList
 
 
 class Model(Displayable, AbstractClass):
@@ -60,7 +60,7 @@ class SubDict(dict, Model):
         return isNumeric(val) or isinstance(val, sympy.Basic)
 
 
-class SubDictList(list, Model):
+class SubDictList(UnorderedList, Model):
     def __init__(self, listLike = []):
         listLike = self._assertValidItems(listLike)
         super().__init__(listLike)
