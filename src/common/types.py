@@ -35,9 +35,6 @@ class UnorderedList(list):
     """
 
     def __eq__(self, other):
-        if not isinstance(other, UnorderedList):
-            return False
-
         for item in self:
             if item not in other:
                 return False
