@@ -33,9 +33,10 @@ class _BackSubstituterSolver:
             {a: 2 - b} is not)
     """
 
-    def __init__(self, exprKeys):
+    def __init__(self, exprKeys, baseNumericalSubs):
         self._exprKeyOrder = tuple(self._sortExprKeys(exprKeys))
         self._unusedExprKeyIdx = 0
+        self._baseNumericalSubs = baseNumericalSubs
         self._symbolSubs = SubDict()
 
     def getSolutions(self):
