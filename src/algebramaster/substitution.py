@@ -28,10 +28,10 @@ def substituteAllKnowns(expr, subDictList):
             raise error
     _assertSympyExpr(expr)
 
-    return SubDictList([
-        SubDict({expr: _subDictUntilFixed(expr, subDict)}, subDict.conditions)
+    return SubDictList.toSubDictList(
+        ({expr: _subDictUntilFixed(expr, subDict)}, subDict.conditions)
         for subDict in subDictList
-    ])
+    )
 
 def substituteToNumerics(expr, subDictList):
     """
@@ -99,11 +99,11 @@ def backSubstituteByInference(subDictList, forSymbol):
     _assertSympySymbol(forSymbol)
     assert all(forSymbol in subDict for subDict in subDictList), "Substitutions for `forSymbol` should be given in all subDicts"
 
-    return SubDictList([
-        SubDict({forSymbol: _subDictUntilFixed(symbolSubExpr, subDict)}, subDict.conditions)
+    return SubDictList.toSubDictList(
+        ({forSymbol: _subDictUntilFixed(symbolSubExpr, subDict)}, subDict.conditions)
         for subDict in subDictList
         for symbolSubExpr in [subDict[forSymbol]]
-    ])
+    )
     
 
 def _subDictUntilFixed(expr: sympy.Expr, subDict):

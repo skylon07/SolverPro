@@ -61,6 +61,20 @@ class SubDict(dict, Model):
 
 
 class SubDictList(UnorderedList, Model):
+    @classmethod
+    def toSubDictList(cls, listLike):
+        return SubDictList(cls._toSubDictListGen(listLike))
+
+    @classmethod
+    def _toSubDictListGen(cls, listLike):
+        for item in listLike:
+            if isinstance(item, dict):
+                dictLike = item
+                yield SubDict(dictLike)
+            elif isinstance(item, tuple):
+                (dictLike, conditions) = item
+                yield SubDict(dictLike, conditions)
+
     def __init__(self, listLike = []):
         listLike = self._assertValidItems(listLike)
         super().__init__(listLike)
