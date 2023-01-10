@@ -17,6 +17,22 @@ class AlgebraSolver:
 
 
 class _BackSubstituterSolver:
+    """
+    This class is tasked with extrapolating solutions for individual variables
+    given a single "universe" by a "base numerical substitution dictionary".
+
+    A "base numerical substitution dictionary" is a *dictionary* containing
+    *substitutions* from expressions to *numerics* that they equal, the numerics
+    being numbers derived directly from the *base* relation they were solved
+    from.
+
+    This class will provide valid solutions via `getNewSolutions()` only if
+        - the substitutions in the base dictionary represent equalities (ie
+            {a + b: 2} implies that a + b = 2)
+        - the dictionary's values are all numeric (ie {a + b: 2} is valid, but
+            {a: 2 - b} is not)
+    """
+
     def __init__(self, exprKeys):
         self._exprKeyOrder = tuple(self._sortExprKeys(exprKeys))
         self._unusedExprKeyIdx = 0
