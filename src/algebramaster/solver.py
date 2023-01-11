@@ -52,7 +52,7 @@ class _BackSubstituterSolver:
         return selfCopy
 
     def getSolutions(self):
-        pass # TODO
+        return SubDictList(subDict for subDict in self._findSolutions())
 
     def _sortExprKeys(self, exprKeys):
         """
@@ -72,16 +72,99 @@ class _BackSubstituterSolver:
         return sorted(exprKeys, key = lambda expr: len(expr.free_symbols))
     
     def _findSolutions(self):
-        pass # TODO (from _recursiveSolve...() and _recursiveBranch...())
+        findRelationResult = self._findNextUsefulRelation()
+        usedAllExprKeys = findRelationResult is None
+        if usedAllExprKeys:
+            finalSubDict = self._symbolSubs
+            yield finalSubDict
+        else:
+            (nextUsefulRelation, symbolToSolveFor) = findRelationResult
+            solutionsForSymbol = _SympySolveTools.solveSet(nextUsefulRelation, symbolToSolveFor)
+            if len(solutionsForSymbol) == 0:
+                # TODO: remove this if it actually never happens (and make an assert for it)
+                # assert "this" == "never has to happen"
+                for finalSubDict in self._findSolutions():
+                    yield finalSubDict
+            elif len(solutionsForSymbol) == 1:
+                # average case; the soltuion was found and needs to be recorded
+                solutionForSymbol = first(solutionsForSymbol)
+                self._symbolSubs[symbolToSolveFor] = solutionForSymbol
+                for finalSubDict in self._findSolutions():
+                    yield self._backSubstitute(finalSubDict, symbolToSolveFor)
+            else:
+                # "branching" case; happens when things like
+                # "solve for a: sqrt(a) = 4" are performed (a = 2 and a = -2)
+                for solutionForSymbol in solutionsForSymbol:
+                    branchingSolver = self._copy()
+                    branchingSolver._symbolSubs[symbolToSolveFor] = solutionForSymbol
+                    solutionCondition = symbolToSolveFor - solutionForSymbol
+                    branchingSolver._symbolSubs.conditions.add(solutionCondition)
+                    for finalSubDict in branchingSolver._findSolutions():
+                        yield self._backSubstitute(finalSubDict, symbolToSolveFor)
+
 
     def _findNextUsefulRelation(self):
-        pass # TODO
+        relationProvidesNewInformation = False
+        while not relationProvidesNewInformation and not self._outOfExprKeys:
+            nextUnusedExprKey = self._exprKeyOrder[self._unusedExprKeyIdx]
+            numericEqToExprKey = self._baseNumericalSubs[nextUnusedExprKey]
+            baseRelation = nextUnusedExprKey - numericEqToExprKey
+            relationWithoutSolvedSymbols = substituteAllKnowns(baseRelation, self._symbolSubs)[baseRelation]
 
-    def _findSymbolToSolveFor(self):
-        pass # TODO
+            relationProvidesNewInformation = relationWithoutSolvedSymbols != 0
+            if relationProvidesNewInformation:
+                nextUsefulRelation = relationWithoutSolvedSymbols
+                symbolToSolveFor = self._findSymbolToSolveFor(nextUsefulRelation)
+                
+                eliminatedRelation = forwardSubstituteByElimination(nextUsefulRelation, self._symbolSubs, symbolToSolveFor)
+                eliminatedRelation = eliminatedRelation[nextUsefulRelation]
+                # TODO: document why this needs to happen (and make algorithm
+                #       "more robust" by using correct function -- see function
+                #       docs for simplify())
+                simplifiedEliminatedRelation = sympy.simplify(eliminatedRelation)
+                # TODO: is this check needed?
+                relationProvidesNewInformation = simplifiedEliminatedRelation != 0
+
+            self._unusedExprKeyIdx += 1
+        if relationProvidesNewInformation:
+            return (simplifiedEliminatedRelation, symbolToSolveFor)
+        else:
+            return None
+
+    def _findSymbolToSolveFor(self, usefulRelation):
+        """
+        Like _sortExprKeys(), this function will find the right order to solve
+        variables in. If a variable only appears a few times, and it can be
+        solved for in the currently useful relation, that variable should be
+        solved for this relation to avoid deadlock scenarios down the road
+        (since other relations are not guaranteed to have the variable at this
+        point).
+        """
+        
+        usedSymbols = set(self._symbolSubs.keys())
+        possibleSymbols = set(iterDifference(usefulRelation.free_symbols, usedSymbols))
+        assert len(possibleSymbols) > 0
+        symbolCount = {symbol: 0 for symbol in possibleSymbols}
+
+        unusedExprKeys = self._exprKeyOrder[self._unusedExprKeyIdx + 1:]
+        for unusedExprKey in unusedExprKeys:
+            # TODO: could we modify each expr in _exprKeyOrder only once as we
+            #       solve new symbols? (perhaps new class that also tracks
+            #       _unusedExprKeyIdx automatically?)
+            exprKeyWithOnlyUnusedSymbols = substituteAllKnowns(unusedExprKey, self._symbolSubs)[unusedExprKey]
+            for unusedSymbol in exprKeyWithOnlyUnusedSymbols.free_symbols:
+                if unusedSymbol in possibleSymbols:
+                    symbolCount[unusedSymbol] += 1
+        return min(symbolCount, key = lambda symbol: symbolCount[symbol])
 
     def _backSubstitute(self, finalSubDict, symbolToSolveFor):
-        pass # TODO
+        subForSymbolToSolveFor = backSubstituteByInference(finalSubDict, symbolToSolveFor)[symbolToSolveFor]
+        finalSubDict[symbolToSolveFor] = subForSymbolToSolveFor
+        return finalSubDict
+
+    @property
+    def _outOfExprKeys(self):
+        return self._unusedExprKeyIdx >= len(self._exprKeyOrder)
 
     
 class _SympySolveTools:
