@@ -65,14 +65,14 @@ class SubstituteAllKnownsTester:
         errorThrown1 = False
         try:
             substituteAllKnowns(a + b, [{"is a valid SubDictList": False}])
-        except AssertionError or TypeError:
+        except (AssertionError, TypeError):
             errorThrown1 = True
         assert errorThrown1
 
         errorThrown2 = False
         try:
             substituteAllKnowns("a + b", SubDictList([SubDict({a: 4})]))
-        except AssertionError or TypeError:
+        except (AssertionError, TypeError):
             errorThrown2 = True
         assert errorThrown2
 
