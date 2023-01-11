@@ -105,11 +105,7 @@ def backSubstituteByInference(subDicts, forSymbol):
     _assertSympySymbol(forSymbol)
     assert all(forSymbol in subDict for subDict in subDictList), "Substitutions for `forSymbol` should be given in all subDicts"
 
-    return SubDictList.fromList(
-        ({forSymbol: _subDictUntilFixed(symbolSubExpr, subDict)}, subDict.conditions)
-        for subDict in subDictList
-        for symbolSubExpr in [subDict[forSymbol]]
-    )
+    return substituteAllKnowns(forSymbol, subDictList)
     
 
 def _subDictUntilFixed(expr: sympy.Expr, subDict):
