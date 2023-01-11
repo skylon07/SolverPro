@@ -29,6 +29,17 @@ class SubDict(dict, Model):
         conditionsRepr = repr(self._conditions)[1:-1] if len(self._conditions) > 0 else ""
         return f"SD{dictRepr}<{conditionsRepr}>"
 
+    def __eq__(self, other):
+        if type(other) is SubDict:
+            if self.conditions != other.conditions:
+                return False
+        elif len(self.conditions) > 0:
+            return False
+        return super().__eq__(other)
+
+    def __ne__(self, other):
+        return not (self == other)
+
     @property
     def conditions(self):
         return self._conditions

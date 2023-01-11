@@ -12,6 +12,18 @@ class SubDictTester:
         subDict = SubDict(origDict)
         
         assert subDict == origDict
+    
+    def testSubDictUsesConditionsWhenTestingEquals(self):
+        origDict = {a: 2, b: 5}
+        subDictWithoutConditions = SubDict(origDict)
+        subDictWithConditions = SubDict(origDict, {a - 2})
+        
+        assert subDictWithConditions != origDict
+        assert origDict != subDictWithConditions
+        assert subDictWithConditions != subDictWithoutConditions
+        assert subDictWithoutConditions != subDictWithConditions
+        assert subDictWithoutConditions == origDict
+        assert origDict == subDictWithoutConditions
 
 class SubDictListTester:
     def testSubDictListCanCreateFromDictList(self):
