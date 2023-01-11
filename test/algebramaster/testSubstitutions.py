@@ -60,7 +60,7 @@ class SubstituteAllKnownsTester:
         subs = SubDict({
             a + b: 4,
         })
-        result = subToSubDictList({expr: c + 4})
+        result = SubDict({expr: c + 4})
         subResult = substituteAllKnowns(expr, subs)
         assert subResult == result
 

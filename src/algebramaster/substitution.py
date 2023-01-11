@@ -29,10 +29,19 @@ def substituteAllKnowns(expr, subDicts):
             raise error
     _assertSympyExpr(expr)
 
-    return SubDictList.fromList(
+    # TODO: should probably refactor all of these functions to not use lists
+    #       when only subbing one dict (aka _convertToSubDictList() is bad)
+    finalList = SubDictList.fromList(
         ({expr: _subDictUntilFixed(expr, subDict)}, subDict.conditions)
         for subDict in subDictList
     )
+    
+    # SubDicts (expr --> subbedExpr) are returned to carry the conditions
+    # of the substitution
+    if type(subDicts) is SubDict:
+        return finalList[0]
+    else:
+        return finalList
 
 def substituteToNumerics(expr, subDicts):
     """
@@ -70,8 +79,13 @@ def forwardSubstituteByElimination(expr, subDicts, forSymbol):
     subDictList = _convertToSubDictList(subDicts)
     _assertSubDictList(subDictList)
     
-    resultList = substituteAllKnowns(expr, subDictList)
+    result = substituteAllKnowns(expr, subDictList)
     if __debug__:
+        if type(result) is SubDict:
+            resultList = SubDictList.fromList([result])
+        else:
+            resultList = result
+        
         allSymbols = {
             symbol
             for subDict in subDictList
@@ -85,7 +99,7 @@ def forwardSubstituteByElimination(expr, subDicts, forSymbol):
         ]
         assert not any(symbol in resultExpr.free_symbols for resultExpr in resultExprs for symbol in allSymbols), "subDict should have expression keys with unidirectional dependencies to eliminate all symbols (can't have {a: b + c, b: a * c} or {a + b: b + 1}, but CAN have {a: b + c, b: 2 * c})"
         assert all(forSymbol in resultExpr.free_symbols for resultExpr in resultExprs), "subDict should resolve to expressions containing the wanted symbol"
-    return resultList
+    return result
 
 def backSubstituteByInference(subDicts, forSymbol):
     """
@@ -105,7 +119,14 @@ def backSubstituteByInference(subDicts, forSymbol):
     _assertSympySymbol(forSymbol)
     assert all(forSymbol in subDict for subDict in subDictList), "Substitutions for `forSymbol` should be given in all subDicts"
 
-    return substituteAllKnowns(forSymbol, subDictList)
+    finalList = substituteAllKnowns(forSymbol, subDictList)
+
+    # SubDicts (expr --> subbedExpr) are returned to carry the conditions
+    # of the substitution
+    if type(subDicts) is SubDict:
+        return finalList[0]
+    else:
+        return finalList
     
 
 def _subDictUntilFixed(expr: sympy.Expr, subDict):
@@ -126,7 +147,7 @@ def _convertToSubDictList(subDicts):
     elif type(subDicts) is SubDictList:
         return subDicts
     else:
-        raise ValueError("Substitution argument must be a SubDict or a SubDictList")
+        raise TypeError("Substitution argument must be a SubDict or a SubDictList")
     
 
 def _assertSubDictList(subDictList):
