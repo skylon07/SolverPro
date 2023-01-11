@@ -17,6 +17,8 @@ class AlgebraSolver:
 
 
 class _BackSubstituterSolver:
+    _copyMode = object()
+
     """
     This class is tasked with extrapolating solutions for individual variables
     given a single "universe" by a "base numerical substitution dictionary" and
@@ -34,10 +36,20 @@ class _BackSubstituterSolver:
     """
 
     def __init__(self, baseNumericalSubs):
-        self._baseNumericalSubs = baseNumericalSubs
-        self._exprKeyOrder = tuple(self._sortExprKeys(baseNumericalSubs.keys()))
-        self._unusedExprKeyIdx = 0
-        self._symbolSubs = SubDict()
+        inittingForCopy = baseNumericalSubs is _BackSubstituterSolver._copyMode
+        if not inittingForCopy:
+            self._baseNumericalSubs = baseNumericalSubs
+            self._exprKeyOrder = tuple(self._sortExprKeys(baseNumericalSubs.keys()))
+            self._unusedExprKeyIdx = 0
+            self._symbolSubs = SubDict()
+
+    def _copy(self):
+        selfCopy = _BackSubstituterSolver(_BackSubstituterSolver._copyMode)
+        selfCopy._baseNumericalSubs = self._baseNumericalSubs
+        selfCopy._exprKeyOrder = self._exprKeyOrder
+        selfCopy._unusedExprKeyIdx = self._unusedExprKeyIdx
+        selfCopy._symbolSubs = SubDict(self._symbolSubs)
+        return selfCopy
 
     def getSolutions(self):
         pass # TODO
