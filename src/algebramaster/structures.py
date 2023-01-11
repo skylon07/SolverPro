@@ -62,11 +62,11 @@ class SubDict(dict, Model):
 
 class SubDictList(UnorderedList, Model):
     @classmethod
-    def toSubDictList(cls, listLike):
-        return SubDictList(cls._toSubDictListGen(listLike))
+    def fromList(cls, listLike):
+        return SubDictList(cls._fromListGen(listLike))
 
     @classmethod
-    def _toSubDictListGen(cls, listLike):
+    def _fromListGen(cls, listLike):
         for item in listLike:
             if isinstance(item, dict):
                 dictLike = item

@@ -29,7 +29,7 @@ def substituteAllKnowns(expr, subDicts):
             raise error
     _assertSympyExpr(expr)
 
-    return SubDictList.toSubDictList(
+    return SubDictList.fromList(
         ({expr: _subDictUntilFixed(expr, subDict)}, subDict.conditions)
         for subDict in subDictList
     )
@@ -104,7 +104,7 @@ def backSubstituteByInference(subDictList, forSymbol):
     _assertSympySymbol(forSymbol)
     assert all(forSymbol in subDict for subDict in subDictList), "Substitutions for `forSymbol` should be given in all subDicts"
 
-    return SubDictList.toSubDictList(
+    return SubDictList.fromList(
         ({forSymbol: _subDictUntilFixed(symbolSubExpr, subDict)}, subDict.conditions)
         for subDict in subDictList
         for symbolSubExpr in [subDict[forSymbol]]
@@ -125,7 +125,7 @@ def _subDictUntilFixed(expr: sympy.Expr, subDict):
 def _convertToSubDictList(subDicts):
     if isinstance(subDicts, dict):
         subDict = subDicts
-        return SubDictList.toSubDictList([subDict])
+        return SubDictList.fromList([subDict])
     else:
         return subDicts
     

@@ -16,7 +16,7 @@ class SubDictTester:
 class SubDictListTester:
     def testSubDictListCanCreateFromDictList(self):
         origList = [{a: 2, b: 5}, {a: -2, b: -5}]
-        subDictList = SubDictList.toSubDictList(origList)
+        subDictList = SubDictList.fromList(origList)
 
         assert type(subDictList) is SubDictList
         for subDict in subDictList:
@@ -26,7 +26,7 @@ class SubDictListTester:
         condition_a = {a - 2}
         condition_b = {b + 5}
         origList = [({a: 2, b: 5}, condition_a), ({a: -2, b: -5}, condition_b)]
-        subDictList = SubDictList.toSubDictList(origList)
+        subDictList = SubDictList.fromList(origList)
 
         assert type(subDictList) is SubDictList
         foundCondition_a = False
@@ -42,7 +42,7 @@ class SubDictListTester:
     def testSubDictListCanCreateFromMixedList(self):
         condition_b = {b + 5}
         origList = [{a: 2, b: 5}, ({a: -2, b: -5}, condition_b)]
-        subDictList = SubDictList.toSubDictList(origList)
+        subDictList = SubDictList.fromList(origList)
 
         assert type(subDictList) is SubDictList
         foundCondition_b = False
@@ -56,14 +56,14 @@ class SubDictListTester:
 
     def testSubDictListCanEqualListOfDicts(self):
         origList = [{a: 2, b: 5}, {a: -2, b: -5}]
-        subDictList = SubDictList.toSubDictList(origList)
+        subDictList = SubDictList.fromList(origList)
 
         assert subDictList == origList
         assert origList == subDictList
 
     def testSubDictListEqualsLikeSets(self):
         origList = [{a: 2, b: 5}, {a: -2, b: -5}]
-        subDictList = SubDictList.toSubDictList(origList)
+        subDictList = SubDictList.fromList(origList)
 
         origListReversed = [{a: -2, b: -5}, {a: 2, b: 5}]
 
