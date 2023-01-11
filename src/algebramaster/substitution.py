@@ -60,7 +60,13 @@ def substituteToNumerics(expr, subDicts):
     _assertSubDictList(subDictList)
     assert all(isNumeric(val) for subDict in subDictList for val in subDict.values()), "substituteToNumerics() sub dicts' values must be numerics"
 
-    return substituteAllKnowns(expr, subDictList)
+    finalList = substituteAllKnowns(expr, subDictList)
+    # SubDicts (expr --> subbedExpr) are returned to carry the conditions
+    # of the substitution
+    if type(subDicts) is SubDict:
+        return finalList[0]
+    else:
+        return finalList
 
 def forwardSubstituteByElimination(expr, subDicts, forSymbol):
     """
@@ -79,13 +85,8 @@ def forwardSubstituteByElimination(expr, subDicts, forSymbol):
     subDictList = _convertToSubDictList(subDicts)
     _assertSubDictList(subDictList)
     
-    result = substituteAllKnowns(expr, subDictList)
+    finalList = substituteAllKnowns(expr, subDictList)
     if __debug__:
-        if type(result) is SubDict:
-            resultList = SubDictList.fromList([result])
-        else:
-            resultList = result
-        
         allSymbols = {
             symbol
             for subDict in subDictList
@@ -94,12 +95,18 @@ def forwardSubstituteByElimination(expr, subDicts, forSymbol):
         }
         resultExprs = [
             resultExpr
-            for resultDict in resultList
+            for resultDict in finalList
             for resultExpr in [resultDict[expr]]
         ]
         assert not any(symbol in resultExpr.free_symbols for resultExpr in resultExprs for symbol in allSymbols), "subDict should have expression keys with unidirectional dependencies to eliminate all symbols (can't have {a: b + c, b: a * c} or {a + b: b + 1}, but CAN have {a: b + c, b: 2 * c})"
         assert all(forSymbol in resultExpr.free_symbols for resultExpr in resultExprs), "subDict should resolve to expressions containing the wanted symbol"
-    return result
+    
+    # SubDicts (expr --> subbedExpr) are returned to carry the conditions
+    # of the substitution
+    if type(subDicts) is SubDict:
+        return finalList[0]
+    else:
+        return finalList
 
 def backSubstituteByInference(subDicts, forSymbol):
     """
