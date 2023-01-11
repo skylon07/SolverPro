@@ -112,3 +112,16 @@ class SubstituteToNumericsTester:
         except AssertionError or ValueError:
             errorThrown1 = True
         assert errorThrown1
+
+
+class BackSubstituteByInferenceTester:
+    def testCanSubstituteForSymbol(self):
+        subs = SubDict({
+            a: b - c + d,
+            b: c + 2,
+            c: 1,
+        })
+        symbol = a
+        result = SubDict({a: d + 2})
+        subResult = backSubstituteByInference(subs, symbol)
+        assert subResult == result
