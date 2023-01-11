@@ -3,7 +3,7 @@ import sympy
 from .structures import *
 
 
-def substituteAllKnowns(expr, subDictList):
+def substituteAllKnowns(expr, subDicts):
     """
     if
     ```
@@ -16,6 +16,7 @@ def substituteAllKnowns(expr, subDictList):
     ```
     """
 
+    subDictList = _convertToSubDictList(subDicts)
     _assertSubDictList(subDictList)
     
     try:
@@ -33,7 +34,7 @@ def substituteAllKnowns(expr, subDictList):
         for subDict in subDictList
     )
 
-def substituteToNumerics(expr, subDictList):
+def substituteToNumerics(expr, subDicts):
     """
     if
     ```
@@ -46,12 +47,13 @@ def substituteToNumerics(expr, subDictList):
     ```
     """
 
+    subDictList = _convertToSubDictList(subDicts)
     _assertSubDictList(subDictList)
     assert all(isNumeric(val) for subDict in subDictList for val in subDict.values()), "substituteToNumerics() sub dicts' values must be numerics"
 
     return substituteAllKnowns(expr, subDictList)
 
-def forwardSubstituteByElimination(expr, subDictList, forSymbol):
+def forwardSubstituteByElimination(expr, subDicts, forSymbol):
     """
     if
     ```
@@ -65,6 +67,9 @@ def forwardSubstituteByElimination(expr, subDictList, forSymbol):
     ```
     """
 
+    subDictList = _convertToSubDictList(subDicts)
+    _assertSubDictList(subDictList)
+    
     resultList = substituteAllKnowns(expr, subDictList)
     if __debug__:
         allSymbols = {
@@ -115,6 +120,14 @@ def _subDictUntilFixed(expr: sympy.Expr, subDict):
         iters += 1
         assert iters < 9999, "Substitution probably should have stopped by now..."
     return expr
+
+
+def _convertToSubDictList(subDicts):
+    if isinstance(subDicts, dict):
+        subDict = subDicts
+        return SubDictList.toSubDictList([subDict])
+    else:
+        return subDicts
     
 
 def _assertSubDictList(subDictList):
