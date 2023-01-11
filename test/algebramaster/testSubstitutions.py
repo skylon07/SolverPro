@@ -10,6 +10,9 @@ def subToSubDictList(sub):
 
 
 class SubstituteAllKnownsTester:
+    # many tests done in this class should also apply for other functions,
+    # but have not been moved to the other classes under the assumption that
+    # the other substitution functions use substituteAllKnowns under the hood
     def testSubstitutesVariables(self):
         expr1 = a + b
         subs1 = {
