@@ -123,11 +123,13 @@ def _subDictUntilFixed(expr: sympy.Expr, subDict):
 
 
 def _convertToSubDictList(subDicts):
-    if isinstance(subDicts, dict):
+    if type(subDicts) is SubDict:
         subDict = subDicts
         return SubDictList.fromList([subDict])
-    else:
+    elif type(subDicts) is SubDictList:
         return subDicts
+    else:
+        raise ValueError("Substitution argument must be a SubDict or a SubDictList")
     
 
 def _assertSubDictList(subDictList):

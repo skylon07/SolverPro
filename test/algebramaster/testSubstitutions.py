@@ -52,6 +52,15 @@ class SubstituteAllKnownsTester:
         subResult2 = substituteAllKnowns(expr2, subToSubDictList(subs2))
         assert subResult2 == result2
 
+    def testCanTakeSubDictDirectly(self):
+        expr = a + b + c
+        subs = SubDict({
+            a + b: 4,
+        })
+        result = subToSubDictList({expr: c + 4})
+        subResult = substituteAllKnowns(expr, subs)
+        assert subResult == result
+
     def testThrowsForBadParameters(self):
         errorThrown1 = False
         try:
