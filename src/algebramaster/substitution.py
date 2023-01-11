@@ -87,11 +87,6 @@ def forwardSubstituteByElimination(expr, subDicts, forSymbol):
     
     finalList = substituteAllKnowns(expr, subDictList)
     if __debug__:
-        if type(result) is SubDict:
-            resultList = SubDictList.fromList([result])
-        else:
-            resultList = result
-        
         allSymbols = {
             symbol
             for subDict in subDictList
