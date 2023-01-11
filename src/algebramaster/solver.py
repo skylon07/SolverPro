@@ -19,12 +19,12 @@ class AlgebraSolver:
 class _BackSubstituterSolver:
     """
     This class is tasked with extrapolating solutions for individual variables
-    given a single "universe" by a "base numerical substitution dictionary".
+    given a single "universe" by a "base numerical substitution dictionary" and
+    a list of keys present in the dictionary to extrapolate from.
 
     A "base numerical substitution dictionary" is a *dictionary* containing
-    *substitutions* from expressions to *numerics* that they equal, the numerics
-    being numbers derived directly from the *base* relation they were solved
-    from.
+    *substitutions* from expressions to *numerics* that they equal. It is
+    considered the *base* set of relations to extrapolate solutions from
 
     This class will provide valid solutions via `getNewSolutions()` only if
         - the substitutions in the base dictionary represent equalities (ie
@@ -57,7 +57,7 @@ class _BackSubstituterSolver:
         - solve for b -- a..2b..2c
         - solve for c -- 2a..b..3c
         """
-        return sorted(exprKeys, key=lambda expr: len(expr.free_symbols))
+        return sorted(exprKeys, key = lambda expr: len(expr.free_symbols))
     
     def _findSolutions(self):
         pass # TODO (from _recursiveSolve...() and _recursiveBranch...())
