@@ -87,7 +87,7 @@ def forwardSubstituteByElimination(expr, subDicts, forSymbol):
         assert all(forSymbol in resultExpr.free_symbols for resultExpr in resultExprs), "subDict should resolve to expressions containing the wanted symbol"
     return resultList
 
-def backSubstituteByInference(subDictList, forSymbol):
+def backSubstituteByInference(subDicts, forSymbol):
     """
     if
     ```
@@ -100,6 +100,7 @@ def backSubstituteByInference(subDictList, forSymbol):
     ```
     """
     
+    subDictList = _convertToSubDictList(subDicts)
     _assertSubDictList(subDictList)
     _assertSympySymbol(forSymbol)
     assert all(forSymbol in subDict for subDict in subDictList), "Substitutions for `forSymbol` should be given in all subDicts"
