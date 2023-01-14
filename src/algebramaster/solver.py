@@ -129,9 +129,10 @@ class _BackSubstituterSolver:
                 # TODO: document why this needs to happen (and make algorithm
                 #       "more robust" by using correct function -- see function
                 #       docs for simplify())
-                simplifiedEliminatedRelation = sympy.simplify(eliminatedRelation)
+                # simplifiedEliminatedRelation = sympy.simplify(eliminatedRelation)
+                simplifiedEliminatedRelation = eliminatedRelation
                 # TODO: is this check needed?
-                relationProvidesNewInformation = simplifiedEliminatedRelation != 0
+                # relationProvidesNewInformation = simplifiedEliminatedRelation != 0
 
             self._unusedExprKeyIdx += 1
         if relationProvidesNewInformation:
