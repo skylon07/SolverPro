@@ -1,9 +1,10 @@
 import sympy
 
-from src.algebramaster.solver import AlgebraSolver, _SympySolveTools
+from src.algebramaster.solver import AlgebraSolver, _BackSubstituterSolver, _SympySolveTools
+from src.algebramaster.structures import SubDict, SubDictList
 
 
-(a, b, c, two) = sympy.symbols("a, b, c, two")
+(a, b, c, d, e, two) = sympy.symbols("a, b, c, d, e, two")
 
 
 class SympySolveToolsTester:
@@ -145,3 +146,82 @@ class BackSubstituterTester:
 
     def testGetsCorrectSolutionsFromMultipleUniverses(self):
         pass # TODO
+
+    def testReturnsSymbolStack(self):
+        assert __debug__ == True
+
+        baseSubs = SubDict({
+            a + 2*b + c: 20,
+            2*a + c: 14,
+            b - a: 1,
+        })
+        solver = _BackSubstituterSolver(baseSubs)
+        solverSolutions = solver.getSolutions()
+        assert '_symbolStack' in solverSolutions[0].__dict__
+
+
+class AlgebraSolverTester:
+    def testSolvesBasicEquations(self):
+        solver = AlgebraSolver()
+        solver.recordRelation(a - 4)
+        solver.recordRelation(b - 5)
+
+        assert solver.universes == [
+            {
+                a: 4,
+                b: 5,
+            },
+        ]
+
+    def testSolvesInSteps(self):
+        solver = AlgebraSolver()
+        assert solver.universes == []
+
+        # a + 2*b + c = 20
+        # 2*a + c = 14
+        # b - a = 1
+        # (a = 4)
+        # (b = 5)
+        # (c = 6)
+
+        solver.recordRelation(a + 2*b + c --- 20)
+        assert solver.universes == [
+            {
+                # a + 2*b + c  =  20
+                a + 2*b + c: 20,
+                # a + 2*b + c  =  20
+                #     2*b      =  20 - a - c
+                #     2        = (20 - a - c)/b
+                (20 - a - c)/b: 2,
+            }
+        ]
+
+        solver.recordRelation(2*a + c --- 14)
+        assert solver.universes == [
+            {
+                a + 2*b + c: 20,
+                (20 - a - c)/b: 2,
+                # 2*a + c  =  14
+                2*a + c: 14,
+                # 2*a + c  =  14
+                # 2*a      =  14 - c
+                # 2        = (14 - c)/a
+                (14 - c)/a: 2,
+            }
+        ]
+
+        solver.recordRelation(b - a --- 1)
+        assert solver.universes == [
+            {
+                a + 2*b + c: 20,
+                (20 - a - c)/b: 2,
+                2*a + c: 14,
+                (14 - c)/a: 2,
+                # b - a = 1
+                b - a: 1,
+                # (solutions for a, b, c)
+                a: 4,
+                b: 5,
+                c: 6,
+            }
+        ]

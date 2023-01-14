@@ -43,6 +43,7 @@ class _BackSubstituterSolver:
             self._exprKeyOrder = tuple(self._sortExprKeys(baseNumericalSubs.keys()))
             self._unusedExprKeyIdx = 0
             self._symbolSubs = SubDict()
+            self._symbolStack = None
 
     def _copy(self):
         selfCopy = _BackSubstituterSolver(_BackSubstituterSolver._copyMode)
@@ -50,9 +51,13 @@ class _BackSubstituterSolver:
         selfCopy._exprKeyOrder = self._exprKeyOrder
         selfCopy._unusedExprKeyIdx = self._unusedExprKeyIdx
         selfCopy._symbolSubs = SubDict(self._symbolSubs)
+        selfCopy._symbolStack = list(self._symbolStack) \
+            if self._symbolStack is not None else None
         return selfCopy
 
     def getSolutions(self):
+        if __debug__:
+            self._resetSymbolStack()
         return SubDictList(subDict for subDict in self._findSolutions())
 
     def _sortExprKeys(self, exprKeys):
@@ -77,9 +82,13 @@ class _BackSubstituterSolver:
         usedAllExprKeys = findRelationResult is None
         if usedAllExprKeys:
             finalSubDict = self._symbolSubs
+            if __debug__:
+                self._copySymbolStackTo(finalSubDict)
             yield finalSubDict
         else:
             (nextUsefulRelation, symbolToSolveFor) = findRelationResult
+            if __debug__:
+                self._addToSymbolStack(symbolToSolveFor)
             solutionsForSymbol = _SympySolveTools.solveSet(nextUsefulRelation, symbolToSolveFor)
             if len(solutionsForSymbol) == 0:
                 # TODO: remove this if it actually never happens (and make an assert for it)
@@ -101,7 +110,6 @@ class _BackSubstituterSolver:
                     branchingSolver._symbolSubs.conditions[symbolToSolveFor] = solutionForSymbol
                     for finalSubDict in branchingSolver._findSolutions():
                         yield self._backSubstitute(finalSubDict, symbolToSolveFor)
-
 
     def _findNextUsefulRelation(self):
         relationProvidesNewInformation = False
@@ -168,6 +176,17 @@ class _BackSubstituterSolver:
     @property
     def _outOfExprKeys(self):
         return self._unusedExprKeyIdx >= len(self._exprKeyOrder)
+
+    # stack of when symbols are solved (for debugging purposes)
+    def _resetSymbolStack(self):
+        self._symbolStack = []
+
+    def _addToSymbolStack(self, symbol):
+        assert isinstance(symbol, sympy.Symbol)
+        self._symbolStack.append(symbol)
+
+    def _copySymbolStackTo(self, subDict):
+        subDict._symbolStack = list(self._symbolStack)
 
     
 class _SympySolveTools:
