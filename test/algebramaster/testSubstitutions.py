@@ -143,6 +143,10 @@ class BackSubstituteByInferenceTester:
             c: 1,
         }, conditions)
         symbol = a
-        subbedConditions = {a: d + 2, b: 3}
+        subbedConditions = {a: d + 2, b: c + 2}
         subResult = backSubstituteByInference(subs, symbol)
-        assert subResult.conditions == subbedConditions
+
+        subbedConditionsForCurrentSymbol = subResult.conditions[a] == subbedConditions[a]
+        assert subbedConditionsForCurrentSymbol
+        didNotSubConditionsForCurrentSymbol = subResult.conditions[b] == subbedConditions[b]
+        assert didNotSubConditionsForCurrentSymbol
