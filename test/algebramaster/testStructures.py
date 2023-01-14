@@ -16,7 +16,7 @@ class SubDictTester:
     def testSubDictUsesConditionsWhenTestingEquals(self):
         origDict = {a: 2, b: 5}
         subDictWithoutConditions = SubDict(origDict)
-        subDictWithConditions = SubDict(origDict, {a - 2})
+        subDictWithConditions = SubDict(origDict, {a: 2})
         
         assert subDictWithConditions != origDict
         assert origDict != subDictWithConditions
@@ -35,8 +35,8 @@ class SubDictListTester:
             assert type(subDict) is SubDict
 
     def testSubDictListCanCreateFromArgsList(self):
-        condition_a = {a - 2}
-        condition_b = {b + 5}
+        condition_a = {a: 2}
+        condition_b = {b: -5}
         origList = [({a: 2, b: 5}, condition_a), ({a: -2, b: -5}, condition_b)]
         subDictList = SubDictList.fromList(origList)
 
@@ -52,7 +52,7 @@ class SubDictListTester:
         assert foundCondition_a and foundCondition_b
 
     def testSubDictListCanCreateFromMixedList(self):
-        condition_b = {b + 5}
+        condition_b = {b: -5}
         origList = [{a: 2, b: 5}, ({a: -2, b: -5}, condition_b)]
         subDictList = SubDictList.fromList(origList)
 
@@ -63,7 +63,7 @@ class SubDictListTester:
             if subDict.conditions == condition_b:
                 foundCondition_b = True
             else:
-                assert subDict.conditions == set()
+                assert subDict.conditions == dict()
         assert foundCondition_b
 
     def testSubDictListCanEqualListOfDicts(self):

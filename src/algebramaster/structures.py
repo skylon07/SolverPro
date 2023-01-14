@@ -15,7 +15,7 @@ class SubDict(dict, Model):
             if type(dictLike) is SubDict:
                 conditions = dictLike._conditions
             else:
-                conditions = set()
+                conditions = dict()
         
         dictLike = self._assertValidSubDictLike(dictLike)
         super().__init__(dictLike)
@@ -46,8 +46,8 @@ class SubDict(dict, Model):
 
     @conditions.setter
     def conditions(self, newConditions):
-        self._conditions = set(newConditions)
-        assert all(self._isValidKey(condition) for condition in self._conditions), "SubDict conditions should be a set of valid items"
+        self._conditions = dict(newConditions)
+        assert all(self._isValidConditionKey(symbol) for symbol in self._conditions), "SubDict conditions should be a set of valid items"
 
     def __setitem__(self, key, val):
         assert self._isValidKey(key), "SubDict item should be set by a valid key"
@@ -66,6 +66,9 @@ class SubDict(dict, Model):
 
     def _isValidKey(self, key):
         return isinstance(key, sympy.Expr)
+
+    def _isValidConditionKey(self, key):
+        return isinstance(key, sympy.Symbol)
 
     def _isValidVal(self, val):
         return isNumeric(val) or isinstance(val, sympy.Basic)
