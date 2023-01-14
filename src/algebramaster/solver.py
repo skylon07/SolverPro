@@ -158,8 +158,11 @@ class _BackSubstituterSolver:
         return min(symbolCount, key = lambda symbol: symbolCount[symbol])
 
     def _backSubstitute(self, finalSubDict, symbolToSolveFor):
-        subForSymbolToSolveFor = backSubstituteByInference(finalSubDict, symbolToSolveFor)[symbolToSolveFor]
+        backSubResult = backSubstituteByInference(finalSubDict, symbolToSolveFor)
+        subForSymbolToSolveFor = backSubResult[symbolToSolveFor]
+        newConditions = backSubResult.conditions
         finalSubDict[symbolToSolveFor] = subForSymbolToSolveFor
+        finalSubDict.conditions = newConditions
         return finalSubDict
 
     @property
