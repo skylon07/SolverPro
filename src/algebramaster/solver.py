@@ -1,7 +1,10 @@
 import sympy
 
+from src.common.functions import *
+
 from .structures import *
 from .substitution import *
+
 
 class AlgebraSolver:
     def __init__(self):
