@@ -97,8 +97,7 @@ class _BackSubstituterSolver:
                 for solutionForSymbol in solutionsForSymbol:
                     branchingSolver = self._copy()
                     branchingSolver._symbolSubs[symbolToSolveFor] = solutionForSymbol
-                    solutionCondition = symbolToSolveFor - solutionForSymbol
-                    branchingSolver._symbolSubs.conditions.add(solutionCondition)
+                    branchingSolver._symbolSubs.conditions[symbolToSolveFor] = solutionForSymbol
                     for finalSubDict in branchingSolver._findSolutions():
                         yield self._backSubstitute(finalSubDict, symbolToSolveFor)
 
