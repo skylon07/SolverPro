@@ -133,11 +133,11 @@ class BackSubstituterTester:
             ({
                 a: 5,
                 b: 3,
-            }, {b - 3}),
+            }, {b: 3}),
             ({
                 a: 10,
                 b: -2,
-            }, {b + 2}),
+            }, {b: -2}),
         ])
         solver2 = _BackSubstituterSolver(baseSubs2)
         solverSolutions2 = solver2.getSolutions()
