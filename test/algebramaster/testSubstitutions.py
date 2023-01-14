@@ -86,6 +86,15 @@ class SubstituteAllKnownsTester:
             errorThrown3 = True
         assert not errorThrown3
 
+    def testCopiesConditions(self):
+        expr = a + b + c
+        conditions = {a: 2}
+        subs = SubDict({
+            a + b: 4,
+        }, conditions)
+        subResult = substituteAllKnowns(expr, subs)
+        assert subResult.conditions == conditions
+
 
 class SubstituteToNumericsTester:
     def testNumericsCanBeSubstituted(self):
@@ -125,3 +134,15 @@ class BackSubstituteByInferenceTester:
         result = SubDict({a: d + 2})
         subResult = backSubstituteByInference(subs, symbol)
         assert subResult == result
+
+    def testBackSubstitutesConditions(self):
+        conditions = {a: b - c + d, b: c + 2}
+        subs = SubDict({
+            a: b - c + d,
+            b: c + 2,
+            c: 1,
+        }, conditions)
+        symbol = a
+        subbedConditions = {a: d + 2, b: 3}
+        subResult = backSubstituteByInference(subs, symbol)
+        assert subResult.conditions == subbedConditions

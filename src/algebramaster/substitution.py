@@ -127,6 +127,11 @@ def backSubstituteByInference(subDicts, forSymbol):
     assert all(forSymbol in subDict for subDict in subDictList), "Substitutions for `forSymbol` should be given in all subDicts"
 
     finalList = substituteAllKnowns(forSymbol, subDictList)
+    for (finalSubDict, origSubDict) in zip(finalList, subDictList):
+        assert finalSubDict.conditions == origSubDict.conditions, "The wrong subDicts were matched together"
+        for (conditionSymbol, value) in finalSubDict.conditions.items():
+            subbedValue = _subDictUntilFixed(value, origSubDict)
+            finalSubDict.conditions[conditionSymbol] = subbedValue
 
     # SubDicts (expr --> subbedExpr) are returned to carry the conditions
     # of the substitution
