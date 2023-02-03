@@ -101,15 +101,26 @@ class SubDictList(UnorderedList, Model):
 
     def append(self, subDict):
         assert type(subDict) is SubDict, "SubDictList item must be a SubDict"
-        super().append(subDict)
+        return super().append(subDict)
 
     def extend(self, listLike):
         listLike = self._assertValidItems(listLike)
-        super().update(listLike)
+        return super().update(listLike)
+
+    def index(self, index, subDict):
+        assert type(subDict) is SubDict, "SubDictList item must be a SubDict"
+        return super().index(index, subDict)
 
     def insert(self, index, subDict):
         assert type(subDict) is SubDict, "SubDictList item must be a SubDict"
-        super().insert(index, subDict)
+        return super().insert(index, subDict)
+
+    def pop(self, index):
+        return super().pop(index)
+
+    def remove(self, subDict):
+        assert type(subDict) is SubDict, "SubDictList item must be a SubDict"
+        return super().remove(subDict)
 
     def _assertValidItems(self, listLike):
         if __debug__:
