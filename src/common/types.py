@@ -42,4 +42,4 @@ class UnorderedList(list):
             if item not in other:
                 return False
         
-        return True
+        return len(self) == len(other)
