@@ -52,6 +52,27 @@ class SympySolveToolsTester:
         toolsSolution1 = _SympySolveTools.solveSet(expr, 2)
         assert toolsSolution1 == actualSolution1
 
+    def testSolvesSpecialOnesCaseByIgnoringMultiplies(self):
+        expr = -a + b - 1
+
+        # -a + b = 1
+        # simple, right? NOPE!
+        # sympy.solveset(expr, 1) yields b/(a + 1)
+        # this is why:
+        #   -a + b - 1 = 0
+        #   -a     - 1 = -b
+        #    a     + 1 =  b
+        #         1    =  b/(a + 1)
+        # so... technically not wrong, but we wanted it to solve
+        # for the 1 already there, not for the 1 that was created
+        # during the identity division (might also have to do with
+        # it trying to solve for the 1 in -a, aka -1 * a)
+        assert sympy.solveset(expr, 1) == {b/(a + 1)}
+
+        wantedSolution = {-a + b}
+        toolsSolution = _SympySolveTools.solveSet(expr, 1)
+        assert toolsSolution == wantedSolution
+
 
 class BackSubstituterTester:
     def testGetsCorrectSolutionsFromSingleUniverse(self):

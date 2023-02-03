@@ -220,29 +220,45 @@ class _SympySolveTools:
     @classmethod
     def solveSet(cls, expr, atom):
         if isNumeric(atom):
-            # solving for variables in exponents leads to errors with no clean fixes,
-            # so we just ignore them by converting them to symbols first
-            atomSub = sympy.Symbol(":NUMERIC {}:".format(atom))
-            exprWithNumericSubbed = cls._substituteNumericInBadTerms(atom, atomSub, expr)
-            solution = cls._solveSetForAtom(exprWithNumericSubbed, atom)
+            # sometimes solving for numbers gets weird... so we select the
+            # specific numbers we want to solve for by converting them to a
+            # different symbol first
+            atomSub = sympy.Symbol(f":NUMERIC {atom}:")
+            exprWithNumericSubbed = cls._substituteNumeric_avoidBadTerms(atom, atomSub, expr)
+            solution = cls._solveSetForAtom(exprWithNumericSubbed, atomSub)
             solution.reverseSubstitutionOfNumeric({atomSub: atom})
         else:
             solution = cls._solveSetForAtom(expr, atom)
         return cls._interpretSolution(solution)
 
     @classmethod
-    def _substituteNumericInBadTerms(cls, numericAtom, numericAtomSub, expr):
-        isBadExpr = expr.is_Pow
+    def _substituteNumeric_avoidBadTerms(cls, numericAtom, numericAtomSub, expr: sympy.Expr):
+        # pow expressions are bad, since solving for numerics in them tends to
+        # produce crazy and hard-to-predict results;
+        # mul expressions are bad in the case of 1 because then it tries to
+        # consider the negative expressions in any atoms
+        isBadExpr = expr.is_Pow or (
+            abs(numericAtom) == 1 and
+            expr.is_Mul and
+            expr.args[0] == -1
+        )
         if isBadExpr:
-            return expr.subs(numericAtom, numericAtomSub)
-        elif expr.is_Atom:
             return expr
+        elif expr.is_Atom:
+            exprIsNumericToSub = expr == numericAtom
+            exprIsNegNumericToSub = expr == -numericAtom
+            if exprIsNumericToSub:
+                return numericAtomSub
+            elif exprIsNegNumericToSub:
+                return -numericAtomSub
+            else:
+                return expr
         else:
             # this is a neat way to traverse expression trees as given by
             # https://docs.sympy.org/latest/tutorials/intro-tutorial/manipulation.html#recursing-through-an-expression-tree
             expr: sympy.Expr = expr
             return expr.func(*(
-                cls._substituteNumericInBadTerms(numericAtom, numericAtomSub, term)
+                cls._substituteNumeric_avoidBadTerms(numericAtom, numericAtomSub, term)
                 for term in expr.args
             ))
 
