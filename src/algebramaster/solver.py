@@ -8,16 +8,94 @@ from .substitution import *
 
 class AlgebraSolver:
     def __init__(self):
-        pass # TODO
+        self._universes = SubDictList([SubDict()])
+        self._unsolvableRelations = []
 
-    def extractKnowledgeFromRelation(self, relation):
-        pass # TODO
+    @property
+    def universes(self):
+        return self._universes
+
+    def recordRelation(self, relation):
+        foundAnyNumerics = self._extractNumericsFromRelation(relation)
+        if foundAnyNumerics:
+            self._addBackSubstitutedInferences()
+            self._attemptReconcileForUnsolvedRelations()
+        else:
+            self._unsolvableRelations.append(relation)
     
     def _extractNumericsFromRelation(self, relation):
-        pass # TODO: return base relational subs for given relation
+        foundAnyNumerics = False
+        # negative because the numeric in x + 4 (= 0) is a +4,
+        # however the actual solution is x = -4 (the opposite of the found atom);
+        # in other words, if a - 5 = 0, the atom is -5 even though a = 5
+        for negEqNumeric in self._findSolvableNumerics(relation):
+            foundAnyNumerics = True
+            eqNumeric = -negEqNumeric
+            solutions = _SympySolveTools.solveSet(relation, eqNumeric)
+            for exprKey in solutions:
+                for universe in self._universes:
+                    # TODO: check for existing exprKeys; do they contradict?
+                    universe[exprKey] = eqNumeric
+        return foundAnyNumerics
 
     def _findSolvableNumerics(self, expr):
-        pass # TODO
+        if isNumeric(expr):
+            yield expr
+        elif expr.is_Atom:
+            pass
+        elif expr.is_Add or expr.is_Mul:
+            for term in expr.args:
+                for numeric in self._findSolvableNumerics(term):
+                    yield numeric
+        elif expr.is_Pow:
+            pass # we ignore solving for numerics in power terms (see note in _SympySolveTools)
+        else:
+            raise NotImplementedError("Unconsidered expression case when finding solvable numerics")
+
+    def _addBackSubstitutedInferences(self):
+        for universeDict in self._universes:
+            newSolutionsList = _BackSubstituterSolver(universeDict).getSolutions()
+            assert len(newSolutionsList) > 0, "Getting solutions should give back at least one dict (even if it's empty)"
+            if len(newSolutionsList) == 1:
+                newSolutions = newSolutionsList[0]
+                assert newSolutions.conditions == universeDict.conditions, "One solution dict should imply no branching (and therefore no new conditions) occurred"
+                newNumericSolutions = self._onlyNumericSubs(newSolutions)
+                if len(newNumericSolutions) > 0:
+                    emplaceInto(newNumericSolutions, universeDict)
+            else:
+                self._universes.remove(universeDict)
+                for newSolutions in newSolutionsList:
+                    newNumericSolutions = self._onlyNumericSubs(newSolutions)
+                    if len(newNumericSolutions) > 0:
+                        newUniverseDict = SubDict(universeDict)
+                        emplaceInto(newNumericSolutions, newUniverseDict)
+                        newUniverseDict.conditions = newSolutions.conditions
+                        self._universes.append(newUniverseDict)
+
+    def _onlyNumericSubs(self, subDict):
+        return SubDict({
+            expr: numeric
+            for (expr, numeric) in subDict.items()
+            if isNumeric(numeric)
+        })
+
+    def _attemptReconcileForUnsolvedRelations(self):
+        reattemptReconcile = False
+        for relationWithoutNumerics in self._unsolvableRelations:
+            removeOrigRelation = False
+            relationMaybeWithNumerics_dictList = substituteAllKnowns(relationWithoutNumerics, self._universes)
+            for relationMaybeWithNumerics_dict in relationMaybeWithNumerics_dictList:
+                relationMaybeWithNumerics = relationMaybeWithNumerics_dict[relationWithoutNumerics]
+                foundAnyNumerics = self._extractNumericsFromRelation(relationMaybeWithNumerics)
+                if foundAnyNumerics:
+                    removeOrigRelation = True
+                    reattemptReconcile = True
+                    self._addBackSubstitutedInferences()
+            
+            if removeOrigRelation:
+                self._unsolvableRelations.remove(relationWithoutNumerics)
+        if reattemptReconcile:
+            self._attemptReconcileForUnsolvedRelations()
 
 
 class _BackSubstituterSolver:

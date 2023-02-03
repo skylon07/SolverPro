@@ -182,6 +182,22 @@ class BackSubstituterTester:
 
 
 class AlgebraSolverTester:
+    # a reminder:
+    # 
+    # the desired format of SubDict results containing solutions
+    # should represent the keys/values such that the colon represents an
+    # equals sign (aka {a: -3} means a = -3, represented by a + 3)
+    #
+    # thanks to the negation trick when extracting numerics from relations,
+    # this means numeric solutions should only be interpreted from the right
+    # sides of equations, meaning the solution to 2 + a (= 0) would NOT be
+    # 2 = -a, but rather a = -2, and consequently the resulting SubDict would
+    # NOT be {-a: 2}, but rather {a: -2}
+    #
+    # for this reason, many of the tests do and should reverse the equation
+    # (by subtraction of the values on both sides) if the numeric ends up on
+    # the left side of the equality
+
     def testSolvesBasicEquations(self):
         solver = AlgebraSolver()
         solver.recordRelation(a - 4)
@@ -196,7 +212,7 @@ class AlgebraSolverTester:
 
     def testSolvesInSteps(self):
         solver = AlgebraSolver()
-        assert solver.universes == []
+        assert solver.universes == [{}]
 
         # a + 2*b + c = 20
         # 2*a + c = 14
@@ -208,12 +224,14 @@ class AlgebraSolverTester:
         solver.recordRelation(a + 2*b + c --- 20)
         assert solver.universes == [
             {
-                # a + 2*b + c  =  20
+                # a + 2*b + c  =   20
                 a + 2*b + c: 20,
-                # a + 2*b + c  =  20
-                #     2*b      =  20 - a - c
-                #     2        = (20 - a - c)/b
-                (20 - a - c)/b: 2,
+                # a + 2*b + c  =   20
+                #     2*b      =   20 - a - c
+                #     2        =  (20 - a - c)/b
+                # <--->
+                # -(20 - a - c)/b = -2
+                -(20 - a - c)/b: -2,
             }
         ]
 
@@ -221,13 +239,15 @@ class AlgebraSolverTester:
         assert solver.universes == [
             {
                 a + 2*b + c: 20,
-                (20 - a - c)/b: 2,
-                # 2*a + c  =  14
+                -(20 - a - c)/b: -2,
+                # 2*a + c  =   14
                 2*a + c: 14,
-                # 2*a + c  =  14
-                # 2*a      =  14 - c
-                # 2        = (14 - c)/a
-                (14 - c)/a: 2,
+                # 2*a + c  =   14
+                # 2*a      =   14 - c
+                # 2        =  (14 - c)/a
+                # <--->
+                # -(14 - c)/a = -2
+                -(14 - c)/a: -2,
             }
         ]
 
@@ -235,9 +255,9 @@ class AlgebraSolverTester:
         assert solver.universes == [
             {
                 a + 2*b + c: 20,
-                (20 - a - c)/b: 2,
+                -(20 - a - c)/b: -2,
                 2*a + c: 14,
-                (14 - c)/a: 2,
+                -(14 - c)/a: -2,
                 # b - a = 1
                 b - a: 1,
                 # (solutions for a, b, c)
@@ -246,3 +266,45 @@ class AlgebraSolverTester:
                 c: 6,
             }
         ]
+
+    def testTracksUnsolvableRelations(self):
+        solver1 = AlgebraSolver()
+        assert solver1.universes == [{}]
+        assert solver1._unsolvableRelations == []
+
+        relationWithNoNumerics = a + b + c
+        solver1.recordRelation(relationWithNoNumerics)
+        assert solver1.universes == [{}]
+        assert solver1._unsolvableRelations == [a + b + c]
+
+        solver1.recordRelation(a --- 4)
+        assert solver1.universes == [
+            {
+                a: 4,
+                b + c: -4,
+            }
+        ]
+        assert solver1._unsolvableRelations == []
+
+        solver2 = AlgebraSolver()
+        assert solver2.universes == [{}]
+        assert solver2._unsolvableRelations == []
+
+        # b + c + d intentionally before a + b to test that unsolved relations
+        # will be revisited if later unsolved relations end up being solved
+        # and providing new information
+        solver2.recordRelation(b + c + d)
+        solver2.recordRelation(a + b)
+        solver2.recordRelation(c + e)
+        assert solver2.universes == [{}]
+        assert solver2._unsolvableRelations == [b + c + d, a + b, c + e]
+
+        solver2.recordRelation(a --- 3)
+        assert solver2.universes == [
+            {
+                a: 3,
+                b: -3,
+                c + d: 3,
+            }
+        ]
+        assert solver2._unsolvableRelations == [c + e]
