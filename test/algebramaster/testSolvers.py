@@ -308,3 +308,233 @@ class AlgebraSolverTester:
             }
         ]
         assert solver2._unsolvableRelations == [c + e]
+
+# TODO: add applicable tests from the old tests copied below:
+#   # a + b = 4
+#   # a - b = 2
+#   # (a = 3)
+#   # (b = 1)
+#   (a, b) = sympy.symbols("a, b")
+#   testSolver(
+#       [
+#           a + b  -  4,
+#           a - b  -  2,
+#       ],
+#       [{
+#           a: 3,
+#           b: 1,
+#       }],
+#       "basic two-relation two-variable one-universe system",
+#       allSolutionsProvided=True,
+#   )
+#   Tester.stopIfFailed()
+    
+#   # a + 2b + c = 20
+#   # 2a + c = 14
+#   # b - a = 1
+#   # (a = 4)
+#   # (b = 5)
+#   # (c = 6)
+#   (a, b, c) = sympy.symbols("a, b, c")
+#   testSolver(
+#       [
+#           a + 2*b + c  -  20,
+#           2*a + c  -  14,
+#           b - a  -  1,
+#       ],
+#       [{
+#           a: 4,
+#           b: 5,
+#           c: 6,
+#       }],
+#       "basic three-relation three-variable one-universe system",
+#       allSolutionsProvided=True
+#   )
+#   Tester.stopIfFailed()
+    
+#   # a + b = 6
+#   # b - c = 7
+#   # c = d - 8
+#   # d + e = -7
+#   # e + a = -10
+#   # (a = 2)
+#   # (b = 4)
+#   # (c = -3)
+#   # (d = 5)
+#   # (e = -12)
+#   (a, b, c, d, e) = sympy.symbols("a, b, c, d, e")
+#   testSolver(
+#       [
+#           a + b  -  6,
+#           b - c  -  7,
+#           c  -  (d - 8),
+#           d + e  -  -7,
+#           e + a  -  -10,
+#       ],
+#       [{
+#           a: 2,
+#           b: 4,
+#           c: -3,
+#           d: 5,
+#           e: -12,
+#       }],
+#       "five-variable chained relations system",
+#       allSolutionsProvided=True,
+#   )
+#   Tester.stopIfFailed()
+    
+#   # ab = 8
+#   # b = 2a
+#   # (a = -2, 2)
+#   # (b = -4, 4)
+#   (a, b) = sympy.symbols("a, b")
+#   testSolver(
+#       [
+#           a*b  -  8,
+#           b  -  2*a,
+#       ],
+#       [{
+#           a: 2,
+#           b: 4,
+#       }, {
+#           a: -2,
+#           b: -4,
+#       }],
+#       "two-variable two-universe multiplication system",
+#       allSolutionsProvided=True
+#   )
+#   Tester.stopIfFailed()
+    
+#   # f = m * a
+#   # f = 80
+#   # m = 20
+#   # (a = 4)
+#   (f, m, a) = sympy.symbols("f, m, a")
+#   testSolver(
+#       [
+#           f  -  m*a,
+#           f - 80,
+#           m - 20,
+#       ],
+#       [{
+#           f: 80,
+#           m: 20,
+#           a: 4,
+#       }],
+#       "system with one variable-only relation",
+#       allSolutionsProvided=True,
+#   )
+#   Tester.stopIfFailed()
+    
+#   # k1i = 1/2 * m1 * v1i^2
+#   # k2i = 1/2 * m2 * v2i^2
+#   # k1f = 1/2 * m1 * v1f^2
+#   # k2f = 1/2 * m2 * v2f^2
+#   # kt = k1i + k2i
+#   # kt = k1f + k2f
+#   # m1 = 10
+#   # m2 = 16
+#   # v1i = 15
+#   # v2i = 10
+#   # v1f = 5
+#   # (v2f = 15)
+#   # (k1i = 1125)
+#   # (k2i = 800)
+#   # (kt = 1925)
+#   # (k1f = 125)
+#   # (k2f = 1800)
+    
+#   (m1, m2, v1i, v2i, v1f, v2f, k1i, k2i, k1f, k2f, kt) = sympy.symbols("m1, m2, v1i, v2i, v1f, v2f, k1i, k2i, k1f, k2f, kt")
+#   testSolver(
+#       [
+#           k1i  -  1/2 * m1 * v1i**2,
+#           k2i  -  1/2 * m2 * v2i**2,
+#           k1f  -  1/2 * m1 * v1f**2,
+#           k2f  -  1/2 * m2 * v2f**2,
+#           kt  -  (k1i + k2i),
+#           kt  -  (k1f + k2f),
+#           m1 - 10,
+#           m2 - 16,
+#           v1i - 15,
+#           v2i - 10,
+#           v1f - 5,
+#       ],
+#       [{
+#           m1: 10,
+#           m2: 16,
+#           v1i: 15,
+#           v2i: 10,
+#           v1f: 5,
+#           v2f: 15,
+#           k1i: 1125,
+#           k2i: 800,
+#           k1f: 125,
+#           k2f: 1800,
+#           kt: 1925,
+#       }, {
+#           m1: 10,
+#           m2: 16,
+#           v1i: 15,
+#           v2i: 10,
+#           v1f: 5,
+#           v2f: -15, # the only thing different (because ±√(2*k2f/m2))
+#           k1i: 1125,
+#           k2i: 800,
+#           k1f: 125,
+#           k2f: 1800,
+#           kt: 1925,
+#       }],
+#       "system with multiple variable-only relations",
+#       allSolutionsProvided=True
+#   )
+#   Tester.stopIfFailed()
+    
+#   # a + c = b
+#   # d - b = c
+#   # a*d = 4*(b + c)
+#   # a * 10 = d * 4
+#   # (a = 4)
+#   # (b = 7)
+#   # (c = 3)
+#   # (d = 10)
+#   (a, b, c, d) = sympy.symbols("a, b, c, d")
+#   testSolver(
+#       [
+#           a + c  -  b,
+#           d - b  -  c,
+#           a*d  -  4*(b + c),
+#           a*10  -  d*4,
+#       ],
+#       [{
+#           a: 4,
+#           b: 7,
+#           c: 3,
+#           d: 10,
+#       }],
+#       "system with relations missing numerics",
+#       allSolutionsProvided=False
+#   )
+#   Tester.stopIfFailed()
+    
+#   # a + b = -c
+#   # b * b + c = a
+#   # b + b - a = -c
+#   # (a = 1)
+#   # (b = 2)
+#   # (c = -3)
+#   (a, b, c) = sympy.symbols("a, b, c")
+#   testSolver(
+#       [
+#           a + b  +  c,
+#           b * b + c  -  a,
+#           b + b - a  +  c,
+#       ],
+#       [{
+#           a: 1,
+#           b: 2,
+#           c: -3,
+#       }],
+#       "system with all relations missing numerics (and one positive-only)",
+#       allSolutionsProvided=False
+#   )
+#   Tester.stopIfFailed()
