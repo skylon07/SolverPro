@@ -257,7 +257,8 @@ class _BackSubstituterSolver:
 
     @property
     def _outOfExprKeys(self):
-        return self._unusedExprKeyIdx >= len(self._exprKeyOrder)
+        assert self._unusedExprKeyIdx <= len(self._exprKeyOrder)
+        return self._unusedExprKeyIdx == len(self._exprKeyOrder)
 
     # stack of when symbols are solved (for debugging purposes)
     def _resetSymbolStack(self):
