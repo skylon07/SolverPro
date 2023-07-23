@@ -1,6 +1,6 @@
 import sympy
 
-from src.algebramaster.structures import *
+from src.algebramaster_OLD.structures import *
 
 
 (a, b) = sympy.symbols("a, b")

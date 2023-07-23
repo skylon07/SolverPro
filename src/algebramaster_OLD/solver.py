@@ -430,6 +430,8 @@ class _SympySolveTools:
                     # ConditionSets really don't like numerics as their first arg... this gets around that
                     # (of course, this means the extractor will need to convert it back later...)
                     # TODO: create NumericSymbol class
+                    class NumericSymbol:
+                        pass
                     symbolSubbed = NumericSymbol(symbolSubbed)
                 eqConditionSubbed = sympy.Eq(eqLeft.subs(subsDict), eqRight.subs(subsDict))
                 baseSetSubbed = self._performSubsOnSet(baseSet, subsDict)

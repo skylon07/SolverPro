@@ -1,7 +1,7 @@
 import sympy
 
-from src.algebramaster.solver import AlgebraSolver, _BackSubstituterSolver, _SympySolveTools
-from src.algebramaster.structures import SubDict, SubDictList
+from src.algebramaster_OLD.solver import AlgebraSolver, _BackSubstituterSolver, _SympySolveTools
+from src.algebramaster_OLD.structures import SubDict, SubDictList
 
 
 (a, b, c, d, e, two) = sympy.symbols("a, b, c, d, e, two")
