@@ -1,1 +1,1 @@
-pyinstaller -cF ../../src/app/SolverProApp.py --name='SolverPro'
+pyinstaller -cF ../../src/app/SolverProApp.py --name=SolverPro
