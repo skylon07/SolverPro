@@ -6,3 +6,4 @@
 4. (Mac only) run `./maketar.sh`
    - This is done since executables only retain their `chmod +x` status when using tarballs
 5. Upload `.tgz`/`.exe` (*NOT* raw Unix executable!) as attachments to the release
+6. Update `README.md` to point to new downloads
