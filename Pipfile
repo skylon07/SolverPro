@@ -10,6 +10,7 @@ textual = "*"
 [dev-packages]
 pyinstaller = "*"
 pytest = "*"
+pywin32-ctypes = "*"
 
 [requires]
 python_version = "3.10"
