@@ -1,14 +1,13 @@
 import re
 
+from src.common.types import Enum, EnumInstance
 
-class LexerTokenType:
-    def __init__(self, reprStr: str):
-        self.reprStr = reprStr
-    
-    def __repr__(self):
-        return self.reprStr
 
-class LexerTokenTypes:
+class LexerTokenType(EnumInstance):
+    pass
+
+
+class LexerTokenTypes(Enum):
     IDENTIFIER  = LexerTokenType("IDENTIFIER")
     INT         = LexerTokenType("INT")
     FLOAT       = LexerTokenType("FLOAT")
