@@ -249,3 +249,5 @@ class CommandLexerTester:
             LexerToken("*", LexerTokenTypes.STAR, 10),
             LexerToken("f", LexerTokenTypes.IDENTIFIER, 11)
         ], "Lexer did not correctly process expression with various operators/numerics"
+
+    # TODO: edge cases and error throwing tests

@@ -65,3 +65,5 @@ class AlgebraSolverTester:
         solver4.recordRelation(a + b, 5)
         assert solver4._symbolValues == {a: {2, -2}, b: {3, 7}}, \
             "Solver did not correctly infer multiple values from relation with multiple outcomes"
+
+    # TODO: edge cases and error throwing tests
