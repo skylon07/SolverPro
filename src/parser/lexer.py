@@ -1,9 +1,9 @@
 import re
 
-from src.common.types import Enum, EnumInstance
+from src.common.types import Enum, EnumString
 
 
-class LexerTokenType(EnumInstance):
+class LexerTokenType(EnumString):
     pass
 
 
