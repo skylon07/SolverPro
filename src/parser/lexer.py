@@ -95,7 +95,7 @@ class CommandLexer:
             ), # yields to INT or PERIOD
         )
 
-    def findTokens(self, data: str, withEOL = True):
+    def findTokens(self, data: str, withEol = True):
         dataCharsProcessed = 0
         for lineData in data.split("\n"):
             while len(lineData) > 0:
@@ -123,7 +123,7 @@ class CommandLexer:
                 yield LexerToken(matchedStr, tokenType, dataCharsProcessed)
                 lineData = lineData[len(matchedStr):]
                 dataCharsProcessed += len(matchedStr)
-            if withEOL:
+            if withEol:
                 yield LexerToken("", self.types.EOL, dataCharsProcessed)
             dataCharsProcessed += len("\n")
 
