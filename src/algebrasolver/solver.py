@@ -59,7 +59,8 @@ class AlgebraSolver:
 
     def _solveRelationsForSingleUnknown(self, relations: Iterable[sympy.Expr]):
         for relation in relations:
-            assert(len(relation.free_symbols) == 1), "Relation had more than one unknown symbol to solve for"
+            assert(len(relation.free_symbols) == 1), \
+                "Relation had more than one unknown symbol to solve for"
             unknownSymbol = first(relation.free_symbols)
             solutionSet = sympy.solveset(relation, unknownSymbol)
             yield (unknownSymbol, solutionSet)
@@ -70,7 +71,8 @@ class AlgebraSolver:
             if len(symbolValuePairs) > 0:
                 symbolSolved = symbolValuePairs[0][0]
                 allSymbolsTheSame = all(symbol == symbolSolved for (symbol, value) in symbolValuePairs)
-                assert allSymbolsTheSame, "Substitutions in relation led to different unknown variables"
+                assert allSymbolsTheSame, \
+                    "Substitutions in relation led to different unknown variables"
 
         symbol = None
         totalSolutionSet = sympy.FiniteSet()

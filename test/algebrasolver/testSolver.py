@@ -46,12 +46,13 @@ class AlgebraSolverTester:
     def testSolverInfersVariableSolutions(self):
         solver1 = AlgebraSolver()
         solver1.recordRelation(2*b, 8)
-        assert solver1._symbolValues == {b: {4}}
+        assert solver1._symbolValues == {b: {4}}, \
+            "Solver did not correctly solve simple single variable relation"
 
         solver2 = AlgebraSolver()
         solver2.recordRelation(9, a**2)
         assert solver2._symbolValues == {a: {3, -3}}, \
-            "Solver did not correctly solve single variable relation"
+            "Solver did not correctly solve exponent single variable relation"
 
         solver3 = AlgebraSolver()
         solver3.recordRelation(a, 2*b)
