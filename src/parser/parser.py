@@ -333,9 +333,15 @@ class Command(Enum):
         self.type = commandType
         self.data = data
 
+    def __eq__(self, other):
+        if type(other) is not Command:
+            return False
+        
+        return self.type == other.type and self.data == other.data
+
     @classmethod
     def empty(cls):
-        return cls(cls.EMPTY)
+        return cls(cls.EMPTY, None)
     
     @classmethod
     def recordRelation(cls, relation: tuple[sympy.Expr, sympy.Expr]):
