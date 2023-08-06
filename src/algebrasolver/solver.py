@@ -32,10 +32,10 @@ class AlgebraSolver:
             if symbol in relation.free_symbols
         ]
     
-    def substituteKnownsFor(self, relation: sympy.Expr):
+    def substituteKnownsFor(self, expression: sympy.Expr) -> Generator[sympy.Expr, Any, None]:
         for symbolValueCombination in self._generateSymbolValueCombinations():
-            relationWithKnownsSubbed: sympy.Expr = relation.subs(symbolValueCombination)
-            yield relationWithKnownsSubbed
+            expressionWithKnownsSubbed = expression.subs(symbolValueCombination)
+            yield expressionWithKnownsSubbed
 
     def _inferSymbolValuesFromRelations(self):
         anySymbolsUpdated = False
