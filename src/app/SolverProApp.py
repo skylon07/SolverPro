@@ -2,19 +2,22 @@ from textual import events, on
 from textual.app import App
 from textual.reactive import var
 from textual.screen import Screen
-from textual.widgets import Label, Header, TextLog, Input
+from textual.widgets import Header, TextLog, Input
 
-from src.common.functions import first
+from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, ProcessResult, Command
 
 
 class MainScreen(Screen):
     def compose(self):
+        yield Header(show_clock = True)
         yield TextLog()
         yield Input(placeholder = " < Command >")
         
     def on_mount(self):
         self.focus_next(Input)
+        self.app.title = f"--- Solver Pro {getVersion()} ---"
+        self.query_one(Header).tall = True
 
     @on(Input.Submitted)
     def runCommand(self, event: Input.Submitted):
