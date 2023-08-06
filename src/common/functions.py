@@ -16,3 +16,6 @@ def first(iterable, default = _firstNoDefault):
         raise ValueError("Iterable contained no elements (and no default value was given)")
     else:
         return default
+
+def getVersion():
+    return "0.1.0"
