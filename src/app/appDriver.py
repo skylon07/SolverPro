@@ -11,9 +11,9 @@ class AppDriver:
     def processCommandLines(self, commandsStr: str):
         tokens = tuple(self._lexer.findTokens(commandsStr))
         for command in self._parser.parse(tokens):
-            yield self.processCommand(command)
+            yield self._processCommand(command)
 
-    def processCommand(self, command: Command):
+    def _processCommand(self, command: Command):
         if command.type is Command.EMPTY:
             return ProcessResult(Command.EMPTY, None)
         
@@ -35,3 +35,9 @@ class ProcessResult:
     def __init__(self, commandType: CommandType, data):
         self.type = commandType
         self.data = data
+
+    def __eq__(self, other):
+        if type(other) is not ProcessResult:
+            return False
+        
+        return self.type == other.type and self.data == other.data
