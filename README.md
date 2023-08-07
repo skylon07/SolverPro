@@ -10,14 +10,14 @@ Installing Solver Pro is easy! Just follow the instructions for your operating s
 1. Download the [latest release](https://github.com/skylon07/SolverPro/releases/latest/download/SolverPro.tgz) for Solver Pro
 2. Double-click the `SolverPro.tgz` file to decompress it
 3. (First run only) Right-click the `SolverPro` application and click "Open", then when the security prompt comes up, click [Open] again
-   - If you're wondering what that security prompt was, [here's some info on that](#why-does-my-mac-say-that-solver-pro-is-an-application-downloaded-from-the-internet-is-it-dangerous)
+   - If you're wondering what that security prompt was, [here's some info on that](#why-does-my-computer-say-that-windows-protected-your-pcsolver-pro-is-an-application-downloaded-from-the-internet-is-it-dangerous)
 4. Double-click the `SolverPro` application to run it!
 
 ### Windows
 1. Download the [latest release](https://github.com/skylon07/SolverPro/releases/latest/download/SolverPro.exe) for Solver Pro
 2. Run the `SolverPro.exe` executable.
-3. (First run only) When "Windows protected your PC" pops up, click "<u>More Info</u>" and then the [Run Anyway] button at the bottom
-   - If you're wondering why Windows thinks it needs to "protect you", [here's some info on that](#why-does-my-mac-say-that-solver-pro-is-an-application-downloaded-from-the-internet-is-it-dangerous)
+3. (First run only) When "Windows protected your PC" pops up, click "<u>More Info</u>" and then the [Run anyway] button at the bottom
+   - If you're wondering why Windows thinks it needs to "protect you", [here's some info on that](#why-does-my-computer-say-that-windows-protected-your-pcsolver-pro-is-an-application-downloaded-from-the-internet-is-it-dangerous)
 
 ### Build from source
 Well, if you insist you want to do this, go right ahead! Just note there's some assembly required! (Oh wait, sorry, not [that kind](https://en.wikipedia.org/wiki/Assembly_language); hope I didn't make you hyperventilate.)
