@@ -1,1 +1,1 @@
-pyinstaller -cF ../../src/app/solverProApp.py --name=SolverPro --paths=../../
+pyinstaller -cF ../../src/app/mainApp.py --name=SolverPro --paths=../../
