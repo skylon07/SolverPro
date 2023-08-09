@@ -33,9 +33,10 @@ class AlgebraSolver:
         ]
     
     def substituteKnownsFor(self, expression: sympy.Expr) -> Generator[sympy.Expr, Any, None]:
-        for symbolValueCombination in self._generateSymbolValueCombinations():
-            expressionWithKnownsSubbed = expression.subs(symbolValueCombination)
-            yield expressionWithKnownsSubbed
+        return {
+            expression.subs(symbolValueCombination)
+            for symbolValueCombination in self._generateSymbolValueCombinations()
+        }
 
     def _inferSymbolValuesFromRelations(self):
         anySymbolsUpdated = False

@@ -34,13 +34,13 @@ class AlgebraSolverTester:
         solver.recordRelation(a, 4)
         solver.recordRelation(b, 3)
         solver.recordRelation(c, 7)
-        assert list(solver.substituteKnownsFor(a)) == [4], \
+        assert solver.substituteKnownsFor(a) == {4}, \
             "Solver did not correctly substitute single variable expression"
-        assert list(solver.substituteKnownsFor(a + b)) == [7], \
+        assert solver.substituteKnownsFor(a + b) == {7}, \
             "Solver did not correctly substitute double variable expression"
-        assert list(solver.substituteKnownsFor(a**(b - 1) - c)) == [9], \
+        assert solver.substituteKnownsFor(a**(b - 1) - c) == {9}, \
             "Solver did not correctly substitute complicated expression"
-        assert list(solver.substituteKnownsFor(a*c + b*d)) == [3*d + 28], \
+        assert solver.substituteKnownsFor(a*c + b*d) == {3*d + 28}, \
             "Solver did not correctly substitute expression with leftover variable"
 
     def testSolverInfersVariableSolutions(self):
