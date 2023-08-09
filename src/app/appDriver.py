@@ -1,3 +1,4 @@
+from src.common.functions import first
 from src.algebrasolver.solver import AlgebraSolver
 from src.parsing.lexer import CommandLexer, LexerTokenTypes
 from src.parsing.parser import CommandParser, Command, CommandType, EolException
@@ -11,7 +12,12 @@ class AppDriver:
     def processCommandLines(self, commandsStr: str):
         tokens = tuple(self._lexer.findTokens(commandsStr))
         for command in self._parser.parse(tokens):
+            # TODO: make this transactional in the case of erroring
             yield self._processCommand(command)
+
+    def validateSingleLine(self, commandStr: str):
+        if "\n" in commandStr:
+            raise NotImplementedError("Multiline commands not supported")
 
     def _processCommand(self, command: Command):
         if command.type is Command.EMPTY:

@@ -46,13 +46,13 @@ class CommandParserSequencer:
         if self._moreTokens:
             currToken = self._tokens[self.numTokensParsed]
             return currToken
-        raise EolException()
+        self._throwEolException()
 
     def _consumeCurrToken(self, expectedTokenType: LexerTokenType):
         if self._currToken.type is not expectedTokenType:
             if self._currToken.type is LexerTokenTypes.EOL:
-                raise EolException()
-            raise ParseException((expectedTokenType,), self._currToken)
+                self._throwEolException()
+            self._throwParseException((expectedTokenType,))
         
         self._setNumTokensParsed(self.numTokensParsed + 1)
 
@@ -72,7 +72,8 @@ class CommandParserSequencer:
                     operand = lowPrecExprList[idx + 1]
                     finalExpr = finalExpr - operand
                 else:
-                    raise ParseException(self._midPrecOpers, operToken)
+                    # TODO: does the token index need to be overridden?
+                    self._throwParseException(self._lowPrecOpers)
         return finalExpr
 
     def _convertMidPrecExprList(self, midPrecExprList: list):
@@ -91,7 +92,8 @@ class CommandParserSequencer:
                     operand = midPrecExprList[idx + 1]
                     finalExpr = finalExpr / operand
                 else:
-                    raise ParseException(self._midPrecOpers, operToken)
+                    # TODO: does the token index need to be overridden?
+                    self._throwParseException(self._midPrecOpers)
         return finalExpr
 
     def _convertHighPrecExprList(self, highPrecExprList: list):
@@ -110,7 +112,8 @@ class CommandParserSequencer:
                 elif operToken.type is LexerTokenTypes.DASH:
                     finalExpr = -finalExpr
                 else:
-                    raise ParseException(self._highPrecOpers, operToken)
+                    # TODO: does the token index need to be overridden?
+                    self._throwParseException(self._highPrecOpers)
         return finalExpr
 
     def _convertMaxPrecExprList(self, maxPrecExprList: list):
@@ -128,8 +131,15 @@ class CommandParserSequencer:
                     operand = maxPrecExprList[idx - 1]
                     finalExpr = operand ** finalExpr
                 else:
-                    raise ParseException(self._maxPrecOpers, operToken)
+                    # TODO: does the token index need to be overridden?
+                    self._throwParseException(self._maxPrecOpers)
         return finalExpr
+
+    def _throwParseException(self, expectedTypes: tuple[LexerTokenType, ...]):
+        raise ParseException(expectedTypes, self._tokens, self.numTokensParsed)
+    
+    def _throwEolException(self):
+        raise EolException(self._tokens, self.numTokensParsed)
 
     def sequenceCommand(self):
         # branch: EOL
@@ -239,7 +249,7 @@ class CommandParserSequencer:
             self._consumeCurrToken(self._currToken.type)
             return lowPrecOperToken
         
-        raise ParseException(validLowOpers, self._currToken)
+        self._throwParseException(validLowOpers)
 
     def _sequenceOperMid(self):
         # branch: STAR/SLASH
@@ -252,7 +262,7 @@ class CommandParserSequencer:
             self._consumeCurrToken(self._currToken.type)
             return midPrecOperToken
         
-        raise ParseException(validMidOpers, self._currToken)
+        self._throwParseException(validMidOpers)
     
     def _sequenceOperHigh(self):
         # branch: PLUS/DASH
@@ -265,7 +275,7 @@ class CommandParserSequencer:
             self._consumeCurrToken(self._currToken.type)
             return highPrecOperToken
         
-        raise ParseException(validHighOpers, self._currToken)
+        self._throwParseException(validHighOpers)
     
     def _sequenceOperMax(self):
         # branch: CARROT
@@ -277,7 +287,7 @@ class CommandParserSequencer:
             self._consumeCurrToken(self._currToken.type)
             return maxPrecOperToken
         
-        raise ParseException(validMaxOpers, self._currToken)
+        self._throwParseException(validMaxOpers)
 
     def _sequenceEvaluation(self):
         # branch: PAREN_OPEN expression PAREN_CLOSE
@@ -318,7 +328,7 @@ class CommandParserSequencer:
             self._consumeCurrToken(self._currToken.type)
             return numberStr
 
-        raise ParseException(validNumbers, self._currToken)
+        self._throwParseException(validNumbers)
     
 
 class CommandType(EnumString):
@@ -357,9 +367,10 @@ class ParseException(TracebackException):
     def __init__(self, expectedTypes: tuple[LexerTokenType, ...], tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
         unexpectedToken = tokens[unexpectedTokenIdx]
 
-        expectedTypesStr = " or ".join(f"'{tokenType}'".lower() for tokenType in expectedTypes)
-        gramaticalN = "n" if expectedTypesStr[0] in "aeiou" else ""
-        fullMessage = f"Unexpected `{unexpectedToken.match}`; expected a{gramaticalN} {expectedTypesStr}"
+        expectedTypesStr = " or ".join(f"[green]{{{tokenType}}}[/green]".lower() for tokenType in expectedTypes)
+        firstLetterIsVowel = str(expectedTypes[0])[0].lower() in "aeiou"
+        gramaticalN = "n" if firstLetterIsVowel else ""
+        fullMessage = f"Unexpected [red]{unexpectedToken.match}[/red]; expected a{gramaticalN} {expectedTypesStr}"
         super().__init__(fullMessage, tokens, [unexpectedTokenIdx])
 
 
