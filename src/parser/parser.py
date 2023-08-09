@@ -7,7 +7,7 @@ from src.parser.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 
 class CommandParser:
-    def parse(self, commandTokens: tuple[LexerToken]):
+    def parse(self, commandTokens: tuple[LexerToken, ...]):
         while len(commandTokens) > 0:
             sequencer = CommandParserSequencer(commandTokens)
             command = sequencer.sequenceCommand()
@@ -32,7 +32,7 @@ class CommandParserSequencer:
         LexerTokenTypes.CARROT,
     )
 
-    def __init__(self, commandTokens: tuple[LexerToken]):
+    def __init__(self, commandTokens: tuple[LexerToken, ...]):
         self._tokens = commandTokens
         self._setNumTokensParsed(0)
 
@@ -353,7 +353,7 @@ class Command(Enum):
 
 
 class ParseException(Exception):
-    def __init__(self, expectedTypes: tuple[LexerTokenType], unexpectedToken: LexerToken):
+    def __init__(self, expectedTypes: tuple[LexerTokenType, ...], unexpectedToken: LexerToken):
         expectedTypesStr = " or ".join(str(tokenType) for tokenType in expectedTypes)
         fullMessage = f"Unexpected token {unexpectedToken}; expected {expectedTypesStr}"
         super().__init__(fullMessage)
