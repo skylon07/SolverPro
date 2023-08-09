@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from src.common.types import FormattedStr
 from src.parsing.lexer import LexerToken
 
 
@@ -9,7 +10,7 @@ class HandledException(Exception, ABC):
 
 class TracebackException(HandledException, ABC):
     @abstractmethod
-    def __init__(self, message: str, tokens: tuple[LexerToken, ...], badTokenIdxs: tuple[int, ...]):
+    def __init__(self, message: FormattedStr, tokens: tuple[LexerToken, ...], badTokenIdxs: tuple[int, ...]):
         self.message = message
         self.tokens = tokens
         self.badTokenIdxs = badTokenIdxs

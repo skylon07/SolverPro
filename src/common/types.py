@@ -45,3 +45,5 @@ class Enum(ABC):
             for propName in dir(cls)
             if propName[:1] != "_" and propName not in cls.__reservedNames
         )
+
+FormattedStr = str

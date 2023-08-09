@@ -1,6 +1,7 @@
 import sympy
 from rich.console import Console
 
+from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException
 from src.parsing.lexer import LexerToken, LexerTokenTypes
 
@@ -45,7 +46,7 @@ class TextRenderer:
             ), exception)
             return self._renderConsole.render_str(joinedLines)
 
-    def _prefixAndJoinLinesForException(self, lines: tuple[str, ...], exception: Exception):
+    def _prefixAndJoinLinesForException(self, lines: tuple[FormattedStr, ...], exception: Exception):
         isHandledException = isinstance(exception, HandledException)
         if isHandledException:
             return self._prefixAndJoinLines((
@@ -61,7 +62,7 @@ class TextRenderer:
                 "You can report it at https://github.com/skylon07/SolverPro/issues/new",
             ))
 
-    def _prefixAndJoinLines(self, lines: tuple[str, ...]):
+    def _prefixAndJoinLines(self, lines: tuple[FormattedStr, ...]):
         linePrefix = "    "
         prefixedLinesStr = linePrefix + f"\n{linePrefix}".join(lines)
         return prefixedLinesStr
