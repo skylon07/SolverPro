@@ -73,7 +73,7 @@ class AlgebraSolver:
         if anySymbolsUpdated:
             self._inferSymbolValuesFromRelations()
 
-    def _solveRelationsForSingleUnknown(self, relations: Iterable[sympy.Expr]):
+    def _solveRelationsForSingleUnknown(self, relations: Iterable[sympy.Expr]) -> Generator[tuple[sympy.Symbol, sympy.Set], Any, None]:
         for relation in relations:
             assert(len(relation.free_symbols) == 1), \
                 "Relation had more than one unknown symbol to solve for"
