@@ -1,6 +1,6 @@
 from src.algebrasolver.solver import AlgebraSolver
-from src.parser.lexer import CommandLexer
-from src.parser.parser import CommandParser, Command, CommandType
+from src.parsing.lexer import CommandLexer, LexerTokenTypes
+from src.parsing.parser import CommandParser, Command, CommandType, EolException
 
 class AppDriver:
     def __init__(self):

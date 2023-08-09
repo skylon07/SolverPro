@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.parser.lexer import LexerToken
+from src.parsing.lexer import LexerToken
 
 
 class HandledException(Exception, ABC):

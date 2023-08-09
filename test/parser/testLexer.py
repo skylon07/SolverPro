@@ -1,4 +1,4 @@
-from src.parser.lexer import CommandLexer, LexerToken, LexerTokenTypes
+from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
 
 
 class CommandLexerTester:

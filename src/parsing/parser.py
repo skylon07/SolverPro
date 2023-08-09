@@ -4,7 +4,7 @@ import sympy
 
 from src.common.types import Enum, EnumString
 from src.common.exceptions import TracebackException
-from src.parser.lexer import LexerTokenType, LexerTokenTypes, LexerToken
+from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 
 class CommandParser:

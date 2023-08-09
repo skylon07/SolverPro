@@ -1,7 +1,7 @@
 import sympy
 
-from src.parser.parser import CommandParser, Command
-from src.parser.lexer import LexerToken, LexerTokenTypes
+from src.parsing.parser import CommandParser, Command
+from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 
 class CommandParserTester:
