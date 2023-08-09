@@ -1,5 +1,3 @@
-from typing import Callable, Union
-
 import sympy
 
 from src.common.types import Enum, EnumString
