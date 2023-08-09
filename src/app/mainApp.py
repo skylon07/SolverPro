@@ -43,8 +43,8 @@ class MainScreen(Screen):
                 pass
 
             elif result.type is Command.RECORD_RELATION:
-                relation = result.data
-                textLog.write(renderer.renderRelation(relation))
+                (leftExpr, rightExpr) = result.data
+                textLog.write(renderer.renderRelation(leftExpr, rightExpr))
 
             elif result.type is Command.EVALUATE_EXPRESSION:
                 exprs = result.data
