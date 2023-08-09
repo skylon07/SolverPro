@@ -29,7 +29,6 @@ class MainScreen(Screen):
         input = self.query_one(Input)
         input.value = ""
 
-        # TODO: why does tagging `driver: AppDriver` cause pylance to break?
         driver = self.app.driver
         result: ProcessResult = first(driver.processCommandLines(commandStr))
         if result.type is Command.EMPTY:
