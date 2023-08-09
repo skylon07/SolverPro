@@ -3,6 +3,7 @@ from typing import Iterable, Generator, Any
 import sympy
 
 from src.common.functions import first, iterDifference
+from src.common.exceptions import MultilineException
 
 
 class AlgebraSolver:
@@ -13,12 +14,17 @@ class AlgebraSolver:
         self._symbolValues: dict[sympy.Symbol, sympy.FiniteSet] = dict()
 
     def recordRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
-        # TODO: check for contradictions
-        self._recordedRelations.append(self.toRelation(leftExpr, rightExpr))
+        newRelation = self.toRelation(leftExpr, rightExpr)
+        (isContradictory, isRedundant) = self._checkForContradictions(newRelation)
+        if isContradictory:
+            raise ContradictionException(newRelation)
+        self._recordedRelations.append(newRelation)
         self._inferSymbolValuesFromRelations()
+        return (newRelation, isRedundant)
 
     def toRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
-        # relation = leftExpr == rightExpr
+        # relation << (leftExpr             == rightExpr)
+        # relation << (leftExpr - rightExpr == 0)
         relation = leftExpr - rightExpr # == 0
         return relation
 
@@ -37,6 +43,17 @@ class AlgebraSolver:
             expression.subs(symbolValueCombination)
             for symbolValueCombination in self._generateSymbolValueCombinations()
         }
+
+    def _checkForContradictions(self, relation: sympy.Expr):
+        relationIsContradictory = False
+        relationIsRedundant = False
+        for subbedRelation in self.substituteKnownsFor(relation):
+            if len(subbedRelation.free_symbols) == 0:
+                if subbedRelation == 0:
+                    relationIsRedundant = True
+                else:
+                    relationIsContradictory = True
+        return (relationIsContradictory, relationIsRedundant)
 
     def _inferSymbolValuesFromRelations(self):
         anySymbolsUpdated = False
@@ -97,3 +114,11 @@ class AlgebraSolver:
                 # have to pop to allow re-including in repeated calls from parent
                 # (aka have to pop so iterDifference() doesn't ignore it thinking it's already handled)
                 currSymbolValueCombination.pop(symbolToInclude)
+
+
+class ContradictionException(MultilineException):
+    def __init__(self, badRelation: sympy.Expr):
+        super().__init__((
+            "Relation contradicts known values",
+            f"[red]{badRelation}[/red]",
+        ))
