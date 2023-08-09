@@ -42,7 +42,11 @@ class AlgebraSolver:
         anySymbolsUpdated = False
         for relationExpr in self._recordedRelations:
             relationListOfSubbedKnowns = self.substituteKnownsFor(relationExpr)
-            relationsWithSingleUnknown = self._filterRelationsWithMultiSymbols(relationListOfSubbedKnowns)
+            relationsWithSingleUnknown = (
+                relation
+                for relation in relationListOfSubbedKnowns
+                if len(relation.free_symbols) == 1
+            )
             symbolValuePairs = self._solveRelationsForSingleUnknown(relationsWithSingleUnknown)
             (symbol, solutionSet) = self._condenseSymbolValuePairs(symbolValuePairs)
             if symbol is not None:
@@ -51,12 +55,6 @@ class AlgebraSolver:
             
         if anySymbolsUpdated:
             self._inferSymbolValuesFromRelations()
-
-    def _filterRelationsWithMultiSymbols(self, relations: Iterable[sympy.Expr]):
-        for relation in relations:
-            hasOneUnknown = len(relation.free_symbols) == 1
-            if hasOneUnknown:
-                yield relation
 
     def _solveRelationsForSingleUnknown(self, relations: Iterable[sympy.Expr]):
         for relation in relations:
