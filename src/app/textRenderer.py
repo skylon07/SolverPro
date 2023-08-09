@@ -13,11 +13,11 @@ class TextRenderer:
     def renderRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
         relationStr = f"{leftExpr} = {rightExpr}"
         joinedLines = self._prefixAndJoinLines([relationStr])
-        return self._renderConsole.render_str(joinedLines)
+        return self._renderLines(joinedLines)
 
     def renderExpressions(self, exprs: tuple[sympy.Expr, ...]):
         joinedLines = self._prefixAndJoinLines(str(expr) for expr in exprs)
-        return self._renderConsole.render_str(joinedLines)
+        return self._renderLines(joinedLines)
 
     def renderException(self, exception: Exception):
         if isinstance(exception, TracebackException):
@@ -33,7 +33,7 @@ class TextRenderer:
                 exprLine,
                 exception.message,
             ), exception)
-            return self._renderConsole.render_str(joinedLines)
+            return self._renderLines(joinedLines)
         
         elif isinstance(exception, HandledException):
             joinedLines = self._prefixAndJoinLinesForException((
@@ -43,13 +43,13 @@ class TextRenderer:
                 "If you see this, please submit an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
                 "with an explanation of how you got this message to show up.[/magenta]",
             ), exception)
-            return self._renderConsole.render_str(joinedLines)
+            return self._renderLines(joinedLines)
         
         else:
             joinedLines = self._prefixAndJoinLinesForException((
                 f"[bold red]{type(exception).__name__}:[/bold red] [red]{str(exception)}[/red]",
             ), exception)
-            return self._renderConsole.render_str(joinedLines)
+            return self._renderLines(joinedLines)
 
     def _prefixAndJoinLinesForException(self, lines: tuple[FormattedStr, ...], exception: Exception):
         isHandledException = isinstance(exception, HandledException)
@@ -91,3 +91,6 @@ class TextRenderer:
                 formattedStr += f"[/{format}]"
             lastToken = token
         return formattedStr
+    
+    def _renderLines(self, linesStr: FormattedStr):
+        return self._renderConsole.render_str(f"[white]{linesStr}[/white]")
