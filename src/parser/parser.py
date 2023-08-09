@@ -3,6 +3,7 @@ from typing import Callable, Union
 import sympy
 
 from src.common.types import Enum, EnumString
+from src.common.exceptions import TracebackException
 from src.parser.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 
@@ -352,14 +353,16 @@ class Command(Enum):
         return cls(cls.EVALUATE_EXPRESSION, expression)
 
 
-class ParseException(Exception):
-    def __init__(self, expectedTypes: tuple[LexerTokenType, ...], unexpectedToken: LexerToken):
-        expectedTypesStr = " or ".join(str(tokenType) for tokenType in expectedTypes)
-        fullMessage = f"Unexpected token {unexpectedToken}; expected {expectedTypesStr}"
-        super().__init__(fullMessage)
+class ParseException(TracebackException):
+    def __init__(self, expectedTypes: tuple[LexerTokenType, ...], tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
+        unexpectedToken = tokens[unexpectedTokenIdx]
+
+        expectedTypesStr = " or ".join(f"'{tokenType}'".lower() for tokenType in expectedTypes)
+        gramaticalN = "n" if expectedTypesStr[0] in "aeiou" else ""
+        fullMessage = f"Unexpected `{unexpectedToken.match}`; expected a{gramaticalN} {expectedTypesStr}"
+        super().__init__(fullMessage, tokens, [unexpectedTokenIdx])
 
 
-class EolException(Exception):
-    def __init__(self):
-        super().__init__("Unexpected end of line")
-
+class EolException(TracebackException):
+    def __init__(self, tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
+        super().__init__("Unexpected end of line", tokens, [unexpectedTokenIdx])

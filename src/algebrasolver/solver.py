@@ -98,9 +98,3 @@ class AlgebraSolver:
                 # have to pop to allow re-including in repeated calls from parent
                 # (aka have to pop so iterDifference() doesn't ignore it thinking it's already handled)
                 currSymbolValueCombination.pop(symbolToInclude)
-
-
-class NoSymbolsError(Exception):
-    def __init__(self, relation: sympy.Expr):
-        super().__init__(f"No symbols found in relation `{relation}`")
-        self.relation = relation
