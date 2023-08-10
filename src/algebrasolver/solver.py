@@ -1,4 +1,4 @@
-from typing import Iterable, Generator, Any, Union, Generic, TypeVar
+from typing import Iterable, Generator, Any, Generic, TypeVar
 
 import sympy
 

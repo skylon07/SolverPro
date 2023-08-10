@@ -2,9 +2,7 @@ import re
 
 import sympy
 from rich.markup import render as renderMarkup
-from rich.console import Console
 
-from textual.color import Color
 from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.parsing.lexer import LexerToken, LexerTokenTypes

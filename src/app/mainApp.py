@@ -1,4 +1,4 @@
-from textual import events, on
+from textual import on
 from textual.app import App
 from textual.reactive import var
 from textual.screen import Screen
