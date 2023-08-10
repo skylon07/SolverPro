@@ -4,7 +4,7 @@ import sympy
 from rich.markup import render as renderMarkup
 
 from src.common.types import FormattedStr
-from src.common.exceptions import TracebackException, HandledException
+from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 
@@ -44,6 +44,13 @@ class TextRenderer:
             joinedLines = self._prefixAndJoinLinesForException((
                 exprLine,
                 exception.message,
+            ), exception)
+            return self._renderLines(joinedLines)
+        
+        elif isinstance(exception, MultilineException):
+            joinedLines = self._prefixAndJoinLinesForException((
+                self._correctSyntaxes(line)
+                for line in exception.messageLines
             ), exception)
             return self._renderLines(joinedLines)
         
