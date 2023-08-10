@@ -16,7 +16,6 @@ class MainScreen(Screen):
         yield Input(placeholder = " < Command >")
         
     def on_mount(self):
-        self.focus_next(Input)
         self.app.title = f"--- Solver Pro {getVersion()} ---"
         self.query_one(Header).tall = True
 
