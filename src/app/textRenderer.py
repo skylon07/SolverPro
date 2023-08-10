@@ -1,5 +1,5 @@
 import sympy
-from rich.console import Console
+from rich.markup import render as renderMarkup
 
 from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException
@@ -7,9 +7,6 @@ from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 
 class TextRenderer:
-    def __init__(self):
-        self._renderConsole = Console()
-    
     def renderRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
         relationStr = f"{leftExpr} = {rightExpr}"
         joinedLines = self._prefixAndJoinLines([relationStr])
@@ -93,4 +90,4 @@ class TextRenderer:
         return formattedStr
     
     def _renderLines(self, linesStr: FormattedStr):
-        return self._renderConsole.render_str(f"[white]{linesStr}[/white]")
+        return renderMarkup(linesStr)
