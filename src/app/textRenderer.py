@@ -1,3 +1,5 @@
+import re
+
 import sympy
 from rich.markup import render as renderMarkup
 
@@ -7,13 +9,19 @@ from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 
 class TextRenderer:
+    def __init__(self):
+        self._powReplacement = (re.compile(r"\*\*"), r"^")
+
     def renderRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
-        relationStr = f"{leftExpr} = {rightExpr}"
+        relationStr = self._correctSyntaxes(f"{leftExpr} = {rightExpr}")
         joinedLines = self._prefixAndJoinLines([relationStr])
         return self._renderLines(joinedLines)
 
     def renderExpressions(self, exprs: tuple[sympy.Expr, ...]):
-        joinedLines = self._prefixAndJoinLines(str(expr) for expr in exprs)
+        joinedLines = self._prefixAndJoinLines(
+            self._correctSyntaxes(str(expr))
+            for expr in exprs
+        )
         return self._renderLines(joinedLines)
 
     def renderException(self, exception: Exception):
@@ -91,3 +99,6 @@ class TextRenderer:
     
     def _renderLines(self, linesStr: FormattedStr):
         return renderMarkup(linesStr)
+    
+    def _correctSyntaxes(self, exprStr: str):
+        return exprStr.replace(*self._powReplacement)
