@@ -31,7 +31,7 @@ class AppDriver:
         
         elif command.type is Command.EVALUATE_EXPRESSION:
             expr = command.data
-            subExprs = tuple(self._solver.substituteKnownsFor(expr))
+            subExprs = self._solver.substituteKnownsFor(expr)
             return ProcessResult(Command.EVALUATE_EXPRESSION, subExprs)
         
         else:

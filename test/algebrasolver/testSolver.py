@@ -16,18 +16,6 @@ class AlgebraSolverTester:
         solver.recordRelation(2*a, b + c)
         assert solver._recordedRelations == [2*a - (b + c)], \
             "Solver did not record relation as a single expression equal to zero"
-
-    def testSolverInfersSingleVariableValues(self):
-        solver1 = AlgebraSolver()
-        solver1.recordRelation(a, 4)
-        assert solver1._symbolValues == {a: {4}}, \
-            "Solver did not record single variable value from equality"
-        
-        solver2 = AlgebraSolver()
-        solver2.recordRelation(b, 5)
-        solver2.recordRelation(3, c)
-        assert solver2._symbolValues == {b: {5}, c: {3}}, \
-            "Solver did not record multiple variables from variable-value equalities"
         
     def testSolverSubstitutesKnownVariables(self):
         solver = AlgebraSolver()
@@ -42,28 +30,19 @@ class AlgebraSolverTester:
             "Solver did not correctly substitute complicated expression"
         assert solver.substituteKnownsFor(a*c + b*d) == {3*d + 28}, \
             "Solver did not correctly substitute expression with leftover variable"
-
-    def testSolverInfersVariableSolutions(self):
-        solver1 = AlgebraSolver()
-        solver1.recordRelation(2*b, 8)
-        assert solver1._symbolValues == {b: {4}}, \
-            "Solver did not correctly solve simple single variable relation"
-
-        solver2 = AlgebraSolver()
-        solver2.recordRelation(9, a**2)
-        assert solver2._symbolValues == {a: {3, -3}}, \
-            "Solver did not correctly solve exponent single variable relation"
-
-        solver3 = AlgebraSolver()
-        solver3.recordRelation(a, 2*b)
-        solver3.recordRelation(b, 5)
-        assert solver3._symbolValues == {a: {10}, b: {5}}, \
-            "Solver did not correctly infer value of second related variable from the first"
         
-        solver4 = AlgebraSolver()
-        solver4.recordRelation(a**2, 4)
-        solver4.recordRelation(a + b, 5)
-        assert solver4._symbolValues == {a: {2, -2}, b: {3, 7}}, \
-            "Solver did not correctly infer multiple values from relation with multiple outcomes"
+    def testSolverSubstitutesMultipleStatesCorrectly(self):
+        solver1 = AlgebraSolver()
+        solver1.recordRelation(a**2, 9)
+        solver1.recordRelation(a + b, 7)
+        # b = 10{-3}, 4{3}
+        assert solver1.substituteKnownsFor(a - b) == {-1, -13}, \
+            "Solver did not correctly substitute valid combinations (by subtraction) of two related symbols"
+        assert solver1.substituteKnownsFor(a * b) == {-30, 12}, \
+            "Solver did not correctly substitute valid combinations (by multiplication) of two related symbols"
+        assert solver1.substituteKnownsFor(a + b) == {7}, \
+            "Solver did not correctly substitute and condense the value of two related symbols"
+
+        # TODO: more cases
 
     # TODO: edge cases and error throwing tests

@@ -9,12 +9,12 @@ class AppDriverTester:
 
         results1 = tuple(driver.processCommandLines("-3 + 4"))
         assert results1 == (
-            ProcessResult(Command.EVALUATE_EXPRESSION, (1,)),
+            ProcessResult(Command.EVALUATE_EXPRESSION, {1}),
         ), "Driver did not correctly evaluate simple numeric expression"
 
         results2 = tuple(driver.processCommandLines("6^2 + 2*2"))
         assert results2 == (
-            ProcessResult(Command.EVALUATE_EXPRESSION, (40,)),
+            ProcessResult(Command.EVALUATE_EXPRESSION, {40}),
         ), "Driver did not correctly evaluate complicated numeric expression"
 
     def testDriverRecordsRelations(self):
@@ -27,7 +27,7 @@ class AppDriverTester:
         
         evaluateResults = tuple(driver.processCommandLines("b"))
         assert evaluateResults == (
-            ProcessResult(Command.EVALUATE_EXPRESSION, (5,)),
+            ProcessResult(Command.EVALUATE_EXPRESSION, {5}),
         ), "Driver didn't correctly acquire variable value"
         
     def testDriverSolvesRelations(self):
@@ -40,7 +40,7 @@ class AppDriverTester:
         
         evaluateResults1_1 = tuple(driver1.processCommandLines("c"))
         assert evaluateResults1_1 == (
-            ProcessResult(Command.EVALUATE_EXPRESSION, (3,)),
+            ProcessResult(Command.EVALUATE_EXPRESSION, {3}),
         ), "Driver did not correctly solve a simple solvable relation"
 
         driver2 = AppDriver()
@@ -62,15 +62,15 @@ class AppDriverTester:
         
         evaluateResults1_2 = tuple(driver2.processCommandLines("a"))
         assert evaluateResults1_2 == (
-            ProcessResult(Command.EVALUATE_EXPRESSION, (3,)),
+            ProcessResult(Command.EVALUATE_EXPRESSION, {3}),
         ), "Driver did not correctly infer first variable in a series of solvable relations"
         
         evaluateResults2_2 = tuple(driver2.processCommandLines("b"))
         assert evaluateResults2_2 == (
-            ProcessResult(Command.EVALUATE_EXPRESSION, (2,)),
+            ProcessResult(Command.EVALUATE_EXPRESSION, {2}),
         ), "Driver did not correctly infer first variable in a series of solvable relations"
         
         evaluateResults3_2 = tuple(driver2.processCommandLines("c"))
         assert evaluateResults3_2 == (
-            ProcessResult(Command.EVALUATE_EXPRESSION, (1,)),
+            ProcessResult(Command.EVALUATE_EXPRESSION, {1}),
         ), "Driver did not correctly infer first variable in a series of solvable relations"
