@@ -1,6 +1,6 @@
 import sympy
 
-from src.algebrasolver.solver import AlgebraSolver
+from src.algebrasolver.solver import AlgebraSolver, ConditionalValue
 
 (a, b, c, d) = sympy.symbols("a, b, c, d")
 
@@ -31,16 +31,27 @@ class AlgebraSolverTester:
         assert solver.substituteKnownsFor(a*c + b*d) == {3*d + 28}, \
             "Solver did not correctly substitute expression with leftover variable"
         
-    def testSolverSubstitutesMultipleStatesCorrectly(self):
+    def testSolverSubstitutesConditionalsCorrectly(self):
         solver1 = AlgebraSolver()
         solver1.recordRelation(a**2, 9)
         solver1.recordRelation(a + b, 7)
-        # b = 10{-3}, 4{3}
-        assert solver1.substituteKnownsFor(a - b) == {-1, -13}, \
+        assert solver1.substituteKnownsFor(a - b) == {-1, -13} and \
+            solver1.substituteKnownsWithConditions(a - b) == {
+                ConditionalValue(-1, {a: 3, b: 4}),
+                ConditionalValue(-13, {a: -3, b: 10}),
+            }, \
             "Solver did not correctly substitute valid combinations (by subtraction) of two related symbols"
-        assert solver1.substituteKnownsFor(a * b) == {-30, 12}, \
+        assert solver1.substituteKnownsFor(a * b) == {-30, 12} and \
+            solver1.substituteKnownsWithConditions(a * b) == {
+                ConditionalValue(12, {a: 3, b: 4}),
+                ConditionalValue(-30, {a: -3, b: 10}),
+            }, \
             "Solver did not correctly substitute valid combinations (by multiplication) of two related symbols"
-        assert solver1.substituteKnownsFor(a + b) == {7}, \
+        assert solver1.substituteKnownsFor(a + b) == {7} and \
+            solver1.substituteKnownsWithConditions(a + b) == {
+                ConditionalValue(7, {a: 3, b: 4}),
+                ConditionalValue(7, {a: -3, b: 10}),
+            }, \
             "Solver did not correctly substitute and condense the value of two related symbols"
 
         # TODO: more cases

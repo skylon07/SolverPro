@@ -10,9 +10,21 @@ class ConditionalValue(Generic[_ValueType]):
     def __init__(self, value: _ValueType, conditions: dict[sympy.Symbol, sympy.Atom]):
         self.value = value
         self.conditions = conditions
-    
+
     def __repr__(self):
         return f"ConditionalValue({self.value}, {self.conditions})"
+    
+    def __hash__(self):
+        conditionsHash = 1
+        for (symbol, value) in self.conditions.items():
+            conditionsHash *= symbol - value
+        return hash((self.value, conditionsHash))
+
+    def __eq__(self, other):
+        if type(other) is not ConditionalValue:
+            return False
+        
+        return self.value == other.value and self.conditions == other.conditions
 
 
 class AlgebraSolver:
@@ -50,16 +62,17 @@ class AlgebraSolver:
             if symbol in relation.free_symbols
         ]
     
-    def substituteKnownsFor(self, expression: sympy.Expr, collapseConditionals = True):
+    def substituteKnownsFor(self, expression: sympy.Expr):
         conditionals = self._generateSubstitutionsFor(expression)
-        if collapseConditionals:
-            rawValues = {
-                conditional.value
-                for conditional in conditionals
-            }
-            return rawValues
-        else:
-            return set(conditionals)
+        values = {
+            conditional.value
+            for conditional in conditionals
+        }
+        return values
+    
+    def substituteKnownsWithConditions(self, expression: sympy.Expr):
+        conditionals = self._generateSubstitutionsFor(expression)
+        return set(conditionals)
     
     def _generateSubstitutionsFor(self, expression: sympy.Expr) -> Generator[ConditionalValue[sympy.Expr], Any, None]:
         for symbolValueCombination in self._generateSubstitutionCombinations():
