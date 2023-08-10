@@ -2,7 +2,9 @@ import re
 
 import sympy
 from rich.markup import render as renderMarkup
+from rich.console import Console
 
+from textual.color import Color
 from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.parsing.lexer import LexerToken, LexerTokenTypes
@@ -45,24 +47,24 @@ class TextRenderer:
                 exprLine,
                 exception.message,
             ), exception)
-            return self._renderLines(joinedLines)
+            return self._renderLines(f"[magenta]{joinedLines}[/magenta]")
         
         elif isinstance(exception, MultilineException):
             joinedLines = self._prefixAndJoinLinesForException((
                 self._correctSyntaxes(line)
                 for line in exception.messageLines
             ), exception)
-            return self._renderLines(joinedLines)
+            return self._renderLines(f"[magenta]{joinedLines}[/magenta]")
         
         elif isinstance(exception, HandledException):
             joinedLines = self._prefixAndJoinLinesForException((
                 str(exception),
                 "",
-                "[magenta]This error is missing a rendering rule, and the message above was generated automatically.",
+                "[#ffa500]This error is missing a rendering rule, and the message above was generated automatically.",
                 "If you see this, please submit an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
-                "with an explanation of how you got this message to show up.[/magenta]",
+                "with an explanation of how you got this message to show up.[/#ffa500]",
             ), exception)
-            return self._renderLines(joinedLines)
+            return self._renderLines(f"[magenta]{joinedLines}[/magenta]")
         
         else:
             joinedLines = self._prefixAndJoinLinesForException((
@@ -79,12 +81,12 @@ class TextRenderer:
             ))
         else:
             return self._prefixAndJoinLines((
-                "[magenta]An unexpected error occurred![/magenta]",
+                "[#ffa500]An unexpected error occurred![/#ffa500]",
                 *lines,
                 "",
-                "[magenta]This is probably an issue with Solver Pro internally.",
+                "[#ffa500]This is probably an issue with Solver Pro internally.",
                 "If you see this, please submit an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
-                "with an explanation of how you got this message to show up.[/magenta]",
+                "with an explanation of how you got this message to show up.[/#ffa500]",
             ))
 
     def _prefixAndJoinLines(self, lines: tuple[FormattedStr, ...]):
