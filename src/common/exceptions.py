@@ -15,10 +15,10 @@ class TracebackException(HandledException, ABC):
         self.tokens = tokens
         self.badTokenIdxs = badTokenIdxs
         
-        super().__init__(message)
+        super().__init__(message, tokens, badTokenIdxs)
 
 class MultilineException(HandledException, ABC):
     @abstractmethod
     def __init__(self, messageLines: tuple[FormattedStr, ...]):
         self.messageLines = messageLines
-        super().__init__("\n".join(messageLines))
+        super().__init__(messageLines)
