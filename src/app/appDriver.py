@@ -43,6 +43,9 @@ class ProcessResult:
         self.type = commandType
         self.data = data
 
+    def __repr__(self):
+        return f"ProcessResult({self.type}, {self.data})"
+
     def __eq__(self, other):
         if type(other) is not ProcessResult:
             return False
