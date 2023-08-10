@@ -26,8 +26,7 @@ class AppDriver:
         elif command.type is Command.RECORD_RELATION:
             (leftExpr, rightExpr) = command.data
             (newRelation, isRedundant) = self._solver.recordRelation(leftExpr, rightExpr)
-            # TODO: warn on redundancy
-            return ProcessResult(Command.RECORD_RELATION, (leftExpr, rightExpr))
+            return ProcessResult(Command.RECORD_RELATION, (leftExpr, rightExpr, isRedundant))
         
         elif command.type is Command.EVALUATE_EXPRESSION:
             expr = command.data

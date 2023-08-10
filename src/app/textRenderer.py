@@ -10,11 +10,18 @@ from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 class TextRenderer:
     def __init__(self):
-        self._powReplacement = (re.compile(r"\*\*"), r"^")
+        powRegex = re.compile(r"\*\*")
+        self._powReplace = lambda exprStr: powRegex.sub("^", exprStr)
 
-    def renderRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
+    def renderRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr, warnRedundant: bool):
         relationStr = self._correctSyntaxes(f"{leftExpr} = {rightExpr}")
-        joinedLines = self._prefixAndJoinLines([relationStr])
+        linesList = [relationStr]
+        if warnRedundant:
+            linesList = [
+                "[yellow]Relation is redundant and provided no new inferences[/yellow]",
+                *linesList,
+            ]
+        joinedLines = self._prefixAndJoinLines(linesList)
         return self._renderLines(joinedLines)
 
     def renderExpressions(self, exprs: tuple[sympy.Expr, ...]):
@@ -101,4 +108,4 @@ class TextRenderer:
         return renderMarkup(linesStr)
     
     def _correctSyntaxes(self, exprStr: str):
-        return exprStr.replace(*self._powReplacement)
+        return self._powReplace(exprStr)
