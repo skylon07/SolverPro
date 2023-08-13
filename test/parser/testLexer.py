@@ -13,7 +13,7 @@ class CommandLexerTester:
         assert token3 != token4, \
             "LexerTokens with different matches were equal"
 
-        token5 = LexerToken("match", LexerTokenTypes.INT, 0)
+        token5 = LexerToken("match", LexerTokenTypes.INT,   0)
         token6 = LexerToken("match", LexerTokenTypes.FLOAT, 0)
         assert token5 != token6, \
             "LexerTokens with different types were equal"
@@ -241,73 +241,73 @@ class CommandLexerTester:
         ], "Lexer did not find correct tokens with two IDENTIFIERS"
         
         assert list(lexer.findTokens("2 + b-5e12*f", withEol = False)) == [
-            LexerToken("2", LexerTokenTypes.INT, 0),
-            LexerToken("+", LexerTokenTypes.PLUS, 2),
-            LexerToken("b", LexerTokenTypes.IDENTIFIER, 4),
-            LexerToken("-", LexerTokenTypes.DASH, 5),
-            LexerToken("5e12", LexerTokenTypes.FLOAT, 6),
-            LexerToken("*", LexerTokenTypes.STAR, 10),
-            LexerToken("f", LexerTokenTypes.IDENTIFIER, 11)
+            LexerToken("2",     LexerTokenTypes.INT,        0),
+            LexerToken("+",     LexerTokenTypes.PLUS,       2),
+            LexerToken("b",     LexerTokenTypes.IDENTIFIER, 4),
+            LexerToken("-",     LexerTokenTypes.DASH,       5),
+            LexerToken("5e12",  LexerTokenTypes.FLOAT,      6),
+            LexerToken("*",     LexerTokenTypes.STAR,       10),
+            LexerToken("f",     LexerTokenTypes.IDENTIFIER, 11)
         ], "Lexer did not correctly process expression with various operators/numerics"
 
     def testOutputsForRobustness(self):
         lexer = CommandLexer()
 
         assert list(lexer.findTokens("4=a+3=-4*=5/2^6*4", withEol = False)) == [
-            LexerToken("4", LexerTokenTypes.INT, 0),
-            LexerToken("=", LexerTokenTypes.EQUALS, 1),
+            LexerToken("4", LexerTokenTypes.INT,        0),
+            LexerToken("=", LexerTokenTypes.EQUALS,     1),
             LexerToken("a", LexerTokenTypes.IDENTIFIER, 2),
-            LexerToken("+", LexerTokenTypes.PLUS, 3),
-            LexerToken("3", LexerTokenTypes.INT, 4),
-            LexerToken("=", LexerTokenTypes.EQUALS, 5),
-            LexerToken("-", LexerTokenTypes.DASH, 6),
-            LexerToken("4", LexerTokenTypes.INT, 7),
-            LexerToken("*", LexerTokenTypes.STAR, 8),
-            LexerToken("=", LexerTokenTypes.EQUALS, 9),
-            LexerToken("5", LexerTokenTypes.INT, 10),
-            LexerToken("/", LexerTokenTypes.SLASH, 11),
-            LexerToken("2", LexerTokenTypes.INT, 12),
-            LexerToken("^", LexerTokenTypes.CARROT, 13),
-            LexerToken("6", LexerTokenTypes.INT, 14),
-            LexerToken("*", LexerTokenTypes.STAR, 15),
-            LexerToken("4", LexerTokenTypes.INT, 16),
+            LexerToken("+", LexerTokenTypes.PLUS,       3),
+            LexerToken("3", LexerTokenTypes.INT,        4),
+            LexerToken("=", LexerTokenTypes.EQUALS,     5),
+            LexerToken("-", LexerTokenTypes.DASH,       6),
+            LexerToken("4", LexerTokenTypes.INT,        7),
+            LexerToken("*", LexerTokenTypes.STAR,       8),
+            LexerToken("=", LexerTokenTypes.EQUALS,     9),
+            LexerToken("5", LexerTokenTypes.INT,        10),
+            LexerToken("/", LexerTokenTypes.SLASH,      11),
+            LexerToken("2", LexerTokenTypes.INT,        12),
+            LexerToken("^", LexerTokenTypes.CARROT,     13),
+            LexerToken("6", LexerTokenTypes.INT,        14),
+            LexerToken("*", LexerTokenTypes.STAR,       15),
+            LexerToken("4", LexerTokenTypes.INT,        16),
         ], "Lexer did not correctly process all math operators"
 
         assert list(lexer.findTokens("3E4 4E-12 7 E14 4E -14 3.4E+4.5", withEol = False)) == [
-            LexerToken("3E4", LexerTokenTypes.FLOAT, 0),
-            LexerToken("4E-12", LexerTokenTypes.FLOAT, 4),
-            LexerToken("7", LexerTokenTypes.INT, 10),
-            LexerToken("E14", LexerTokenTypes.IDENTIFIER, 12),
-            LexerToken("4", LexerTokenTypes.INT, 16),
-            LexerToken("E", LexerTokenTypes.IDENTIFIER, 17),
-            LexerToken("-", LexerTokenTypes.DASH, 19),
-            LexerToken("14", LexerTokenTypes.INT, 20),
-            LexerToken("3.4E+4", LexerTokenTypes.FLOAT, 23),
-            LexerToken(".5", LexerTokenTypes.FLOAT, 29),
+            LexerToken("3E4",       LexerTokenTypes.FLOAT,      0),
+            LexerToken("4E-12",     LexerTokenTypes.FLOAT,      4),
+            LexerToken("7",         LexerTokenTypes.INT,        10),
+            LexerToken("E14",       LexerTokenTypes.IDENTIFIER, 12),
+            LexerToken("4",         LexerTokenTypes.INT,        16),
+            LexerToken("E",         LexerTokenTypes.IDENTIFIER, 17),
+            LexerToken("-",         LexerTokenTypes.DASH,       19),
+            LexerToken("14",        LexerTokenTypes.INT,        20),
+            LexerToken("3.4E+4",    LexerTokenTypes.FLOAT,      23),
+            LexerToken(".5",        LexerTokenTypes.FLOAT,      29),
         ], "Lexer did not correctly process scientific floats (uppercase E)"
 
         assert list(lexer.findTokens("3e4 4e-12 7 e14 4e -14 3.4e+4.5", withEol = False)) == [
-            LexerToken("3e4", LexerTokenTypes.FLOAT, 0),
-            LexerToken("4e-12", LexerTokenTypes.FLOAT, 4),
-            LexerToken("7", LexerTokenTypes.INT, 10),
-            LexerToken("e14", LexerTokenTypes.IDENTIFIER, 12),
-            LexerToken("4", LexerTokenTypes.INT, 16),
-            LexerToken("e", LexerTokenTypes.IDENTIFIER, 17),
-            LexerToken("-", LexerTokenTypes.DASH, 19),
-            LexerToken("14", LexerTokenTypes.INT, 20),
-            LexerToken("3.4e+4", LexerTokenTypes.FLOAT, 23),
-            LexerToken(".5", LexerTokenTypes.FLOAT, 29),
+            LexerToken("3e4",       LexerTokenTypes.FLOAT,      0),
+            LexerToken("4e-12",     LexerTokenTypes.FLOAT,      4),
+            LexerToken("7",         LexerTokenTypes.INT,        10),
+            LexerToken("e14",       LexerTokenTypes.IDENTIFIER, 12),
+            LexerToken("4",         LexerTokenTypes.INT,        16),
+            LexerToken("e",         LexerTokenTypes.IDENTIFIER, 17),
+            LexerToken("-",         LexerTokenTypes.DASH,       19),
+            LexerToken("14",        LexerTokenTypes.INT,        20),
+            LexerToken("3.4e+4",    LexerTokenTypes.FLOAT,      23),
+            LexerToken(".5",        LexerTokenTypes.FLOAT,      29),
         ], "Lexer did not correctly process scientific floats (lowercase e)"
 
         assert list(lexer.findTokens("1 2 3. 4.0 5.12 6. .12 .1e+4 .1E5 4.e-7", withEol = False)) == [
-            LexerToken("1", LexerTokenTypes.INT, 0),
-            LexerToken("2", LexerTokenTypes.INT, 2),
-            LexerToken("3.", LexerTokenTypes.FLOAT, 4),
-            LexerToken("4.0", LexerTokenTypes.FLOAT, 7),
-            LexerToken("5.12", LexerTokenTypes.FLOAT, 11),
-            LexerToken("6.", LexerTokenTypes.FLOAT, 16),
-            LexerToken(".12", LexerTokenTypes.FLOAT, 19),
-            LexerToken(".1e+4", LexerTokenTypes.FLOAT, 23),
-            LexerToken(".1E5", LexerTokenTypes.FLOAT, 29),
-            LexerToken("4.e-7", LexerTokenTypes.FLOAT, 34),
+            LexerToken("1",     LexerTokenTypes.INT,    0),
+            LexerToken("2",     LexerTokenTypes.INT,    2),
+            LexerToken("3.",    LexerTokenTypes.FLOAT,  4),
+            LexerToken("4.0",   LexerTokenTypes.FLOAT,  7),
+            LexerToken("5.12",  LexerTokenTypes.FLOAT,  11),
+            LexerToken("6.",    LexerTokenTypes.FLOAT,  16),
+            LexerToken(".12",   LexerTokenTypes.FLOAT,  19),
+            LexerToken(".1e+4", LexerTokenTypes.FLOAT,  23),
+            LexerToken(".1E5",  LexerTokenTypes.FLOAT,  29),
+            LexerToken("4.e-7", LexerTokenTypes.FLOAT,  34),
         ], "Lexer does not correctly process decimal points"
