@@ -90,7 +90,7 @@ class CommandLexer:
                 LexerTokenTypes.IDENTIFIER
             ), # yields to other keywords
             LexerRecognizer(
-                r"(?!_)[0-9_]*(?<!_)[.]?(?!_)[0-9_]*(?<!_)([eE][+-]?(?!_)[0-9_]*(?<!_))?",
+                r"(?!_)[0-9_]*(?<!_)[.]?(?!_)[0-9_]*(?<!_)([eE][+-]?(?!_)[0-9_]+(?<!_))?",
                 LexerTokenTypes.FLOAT
             ), # yields to INT or PERIOD
         )
