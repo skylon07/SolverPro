@@ -36,6 +36,9 @@ class Relation:
         # (leftExpr - rightExpr = 0)
         self.asExprEqToZero = leftExpr - rightExpr # = 0
 
+    def __repr__(self):
+        return f"Relation({self.leftExpr}, {self.rightExpr})"
+
     def __eq__(self, other):
         if type(other) is not Relation:
             return False

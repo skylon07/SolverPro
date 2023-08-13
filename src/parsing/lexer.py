@@ -30,7 +30,7 @@ class LexerToken:
         self.matchIdx = matchIdx
 
     def __repr__(self):
-        return f"LexerToken<{self.type}>('{self.match}', {self.matchIdx})"
+        return f"LexerToken('{self.match}', {self.type}, {self.matchIdx})"
     
     def __eq__(self, other):
         if type(other) != LexerToken:
@@ -142,10 +142,7 @@ class LexerRecognizer:
         self.matchType = matchType
 
     def __repr__(self):
-        regexStartIdx = len("re.compile('")
-        regexEndIdx = -len("')")
-        regexStr = repr(self.regex)[regexStartIdx : regexEndIdx]
-        return f"LexerRecognizer:{self.matchType}<{regexStr}>"
+        return f"LexerRecognizer({self.regex}, {self.matchType})"
 
     def match(self, data: str):
         result = self.regex.match(data)
