@@ -60,9 +60,21 @@ class AlgebraSolver:
         (isContradictory, isRedundant) = self._checkForContradictions(relation)
         if isContradictory:
             raise ContradictionException(relation)
-        self._recordedRelations.append(relation)
-        self._inferSymbolValuesFromRelations()
-        return (relation, isRedundant)
+        
+        # TODO: use transactional data types that can be reversed more efficiently
+        oldRelations = list(self._recordedRelations)
+        oldSymbolValues = dict(self._symbolValues)
+        oldResolutionOrder = list(self._symbolResolutionOrder)
+        try:
+            self._recordedRelations.append(relation)
+            self._inferSymbolValuesFromRelations()
+            return (relation, isRedundant)
+        
+        except Exception as exception:
+            self._recordedRelations = oldRelations
+            self._symbolValues = oldSymbolValues
+            self._symbolResolutionOrder = oldResolutionOrder
+            raise exception
 
     def getSymbolValues(self, symbol: sympy.Symbol):
         return self._symbolValues.get(symbol)
@@ -129,7 +141,7 @@ class AlgebraSolver:
             conditionalSolutionPairs = self._solveRelationExprsForSingleUnknown(relationsWithSingleUnknown)
             if __debug__:
                 conditionalSolutionPairs = tuple(conditionalSolutionPairs)
-                assert all(type(conditionalSolutionSet.value) is sympy.FiniteSet for (symbol, conditionalSolutionSet) in conditionalSolutionPairs), \
+                assert all(type(conditionalSolutionSet.value) is set for (symbol, conditionalSolutionSet) in conditionalSolutionPairs), \
                     "Solver got a solution set that wasn't a FiniteSet"
             
             (symbol, conditionalSolutions) = self._convertConditionalSolutionsToSetsOfConditions(conditionalSolutionPairs)
@@ -148,8 +160,26 @@ class AlgebraSolver:
             assert(len(relationExpr.free_symbols) == 1), \
                 "Relation had more than one unknown symbol to solve for"
             unknownSymbol = first(relationExpr.free_symbols)
-            solutionSet = sympy.solveset(relationExpr, unknownSymbol)
+            solution = sympy.solveset(relationExpr, unknownSymbol)
+            solutionSet = self._interpretSympySolution(solution)
             yield (unknownSymbol, ConditionalValue(solutionSet, relationExprCondition.conditions))
+
+    def _interpretSympySolution(self, solution: sympy.Set):
+        # normal solutions to problem
+        # example:
+        #   a^2 = 4; a = {2, -2}
+        if type(solution) is sympy.FiniteSet:
+            return set(solution)
+        
+        # solved such that no solutions are available
+        # example:
+        #   a/(b - 1) = 5; b = 1; a = {}
+        elif solution is sympy.EmptySet:
+            newestRelation = self._recordedRelations[-1]
+            raise NoSolutionException(newestRelation)
+        
+        else:
+            raise NotImplementedError(f"Solver reached unconsidered set: {type(solution).__name__}")
 
     def _convertConditionalSolutionsToSetsOfConditions(self, conditionalSolutionPairs: Iterable[tuple[sympy.Symbol, ConditionalValue[sympy.FiniteSet]]]):
         if __debug__:
@@ -216,4 +246,11 @@ class ContradictionException(MultilineException):
         super().__init__((
             "Relation contradicts known values",
             f"[red]{badRelation.leftExpr} = {badRelation.rightExpr}[/red]",
+        ))
+
+class NoSolutionException(MultilineException):
+    def __init__(self, badRelation: Relation):
+        super().__init__((
+            "Relation leads to unsolvable state",
+            f"[red]{badRelation.leftExpr} = {badRelation.rightExpr}[/red]"
         ))

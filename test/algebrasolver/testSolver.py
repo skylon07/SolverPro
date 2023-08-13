@@ -67,4 +67,9 @@ class AlgebraSolverTester:
 
         # TODO: more cases
 
-    # TODO: edge cases and error throwing tests
+    # TODO: error throwing tests
+    
+    def testSolverResetsOnError(self):
+        pass # TODO
+
+    # TODO: tests for robustness from old solver pro
