@@ -57,6 +57,9 @@ class MainScreen(Screen):
             textLog.write(self._renderCommand(commandStr, False))
             textLog.write(renderer.renderException(error))
 
+        finally:
+            textLog.write(" ") # empty line to space for next command
+
     def _renderCommand(self, commandStr: str, succeeded: bool):
         marker = self.app.console.render_str("[green]✓[/green]") if succeeded \
             else self.app.console.render_str("[red]✕[/red]")
