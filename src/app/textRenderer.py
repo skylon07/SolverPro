@@ -6,6 +6,7 @@ from rich.markup import render as renderMarkup
 from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.parsing.lexer import LexerToken, LexerTokenTypes
+from src.algebrasolver.solver import Relation
 
 
 class TextRenderer:
@@ -13,8 +14,8 @@ class TextRenderer:
         powRegex = re.compile(r"\*\*")
         self._powReplace = lambda exprStr: powRegex.sub("^", exprStr)
 
-    def renderRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr, warnRedundant: bool):
-        relationStr = self._correctSyntaxes(f"{leftExpr} = {rightExpr}")
+    def renderRelation(self, relation: Relation, warnRedundant: bool):
+        relationStr = self._correctSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
         linesList = [relationStr]
         if warnRedundant:
             linesList = [

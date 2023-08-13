@@ -1,5 +1,6 @@
-from src.common.functions import first
-from src.algebrasolver.solver import AlgebraSolver
+import sympy
+
+from src.algebrasolver.solver import AlgebraSolver, Relation
 from src.parsing.lexer import CommandLexer
 from src.parsing.parser import CommandParser, Command, CommandType
 
@@ -25,8 +26,8 @@ class AppDriver:
         
         elif command.type is Command.RECORD_RELATION:
             (leftExpr, rightExpr) = command.data
-            (newRelation, isRedundant) = self._solver.recordRelation(leftExpr, rightExpr)
-            return ProcessResult(Command.RECORD_RELATION, (leftExpr, rightExpr, isRedundant))
+            (newRelation, isRedundant) = self._solver.recordRelation(Relation(leftExpr, rightExpr))
+            return ProcessResult(Command.RECORD_RELATION, (newRelation, isRedundant))
         
         elif command.type is Command.EVALUATE_EXPRESSION:
             expr = command.data

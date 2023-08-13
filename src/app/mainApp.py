@@ -41,9 +41,9 @@ class MainScreen(Screen):
                 pass
 
             elif result.type is Command.RECORD_RELATION:
-                (leftExpr, rightExpr, isRedundant) = result.data
+                (relation, isRedundant) = result.data
                 textLog.write(self._renderCommand(commandStr, True))
-                textLog.write(renderer.renderRelation(leftExpr, rightExpr, isRedundant))
+                textLog.write(renderer.renderRelation(relation, isRedundant))
 
             elif result.type is Command.EVALUATE_EXPRESSION:
                 exprs = result.data

@@ -5,6 +5,7 @@ import sympy
 from src.common.functions import first, iterDifference
 from src.common.exceptions import MultilineException
 
+
 _ValueType = TypeVar("_ValueType")
 class ConditionalValue(Generic[_ValueType]):
     def __init__(self, value: _ValueType, conditions: dict[sympy.Symbol, sympy.Atom]):
@@ -25,32 +26,40 @@ class ConditionalValue(Generic[_ValueType]):
             return False
         
         return self.value == other.value and self.conditions == other.conditions
+    
+
+class Relation:
+    def __init__(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
+        self.leftExpr = leftExpr
+        self.rightExpr = rightExpr
+        # (leftExpr             = rightExpr)
+        # (leftExpr - rightExpr = 0)
+        self.asExprEqToZero = leftExpr - rightExpr # = 0
+
+    def __eq__(self, other):
+        if type(other) is not Relation:
+            return False
+        
+        return self.leftExpr == other.leftExpr and self.rightExpr == other.rightExpr
 
 
 class AlgebraSolver:
     def __init__(self):
         # a list of relational expressions with an implied equality to zero
-        self._recordedRelations: list[sympy.Expr] = list()
+        self._recordedRelations: list[Relation] = list()
         # a mapping of a variable to its potential values and conditions
         # (like b = 4 when a = 2 and b = 5 when a = -1)
         self._symbolValues: dict[sympy.Symbol, set[ConditionalValue[sympy.Atom]]] = dict()
         # the order in which symbols are substituted
         self._symbolResolutionOrder: list[tuple[int, sympy.Symbol]] = list()
 
-    def recordRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
-        newRelation = self.toRelation(leftExpr, rightExpr)
-        (isContradictory, isRedundant) = self._checkForContradictions(newRelation)
+    def recordRelation(self, relation: Relation):
+        (isContradictory, isRedundant) = self._checkForContradictions(relation)
         if isContradictory:
-            raise ContradictionException(newRelation)
-        self._recordedRelations.append(newRelation)
+            raise ContradictionException(relation)
+        self._recordedRelations.append(relation)
         self._inferSymbolValuesFromRelations()
-        return (newRelation, isRedundant)
-
-    def toRelation(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
-        # relation << (leftExpr             == rightExpr)
-        # relation << (leftExpr - rightExpr == 0)
-        relation = leftExpr - rightExpr # == 0
-        return relation
+        return (relation, isRedundant)
 
     def getSymbolValues(self, symbol: sympy.Symbol):
         return self._symbolValues.get(symbol)
@@ -59,7 +68,7 @@ class AlgebraSolver:
         return [
             relation
             for relation in self._recordedRelations
-            if symbol in relation.free_symbols
+            if symbol in relation.asExprEqToZero.free_symbols
         ]
     
     def substituteKnownsFor(self, expression: sympy.Expr):
@@ -84,13 +93,13 @@ class AlgebraSolver:
             subExpr = expression.subs(symbolValueCombination)
             yield ConditionalValue(subExpr, conditions)
 
-    def _checkForContradictions(self, relation: sympy.Expr):
+    def _checkForContradictions(self, relation: Relation):
         relationIsContradictory = False
         relationIsRedundant = False
-        for conditionalSubbedRelation in self._generateSubstitutionsFor(relation):
-            subbedRelation = conditionalSubbedRelation.value
-            if len(subbedRelation.free_symbols) == 0:
-                if subbedRelation == 0:
+        for conditionalSubbedRelationExpr in self._generateSubstitutionsFor(relation.asExprEqToZero):
+            subbedRelationExpr = conditionalSubbedRelationExpr.value
+            if len(subbedRelationExpr.free_symbols) == 0:
+                if subbedRelationExpr == 0:
                     relationIsRedundant = True
                 else:
                     relationIsContradictory = True
@@ -98,59 +107,59 @@ class AlgebraSolver:
 
     def _inferSymbolValuesFromRelations(self):
         anySymbolsUpdated = False
-        for relationExpr in self._recordedRelations:
-            relationConditionsWithKnownsSubbed = self._generateSubstitutionsFor(relationExpr)
+        for relation in self._recordedRelations:
+            relationsWithKnownsSubbed = self._generateSubstitutionsFor(relation.asExprEqToZero)
             if __debug__:
-                relationConditionsWithKnownsSubbed = tuple(relationConditionsWithKnownsSubbed)
+                relationsWithKnownsSubbed = tuple(relationsWithKnownsSubbed)
                 assert all(
-                    relationCondition.value == 0
-                    for relationCondition in relationConditionsWithKnownsSubbed
-                    if len(relationCondition.value.free_symbols) == 0
+                    relationExprCondition.value == 0
+                    for relationExprCondition in relationsWithKnownsSubbed
+                    if len(relationExprCondition.value.free_symbols) == 0
                 ), "Every (completely known) relation should be exactly equal to zero (are there contradictions between stored relations?)"
 
-            relationConditionsWithSingleUnknown = (
-                relationCondition
-                for relationCondition in relationConditionsWithKnownsSubbed
-                if len(relationCondition.value.free_symbols) == 1
+            relationsWithSingleUnknown = (
+                relationExprCondition
+                for relationExprCondition in relationsWithKnownsSubbed
+                if len(relationExprCondition.value.free_symbols) == 1
             )
             
-            conditionalValueSets = self._solveRelationsForSingleUnknown(relationConditionsWithSingleUnknown)
+            conditionalSolutionPairs = self._solveRelationExprsForSingleUnknown(relationsWithSingleUnknown)
             if __debug__:
-                conditionalValueSets = tuple(conditionalValueSets)
-                assert all(type(conditionalSet.value) is sympy.FiniteSet for (symbol, conditionalSet) in conditionalValueSets), \
+                conditionalSolutionPairs = tuple(conditionalSolutionPairs)
+                assert all(type(conditionalSolutionSet.value) is sympy.FiniteSet for (symbol, conditionalSolutionSet) in conditionalSolutionPairs), \
                     "Solver got a solution set that wasn't a FiniteSet"
             
-            (symbol, conditionalSolutionSet) = self._convertConditionalSetsToSetsOfConditions(conditionalValueSets)
+            (symbol, conditionalSolutions) = self._convertConditionalSolutionsToSetsOfConditions(conditionalSolutionPairs)
             someSubbedRelationWasSolvable = symbol is not None
             if someSubbedRelationWasSolvable:
-                self._symbolValues[symbol] = conditionalSolutionSet
-                self._insertSymbolToResolutionOrder(symbol, conditionalSolutionSet)
+                self._symbolValues[symbol] = conditionalSolutions
+                self._insertSymbolToResolutionOrder(symbol, conditionalSolutions)
                 anySymbolsUpdated = True
             
         if anySymbolsUpdated:
             self._inferSymbolValuesFromRelations()
 
-    def _solveRelationsForSingleUnknown(self, relationConditions: Iterable[ConditionalValue[sympy.Expr]]) -> Generator[tuple[sympy.Symbol, ConditionalValue[sympy.Set]], Any, None]:
-        for relationCondition in relationConditions:
-            relation = relationCondition.value
-            assert(len(relation.free_symbols) == 1), \
+    def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Expr]]) -> Generator[tuple[sympy.Symbol, ConditionalValue[sympy.Set]], Any, None]:
+        for relationExprCondition in relationExprConditions:
+            relationExpr = relationExprCondition.value
+            assert(len(relationExpr.free_symbols) == 1), \
                 "Relation had more than one unknown symbol to solve for"
-            unknownSymbol = first(relation.free_symbols)
-            solutionSet = sympy.solveset(relation, unknownSymbol)
-            yield (unknownSymbol, ConditionalValue(solutionSet, relationCondition.conditions))
+            unknownSymbol = first(relationExpr.free_symbols)
+            solutionSet = sympy.solveset(relationExpr, unknownSymbol)
+            yield (unknownSymbol, ConditionalValue(solutionSet, relationExprCondition.conditions))
 
-    def _convertConditionalSetsToSetsOfConditions(self, conditionalValueSets: Iterable[tuple[sympy.Symbol, ConditionalValue[sympy.FiniteSet]]]):
+    def _convertConditionalSolutionsToSetsOfConditions(self, conditionalSolutionPairs: Iterable[tuple[sympy.Symbol, ConditionalValue[sympy.FiniteSet]]]):
         if __debug__:
-            conditionalValueSets = tuple(conditionalValueSets)
-            if len(conditionalValueSets) > 0:
-                symbolSolved = conditionalValueSets[0][0]
-                allSymbolsTheSame = all(symbol == symbolSolved for (symbol, conditionalValue) in conditionalValueSets)
+            conditionalSolutionPairs = tuple(conditionalSolutionPairs)
+            if len(conditionalSolutionPairs) > 0:
+                symbolSolved = conditionalSolutionPairs[0][0]
+                allSymbolsTheSame = all(symbol == symbolSolved for (symbol, conditionalValue) in conditionalSolutionPairs)
                 assert allSymbolsTheSame, \
                     "Substitutions in relation led to different unknown variables"
 
         symbol = None
         totalSolutionSet: set[ConditionalValue[sympy.Atom]] = set()
-        for (symbol, conditionalValueSet) in conditionalValueSets:
+        for (symbol, conditionalValueSet) in conditionalSolutionPairs:
             valueSet = conditionalValueSet.value
             conditions = conditionalValueSet.conditions
             for value in valueSet:
@@ -200,7 +209,7 @@ class AlgebraSolver:
 
 
 class ContradictionException(MultilineException):
-    def __init__(self, badRelation: sympy.Expr):
+    def __init__(self, badRelation: Relation):
         super().__init__((
             "Relation contradicts known values",
             f"[red]{badRelation}[/red]",
