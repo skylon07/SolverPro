@@ -212,5 +212,5 @@ class ContradictionException(MultilineException):
     def __init__(self, badRelation: Relation):
         super().__init__((
             "Relation contradicts known values",
-            f"[red]{badRelation}[/red]",
+            f"[red]{badRelation.leftExpr} = {badRelation.rightExpr}[/red]",
         ))
