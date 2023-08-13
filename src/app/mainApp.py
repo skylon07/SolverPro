@@ -1,3 +1,6 @@
+from time import sleep
+from threading import Timer
+
 from textual import on
 from textual.app import App
 from textual.reactive import var
@@ -10,6 +13,8 @@ from src.app.textRenderer import TextRenderer
 
 
 class MainScreen(Screen):
+    inputTimer: var[Timer] = var(None)
+
     def compose(self):
         yield Header(show_clock = True)
         yield TextLog()
@@ -27,6 +32,9 @@ class MainScreen(Screen):
 
         input = self.query_one(Input)
         input.value = ""
+        input.add_class("darkPlaceholder")
+        if self.inputTimer is not None:
+            self.inputTimer.cancel()
 
         driver: AppDriver = self.app.driver
         renderer: TextRenderer = self.app.textRenderer
@@ -56,9 +64,10 @@ class MainScreen(Screen):
         except Exception as error:
             textLog.write(self._renderCommand(commandStr, False))
             textLog.write(renderer.renderException(error))
-
-        finally:
-            textLog.write(" ") # empty line to space for next command
+        
+        textLog.write(" ") # empty line to space for next command
+        self.inputTimer = Timer(0.1, lambda: input.remove_class("darkPlaceholder"))
+        self.inputTimer.start()
 
     def _renderCommand(self, commandStr: str, succeeded: bool):
         marker = self.app.console.render_str("[green]✓[/green]") if succeeded \
@@ -68,6 +77,8 @@ class MainScreen(Screen):
 
 class SolverProApp(App):
     SCREENS = {"main": MainScreen()}
+
+    CSS_PATH = "mainApp.css"
 
     driver: var[AppDriver] = var(lambda: AppDriver())
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
