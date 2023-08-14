@@ -54,7 +54,7 @@ class CommandParserSequencer:
         
         self._setNumTokensParsed(self.numTokensParsed + 1)
 
-    def _convertLowPrecExprList(self, lowPrecExprList: list):
+    def _convertLowPrecExprList(self, lowPrecExprList: list) -> sympy.Expr:
         for (idx, item) in enumerate(lowPrecExprList):
             if type(item) is list:
                 midPrecExprList = item
@@ -74,7 +74,7 @@ class CommandParserSequencer:
                     self._throwParseException(self._lowPrecOpers)
         return finalExpr
 
-    def _convertMidPrecExprList(self, midPrecExprList: list):
+    def _convertMidPrecExprList(self, midPrecExprList: list) -> sympy.Expr:
         for (idx, item) in enumerate(midPrecExprList):
             if type(item) is list:
                 highPrecExprList = item
@@ -94,7 +94,7 @@ class CommandParserSequencer:
                     self._throwParseException(self._midPrecOpers)
         return finalExpr
 
-    def _convertHighPrecExprList(self, highPrecExprList: list):
+    def _convertHighPrecExprList(self, highPrecExprList: list) -> sympy.Expr:
         for (idx, item) in enumerate(highPrecExprList):
             if type(item) is list:
                 maxPrecExprList = item
@@ -114,10 +114,14 @@ class CommandParserSequencer:
                     self._throwParseException(self._highPrecOpers)
         return finalExpr
 
-    def _convertMaxPrecExprList(self, maxPrecExprList: list):
-        for (idx, valueStr) in enumerate(maxPrecExprList):
-            if type(valueStr) is str:
-                value = sympy.parse_expr(valueStr)
+    def _convertMaxPrecExprList(self, maxPrecExprList: list) -> sympy.Expr:
+        for (idx, valuePair) in enumerate(maxPrecExprList):
+            if type(valuePair) is tuple:
+                (valueType, valueStr) = valuePair
+                if valueType is LexerTokenTypes.IDENTIFIER:
+                    value = sympy.Symbol(valueStr)
+                else:
+                    value = sympy.parse_expr(valueStr)
                 maxPrecExprList[idx] = value
         
         # reversed since we want to parse right-to-left
@@ -176,7 +180,7 @@ class CommandParserSequencer:
     def _sequenceExpression(self):
         # default branch: lowPrecExpr
         lowPrecExprList = self._sequenceLowPrecExpr()
-        expression: sympy.Expr = self._convertLowPrecExprList(lowPrecExprList)
+        expression = self._convertLowPrecExprList(lowPrecExprList)
         return expression
     
     def _sequenceLowPrecExpr(self):
@@ -296,10 +300,12 @@ class CommandParserSequencer:
             return expression
 
         # default branch: value
-        valueStr = self._sequenceValue()
-        return valueStr
+        (tokenType, valueStr) = self._sequenceValue()
+        return (tokenType, valueStr)
 
     def _sequenceValue(self):
+        tokenType = self._currToken.type
+
         # branch: number
         numberFirsts = (
             LexerTokenTypes.INT,
@@ -308,12 +314,12 @@ class CommandParserSequencer:
         if self._currToken.type in numberFirsts:
             # both branches
             number = self._sequenceNumber()
-            return number
+            return (tokenType, number)
         
         # default branch: IDENTIFIER
         identifierStr = self._currToken.match
         self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
-        return identifierStr
+        return (tokenType, identifierStr)
     
     def _sequenceNumber(self):
         # branch: INT/FLOAT
@@ -326,7 +332,7 @@ class CommandParserSequencer:
             self._consumeCurrToken(self._currToken.type)
             return numberStr
 
-        self._throwParseException(validNumbers)
+        return self._throwParseException(validNumbers) # `return` fixes type inference...?
     
 
 class CommandType(EnumString):
