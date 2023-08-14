@@ -1,8 +1,10 @@
+from abc import ABC, abstractmethod
 from typing import Iterable, Generator, Any, Generic, TypeVar
 
 import sympy
 
-from src.common.functions import first, iterDifference
+from src.common.functions import first
+from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
 
 
@@ -57,15 +59,14 @@ class AlgebraSolver:
         self._symbolResolutionOrder: list[tuple[int, sympy.Symbol]] = list()
 
     def recordRelation(self, relation: Relation):
-        (isContradictory, isRedundant) = self._checkForContradictions(relation)
-        if isContradictory:
-            raise ContradictionException(relation)
-        
         # TODO: use transactional data types that can be reversed more efficiently
         oldRelations = list(self._recordedRelations)
         oldSymbolValues = dict(self._symbolValues)
         oldResolutionOrder = list(self._symbolResolutionOrder)
+        
         try:
+            isRedundant = self._checkForRedundancies(relation)
+            
             self._recordedRelations.append(relation)
             self._inferSymbolValuesFromRelations()
             return isRedundant
@@ -108,29 +109,24 @@ class AlgebraSolver:
             subExpr = expression.subs(symbolValueCombination)
             yield ConditionalValue(subExpr, conditions)
 
-    def _checkForContradictions(self, relation: Relation):
-        relationIsContradictory = False
-        relationIsRedundant = False
+    def _checkForRedundancies(self, relation: Relation):
         for conditionalSubbedRelationExpr in self._generateSubstitutionsFor(relation.asExprEqToZero):
             subbedRelationExpr = conditionalSubbedRelationExpr.value
-            if len(subbedRelationExpr.free_symbols) == 0:
-                if subbedRelationExpr == 0:
-                    relationIsRedundant = True
-                else:
-                    relationIsContradictory = True
-        return (relationIsContradictory, relationIsRedundant)
+            if subbedRelationExpr == 0:
+                return True
+        return False
 
     def _inferSymbolValuesFromRelations(self):
         anySymbolsUpdated = False
         for relation in self._recordedRelations:
-            relationsWithKnownsSubbed = self._generateSubstitutionsFor(relation.asExprEqToZero)
-            if __debug__:
-                relationsWithKnownsSubbed = tuple(relationsWithKnownsSubbed)
-                assert all(
-                    relationExprCondition.value == 0
-                    for relationExprCondition in relationsWithKnownsSubbed
-                    if len(relationExprCondition.value.free_symbols) == 0
-                ), "Every (completely known) relation should be exactly equal to zero (are there contradictions between stored relations?)"
+            relationsWithKnownsSubbed = tuple(self._generateSubstitutionsFor(relation.asExprEqToZero))
+            if not all(
+                relationExprCondition.value == 0
+                for relationExprCondition in relationsWithKnownsSubbed
+                if len(relationExprCondition.value.free_symbols) == 0
+            ):
+                newestRelation = self._recordedRelations[-1]
+                raise ContradictionException(tuple(), newestRelation)
 
             relationsWithSingleUnknown = (
                 relationExprCondition
@@ -161,10 +157,10 @@ class AlgebraSolver:
                 "Relation had more than one unknown symbol to solve for"
             unknownSymbol = first(relationExpr.free_symbols)
             solution = sympy.solveset(relationExpr, unknownSymbol)
-            solutionSet = self._interpretSympySolution(solution)
+            solutionSet = self._interpretSympySolution(unknownSymbol, solution)
             yield (unknownSymbol, ConditionalValue(solutionSet, relationExprCondition.conditions))
 
-    def _interpretSympySolution(self, solution: sympy.Set):
+    def _interpretSympySolution(self, symbol: sympy.Symbol, solution: sympy.Set):
         # normal solutions to problem
         # example:
         #   a^2 = 4; a = {2, -2}
@@ -176,7 +172,7 @@ class AlgebraSolver:
         #   a/(b - 1) = 5; b = 1; a = {}
         elif solution is sympy.EmptySet:
             newestRelation = self._recordedRelations[-1]
-            raise NoSolutionException(newestRelation)
+            raise NoSolutionException([symbol], newestRelation)
         
         else:
             raise NotImplementedError(f"Solver reached unconsidered set: {type(solution).__name__}")
@@ -241,16 +237,41 @@ class AlgebraSolver:
         return True
 
 
-class ContradictionException(MultilineException):
-    def __init__(self, badRelation: Relation):
+class BadRelationException(MultilineException, ABC):
+    @abstractmethod
+    def __init__(self, message: FormattedStr, poorSymbols: tuple[sympy.Symbol, ...], badRelation: Relation):
+        leftExprFormatted = self.substitutePoorSymbols(badRelation.leftExpr, poorSymbols)
+        rightExprFormatted = self.substitutePoorSymbols(badRelation.rightExpr, poorSymbols)
         super().__init__((
-            "Relation contradicts known values",
-            f"[red]{badRelation.leftExpr} = {badRelation.rightExpr}[/red]",
+            message,
+            f"[red]{leftExprFormatted} = {rightExprFormatted}[/red]",
         ))
 
-class NoSolutionException(MultilineException):
-    def __init__(self, badRelation: Relation):
-        super().__init__((
-            "Relation leads to unsolvable state",
-            f"[red]{badRelation.leftExpr} = {badRelation.rightExpr}[/red]"
-        ))
+    def formatPoorSymbols(self, poorSymbols: tuple[sympy.Symbol, ...]):
+        return f"[yellow]{'[/yellow], [yellow]'.join(str(symbol) for symbol in poorSymbols)}[/yellow]"
+    
+    def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbols: tuple[sympy.Symbol, ...]) -> sympy.Expr:
+        return expr.subs({
+            poorSymbol: sympy.Symbol(f"[yellow]{poorSymbol}[/yellow]")
+            for poorSymbol in poorSymbols
+        })
+
+class ContradictionException(BadRelationException):
+    def __init__(self, contradictedSymbols: tuple[sympy.Symbol, ...], badRelation: Relation):
+        symbolsStr = f" for {self.formatPoorSymbols(contradictedSymbols)}" \
+            if len(contradictedSymbols) > 0 else ""
+        super().__init__(
+            f"Relation contradicts known values{symbolsStr}",
+            contradictedSymbols,
+            badRelation
+        )
+
+class NoSolutionException(BadRelationException):
+    def __init__(self, symbolsMissingSolutions: tuple[sympy.Symbol, ...], badRelation: Relation):
+        symbolsStr = f" for {self.formatPoorSymbols(symbolsMissingSolutions)}" \
+            if len(symbolsMissingSolutions) > 0 else ""
+        super().__init__(
+            f"Relation leads to unsolvable state{symbolsStr}",
+            symbolsMissingSolutions,
+            badRelation
+        )
