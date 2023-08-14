@@ -5,24 +5,33 @@ from textual import on
 from textual.app import App
 from textual.reactive import var
 from textual.screen import Screen
-from textual.widgets import Header, TextLog, Input
+from textual.widgets import TextLog, Input, Label
+from textual.widget import Widget
+from rich.text import Text
 
 from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, ProcessResult, Command
 from src.app.textRenderer import TextRenderer
 
 
+class AppHeader(Widget):
+    title: var[str] = var("")
+
+    def __init__(self, title: str, *, name: str = None, id: str = None, classes: str = None):
+        super().__init__(name = name, id = id, classes = classes)
+        self.title = title
+
+    def compose(self):
+        yield Label(self.title)
+
+
 class MainScreen(Screen):
     inputTimer: var[Timer] = var(None)
 
     def compose(self):
-        yield Header(show_clock = True)
+        yield AppHeader(f"--- Solver Pro {getVersion()} ---")
         yield TextLog()
         yield Input(placeholder = " < Command >")
-        
-    def on_mount(self):
-        self.app.title = f"--- Solver Pro {getVersion()} ---"
-        self.query_one(Header).tall = True
 
     @on(Input.Submitted)
     def runCommand(self, event: Input.Submitted):
@@ -78,7 +87,7 @@ class MainScreen(Screen):
 class SolverProApp(App):
     SCREENS = {"main": MainScreen()}
 
-    CSS_PATH = "mainApp.css"
+    CSS_PATH = "mainApp.tcss"
 
     driver: var[AppDriver] = var(lambda: AppDriver())
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
