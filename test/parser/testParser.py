@@ -312,6 +312,24 @@ class CommandParserTester:
             LexerToken('',              LexerTokenTypes.EOL,            12),
         ))) == [Command.evaluateExpression(sympy.parse_expr("(expression)"))]
 
+        # sympy.parse_expr("as") throws an error! (as well as other python keywords)
+        # make sure parser guards against this
+        assert list(parser.parse((
+            LexerToken("as",    LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken("",      LexerTokenTypes.EOL,        2),
+        ))) == [Command.evaluateExpression(sympy.Symbol("as"))], \
+            "Parser did not correctly evaluate symbol 'as'"
+        assert list(parser.parse((
+            LexerToken("if",    LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken("",      LexerTokenTypes.EOL,        2),
+        ))) == [Command.evaluateExpression(sympy.Symbol("if"))], \
+            "Parser did not correctly evaluate symbol 'if'"
+        assert list(parser.parse((
+            LexerToken("while", LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken("",      LexerTokenTypes.EOL,        5),
+        ))) == [Command.evaluateExpression(sympy.Symbol("while"))], \
+            "Parser did not correctly evaluate symbol 'while'"
+
     def testParserErrorCases(self):
         parser = CommandParser()
 
@@ -537,3 +555,18 @@ class CommandParserTester:
             LexerToken('',  LexerTokenTypes.EOL,            28),
         )
         assert error11.badTokenIdxs == [14]
+
+        # sympy parses this and just returns "1";
+        # this test makes sure the app's parser does its actual job
+        def attempt_pythonLikeExpr():
+            return list(parser.parse((
+                LexerToken("1",     LexerTokenTypes.INT,        0),
+                LexerToken("if",    LexerTokenTypes.IDENTIFIER, 2),
+                LexerToken("1",     LexerTokenTypes.INT,        5),
+                LexerToken("else",  LexerTokenTypes.IDENTIFIER, 7),
+                LexerToken("0",     LexerTokenTypes.INT,        12),
+                LexerToken("",      LexerTokenTypes.EOL,        13),
+            )))
+        error_pythonLikeExpr = runForError(attempt_pythonLikeExpr)
+        assert type(error_pythonLikeExpr) is ParseException
+        assert error_pythonLikeExpr.badTokenIdxs == [1]
