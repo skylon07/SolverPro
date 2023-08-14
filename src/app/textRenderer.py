@@ -59,9 +59,9 @@ class TextRenderer:
             joinedLines = self._prefixAndJoinLinesForException((
                 str(exception),
                 "",
-                "[#magenta]This error is missing a rendering rule, and the message above was generated automatically.",
+                "[magenta]This error is missing a rendering rule, and the message above was generated automatically.",
                 "If you see this, please submit an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
-                "with an explanation of how you got this message to show up.[/#magenta]",
+                "with an explanation of how you got this message to show up.[/magenta]",
             ), exception)
             return self._renderLines(f"[#b0b0b0]{joinedLines}[/#b0b0b0]")
         
@@ -80,12 +80,12 @@ class TextRenderer:
             ))
         else:
             return self._prefixAndJoinLines((
-                "[#magenta]An unexpected error occurred![/#magenta]",
+                "[magenta]An unexpected error occurred![/magenta]",
                 *lines,
                 "",
-                "[#magenta]This is probably an issue with Solver Pro internally.",
+                "[magenta]This is probably an issue with Solver Pro internally.",
                 "If you see this, please submit an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
-                "with an explanation of how you got this message to show up.[/#magenta]",
+                "with an explanation of how you got this message to show up.[/magenta]",
             ))
 
     def _prefixAndJoinLines(self, lines: tuple[FormattedStr, ...]):
