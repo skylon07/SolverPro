@@ -68,7 +68,7 @@ class AlgebraSolver:
         try:
             self._recordedRelations.append(relation)
             self._inferSymbolValuesFromRelations()
-            return (relation, isRedundant)
+            return isRedundant
         
         except Exception as exception:
             self._recordedRelations = oldRelations

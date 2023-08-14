@@ -67,6 +67,8 @@ class AlgebraSolverTester:
 
         # TODO: more cases
 
+    # TODO: test redundancy detection
+
     # TODO: error throwing tests
     
     def testSolverResetsOnError(self):
