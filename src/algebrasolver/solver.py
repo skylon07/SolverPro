@@ -112,9 +112,9 @@ class AlgebraSolver:
     def _checkForRedundancies(self, relation: Relation):
         for conditionalSubbedRelationExpr in self._generateSubstitutionsFor(relation.asExprEqToZero):
             subbedRelationExpr = conditionalSubbedRelationExpr.value
-            if subbedRelationExpr == 0:
-                return True
-        return False
+            if subbedRelationExpr != 0:
+                return False
+        return True
 
     def _inferSymbolValuesFromRelations(self):
         anySymbolsUpdated = False
