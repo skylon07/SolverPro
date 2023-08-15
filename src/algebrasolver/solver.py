@@ -199,7 +199,8 @@ class AlgebraSolver:
         return (symbol, totalSolutionSet)
     
     def _insertSymbolToResolutionOrder(self, symbol: sympy.Symbol, conditionalSolutions: set[ConditionalValue[sympy.Atom]]):
-        symbolSortRank = max(len(conditional.conditions) for conditional in conditionalSolutions)
+        assert symbol in self._symbolValues, "Should not insert symbol's resolution order before it has values"
+        symbolSortRank = self._calculateSymbolResolutionRank(symbol)
         insertIdx = len(self._symbolResolutionOrder) + 1
         rankBeforeInsert = None
         while rankBeforeInsert is None or rankBeforeInsert > symbolSortRank:
@@ -208,6 +209,26 @@ class AlgebraSolver:
                 break # I don't think this is even possible...
             (rankBeforeInsert, symbolBeforeInsert) = self._symbolResolutionOrder[insertIdx - 1]
         self._symbolResolutionOrder.insert(insertIdx, (symbolSortRank, symbol))
+
+    def _calculateSymbolResolutionRank(self, symbol: sympy.Symbol):
+        conditionSymbols = {
+            symbol
+            for conditionValue in self._symbolValues[symbol]
+            for symbol in conditionValue.conditions.keys()
+        }
+        rank = 1 + sum(
+            self._calculateSymbolResolutionRank(symbol)
+            for symbol in conditionSymbols
+        )
+        return rank
+
+
+    def _popSymbolFromResolutionOrder(self, symbol: sympy.Symbol):
+        symbolIdx = [
+            symbol
+            for (rank, symbol) in self._symbolResolutionOrder
+        ].index(symbol)
+        return self._symbolResolutionOrder.pop(symbolIdx)
 
     def _generateSubstitutionCombinations(self, currCombination: dict[sympy.Symbol, sympy.Atom] = None, resolutionIdx = 0) -> Generator[dict[sympy.Symbol, sympy.Atom], Any, None]:
         if currCombination is None:
