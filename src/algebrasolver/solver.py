@@ -262,6 +262,9 @@ class AlgebraSolver:
 class BadRelationException(MultilineException, ABC):
     @abstractmethod
     def __init__(self, message: FormattedStr, poorSymbols: tuple[sympy.Symbol, ...], badRelation: Relation):
+        self.poorSymbols = poorSymbols
+        self.badRelation = badRelation
+        
         leftExprFormatted = self.substitutePoorSymbols(badRelation.leftExpr, poorSymbols)
         rightExprFormatted = self.substitutePoorSymbols(badRelation.rightExpr, poorSymbols)
         super().__init__((
@@ -283,7 +286,7 @@ class ContradictionException(BadRelationException):
         symbolsStr = f" for {self.formatPoorSymbols(contradictedSymbols)}" \
             if len(contradictedSymbols) > 0 else ""
         super().__init__(
-            f"Relation contradicts known values{symbolsStr}",
+            f"Relation contradicts known/inferred values{symbolsStr}",
             contradictedSymbols,
             badRelation
         )
