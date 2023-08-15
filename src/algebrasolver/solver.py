@@ -192,6 +192,7 @@ class AlgebraSolver:
             valueSet = conditionalValueSet.value
             conditions = conditionalValueSet.conditions
             for value in valueSet:
+                # TODO: fix x*I cases (I = √-1)
                 assert isinstance(value, sympy.Atom), \
                     "Solver makes false assumption that FiniteSets only contain Atoms"
                 totalSolutionSet.add(ConditionalValue(value, conditions))
