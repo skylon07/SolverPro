@@ -1,6 +1,9 @@
 from typing import Callable
 
 
+def getVersion():
+    return "0.2.0"
+
 def iterDifference(iter1, iter2):
     for item in iter1:
         if item not in iter2:
@@ -19,9 +22,6 @@ def first(iterable, default = _firstNoDefault):
         raise ValueError("Iterable contained no elements (and no default value was given)")
     else:
         return default
-
-def getVersion():
-    return "0.1.0"
 
 # mostly for testing
 def runForError(fn: Callable[[], None]):
