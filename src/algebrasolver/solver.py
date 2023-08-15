@@ -323,12 +323,12 @@ class AlgebraSolver:
 
 class BadRelationException(MultilineException, ABC):
     @abstractmethod
-    def __init__(self, message: FormattedStr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Atom]], badRelation: Relation):
+    def __init__(self, message: FormattedStr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Atom]], contradictingRelation: Relation):
         self.poorSymbolValues = poorSymbolValues
-        self.badRelation = badRelation
+        self.contradictingRelation = contradictingRelation
         
-        leftExprFormatted = self.substitutePoorSymbols(badRelation.leftExpr, poorSymbolValues)
-        rightExprFormatted = self.substitutePoorSymbols(badRelation.rightExpr, poorSymbolValues)
+        leftExprFormatted = self.substitutePoorSymbols(contradictingRelation.leftExpr, poorSymbolValues)
+        rightExprFormatted = self.substitutePoorSymbols(contradictingRelation.rightExpr, poorSymbolValues)
         super().__init__((
             message,
             f"[red]{leftExprFormatted} = {rightExprFormatted}[/red]",
