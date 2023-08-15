@@ -14,6 +14,27 @@ from src.app.appDriver import AppDriver, ProcessResult, Command
 from src.app.textRenderer import TextRenderer
 
 
+APP_CSS = """
+Input.darkPlaceholder .input--placeholder {
+    background: #a0a0a0;
+}
+
+AppHeader {
+    dock: top;
+    width: 100%;
+    height: 3;
+    background: $foreground 5%;
+    color: $text;
+}
+
+AppHeader Label {
+    width: 100%;
+    height: 100%;
+    content-align: center middle;
+}
+"""
+
+
 class AppHeader(Widget):
     title: var[str] = var("")
 
@@ -87,7 +108,7 @@ class MainScreen(Screen):
 class SolverProApp(App):
     SCREENS = {"main": MainScreen()}
 
-    CSS_PATH = "mainApp.tcss"
+    CSS = APP_CSS
 
     driver: var[AppDriver] = var(lambda: AppDriver())
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
