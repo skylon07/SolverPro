@@ -70,7 +70,35 @@ class AlgebraSolver:
         oldResolutionOrder = list(self._symbolResolutionOrder)
         
         try:
-            isRedundant = self._checkForRedundancies(relation)
+            (isRedundant, isRedundantWithContradictions) = self._checkForRedundancies(relation)
+            if isRedundantWithContradictions:
+                # a restricted redefinition case is when a relation is
+                # restricting what some variable's values are
+                # example: if `a` is already known, {-4, 2, 5}, and a new
+                # relation `a = 2` comes in, this is "redundant" (aka no new
+                # information about other variables) but also contradictory
+                # (because -4 ≠ 2 and 5 ≠ 2); this is a clear indication that
+                # the variable's values should be restricted
+                couldBeRestrictRedefCase = len(relation.asExprEqToZero.free_symbols) == 1
+                if couldBeRestrictRedefCase:
+                    symbol = first(relation.asExprEqToZero.free_symbols)
+                    oldSolutions = self._symbolValues.pop(symbol)
+                    self._popSymbolFromResolutionOrder(symbol)
+                    
+                    (newSymbol, newSolutions) = self._calculateAnySolutionsFromRelation(relation)
+                    assert symbol == newSymbol, "Restriction solutions don't match found symbol" # I don't think this is even possible
+                    if symbol is not None:
+                        oldSolutionValues = tuple(solution.value for solution in oldSolutions)
+                        newValuesAreRestrictions = len(newSolutions) < len(oldSolutions) and \
+                            all(solution.value in oldSolutionValues for solution in newSolutions)
+                        if newValuesAreRestrictions:
+                            self._symbolValues[symbol] = newSolutions
+                            isRedundant = False # since it technically did provide new information...
+                            # TODO: remove other symbol values that relied on any conditions now not present
+                        else:
+                            self._symbolValues[symbol] = oldSolutions
+                        
+                        self._insertSymbolToResolutionOrder(symbol, self._symbolValues[symbol])
             
             self._recordedRelations.append(relation)
             self._inferSymbolValuesFromRelations()
@@ -115,37 +143,20 @@ class AlgebraSolver:
             yield ConditionalValue(subExpr, conditions)
 
     def _checkForRedundancies(self, relation: Relation):
+        isRedundantWithContradictions = False
         for conditionalSubbedRelationExpr in self._generateSubstitutionsFor(relation.asExprEqToZero):
             subbedRelationExpr = conditionalSubbedRelationExpr.value
             if subbedRelationExpr != 0:
-                return False
-        return True
+                if len(subbedRelationExpr.free_symbols) == 0:
+                    isRedundantWithContradictions = True
+                else:
+                    return (False, None)
+        return (True, isRedundantWithContradictions)
 
     def _inferSymbolValuesFromRelations(self):
         anySymbolsUpdated = False
         for relation in self._recordedRelations:
-            relationsWithKnownsSubbed = tuple(self._generateSubstitutionsFor(relation.asExprEqToZero))
-            if not all(
-                relationExprCondition.value == 0
-                for relationExprCondition in relationsWithKnownsSubbed
-                if len(relationExprCondition.value.free_symbols) == 0
-            ):
-                newestRelation = self._recordedRelations[-1]
-                raise ContradictionException(tuple(), newestRelation)
-
-            relationsWithSingleUnknown = (
-                relationExprCondition
-                for relationExprCondition in relationsWithKnownsSubbed
-                if len(relationExprCondition.value.free_symbols) == 1
-            )
-            
-            conditionalSolutionPairs = self._solveRelationExprsForSingleUnknown(relationsWithSingleUnknown)
-            if __debug__:
-                conditionalSolutionPairs = tuple(conditionalSolutionPairs)
-                assert all(type(conditionalSolutionSet.value) is set for (symbol, conditionalSolutionSet) in conditionalSolutionPairs), \
-                    "Solver got a solution set that wasn't a FiniteSet"
-            
-            (symbol, conditionalSolutions) = self._convertConditionalSolutionsToSetsOfConditions(conditionalSolutionPairs)
+            (symbol, conditionalSolutions) = self._calculateAnySolutionsFromRelation(relation)
             someSubbedRelationWasSolvable = symbol is not None
             if someSubbedRelationWasSolvable:
                 self._symbolValues[symbol] = conditionalSolutions
@@ -154,6 +165,31 @@ class AlgebraSolver:
             
         if anySymbolsUpdated:
             self._inferSymbolValuesFromRelations()
+
+    def _calculateAnySolutionsFromRelation(self, relation: Relation):
+        relationsWithKnownsSubbed = tuple(self._generateSubstitutionsFor(relation.asExprEqToZero))
+        if not all(
+            relationExprCondition.value == 0
+            for relationExprCondition in relationsWithKnownsSubbed
+            if len(relationExprCondition.value.free_symbols) == 0
+        ):
+            newestRelation = self._recordedRelations[-1]
+            raise ContradictionException(tuple(), newestRelation)
+
+        relationsWithSingleUnknown = (
+            relationExprCondition
+            for relationExprCondition in relationsWithKnownsSubbed
+            if len(relationExprCondition.value.free_symbols) == 1
+        )
+        
+        conditionalSolutionPairs = self._solveRelationExprsForSingleUnknown(relationsWithSingleUnknown)
+        if __debug__:
+            conditionalSolutionPairs = tuple(conditionalSolutionPairs)
+            assert all(type(conditionalSolutionSet.value) is set for (symbol, conditionalSolutionSet) in conditionalSolutionPairs), \
+                "Solver got a solution set that wasn't a FiniteSet"
+        
+        (symbol, conditionalSolutions) = self._convertConditionalSolutionsToSetsOfConditions(conditionalSolutionPairs)
+        return (symbol, conditionalSolutions)
 
     def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Expr]]) -> Generator[tuple[sympy.Symbol, ConditionalValue[sympy.Set]], Any, None]:
         for relationExprCondition in relationExprConditions:
