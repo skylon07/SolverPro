@@ -32,6 +32,11 @@ class ConditionalValue(Generic[_ValueType]):
 
 class Relation:
     def __init__(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
+        if not isinstance(leftExpr, sympy.Expr) and type(leftExpr) in (int, float):
+            leftExpr = sympy.parse_expr(str(leftExpr))
+        if not isinstance(rightExpr, sympy.Expr) and type(rightExpr) in (int, float):
+            rightExpr = sympy.parse_expr(str(rightExpr))
+        
         self.leftExpr = leftExpr
         self.rightExpr = rightExpr
         # (leftExpr             = rightExpr)
