@@ -1,3 +1,6 @@
+from typing import Callable
+
+
 def iterDifference(iter1, iter2):
     for item in iter1:
         if item not in iter2:
@@ -19,3 +22,11 @@ def first(iterable, default = _firstNoDefault):
 
 def getVersion():
     return "0.1.0"
+
+# mostly for testing
+def runForError(fn: Callable[[], None]):
+    try:
+        fn()
+        return None
+    except Exception as exception:
+        return exception

@@ -1,17 +1,9 @@
-from typing import Callable
-
 import sympy
 
+from src.common.functions import runForError
 from src.parsing.parser import CommandParser, Command, ParseException, EolException
 from src.parsing.lexer import LexerToken, LexerTokenTypes
 
-
-def runForError(fn: Callable[[], None]):
-    try:
-        fn()
-        return None
-    except Exception as exception:
-        return exception
 
 class CommandParserTester:
     def testParserCallbackChains(self):
