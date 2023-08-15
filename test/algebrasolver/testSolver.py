@@ -159,6 +159,12 @@ class AlgebraSolverTester:
         assert isRedundant2_2 is True, \
             "Solver claimed redundant conditional relation was needed"
 
+        solver3 = AlgebraSolver()
+        
+        isRedundant1_3 = solver3.recordRelation(Relation(sympy.parse_expr("a + c"), sympy.parse_expr("a + c")))
+        assert isRedundant1_3 is True, \
+            "Solver claimed symmetrical relation was not redundant"
+
     def testSolverDetectsContradictions(self):
         solver = AlgebraSolver()
         
@@ -168,9 +174,10 @@ class AlgebraSolverTester:
         error1 = runForError(recordContradiction1)
         
         assert type(error1) is ContradictionException
-        assert list(error1.poorSymbols) == [], \
-            "Solver should not have any implementation for offended symbols (yet) in single-var case"
-        assert error1.badRelation == Relation(sympy.parse_expr("a"), 4), \
+        assert error1.poorSymbolValues == {
+            sympy.parse_expr("a"): {3},
+        }, "Solver did not find correct contradicting symbols in single-var case"
+        assert error1.contradictingRelation == Relation(sympy.parse_expr("a"), 4), \
             "Solver found contradiction in the wrong relation for single-var case"
         
         solver.recordRelation(Relation(sympy.parse_expr("b"), 8))
@@ -189,16 +196,19 @@ class AlgebraSolverTester:
         assert error3 is None, \
             "Solver should not find a contradiction when restricting known values"
         
-        solver.recordRelation(Relation(sympy.parse_expr("x + y"), 4))
-        solver.recordRelation(Relation(sympy.parse_expr("x - y"), 4))
+        solver.recordRelation(Relation(sympy.parse_expr("x + y + z"), 6))
+        solver.recordRelation(Relation(sympy.parse_expr("x - y + z"), 6))
+        solver.recordRelation(Relation(sympy.parse_expr("z"), 2))
         def recordContradiction4():
             solver.recordRelation(Relation(sympy.parse_expr("x"), 1))
         error4 = runForError(recordContradiction4)
         
         assert type(error4) is ContradictionException
-        assert list(error4.poorSymbols) == [], \
-            "Solver should not have any implementation for offended symbols (yet) in two-var case"
-        assert error4.badRelation == Relation(sympy.parse_expr("x"), 1), \
+        assert error4.poorSymbolValues == {
+            sympy.parse_expr("x"): {1},
+            sympy.parse_expr("y") : {3},
+        }, "Solver should not have any implementation for offended symbols (yet) in two-var case"
+        assert error4.contradictingRelation == Relation(sympy.parse_expr("x - y + z"), 6), \
             "Solver found contradiction in the wrong relation for two-var case"
         
     def testSolverCanRestrictSolutions(self):
@@ -234,6 +244,220 @@ class AlgebraSolverTester:
             }, "Solver did not restrict known values (and conditionals) for new relation"
     
     def testSolverResetsOnError(self):
-        pass # TODO
+        solver = AlgebraSolver()
 
-    # TODO: tests for robustness from old solver pro
+        solver.recordRelation(Relation(sympy.parse_expr("v"), 2))
+        
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("v")) == {
+            ConditionalValue(2, {
+                sympy.parse_expr("v"): 2,
+            }),
+        }
+        
+        def attemptContradiction1():
+            solver.recordRelation(Relation(sympy.parse_expr("v"), 5))
+        error1 = runForError(attemptContradiction1)
+
+        assert type(error1) is ContradictionException
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("v")) == {
+            ConditionalValue(2, {
+                sympy.parse_expr("v"): 2,
+            }),
+        }, "Solver should retain old value after bad variable relation"
+
+        solver.recordRelation(Relation(sympy.parse_expr("a + b + c"), 5))
+        solver.recordRelation(Relation(sympy.parse_expr("a - b + c"), 5))
+        solver.recordRelation(Relation(sympy.parse_expr("c"), 1))
+
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("c")) == {
+            ConditionalValue(1, {
+                sympy.parse_expr("c"): 1,
+            }),
+        }
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("a")) == {
+            ConditionalValue(sympy.parse_expr("a"), dict()),
+        }
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("b")) == {
+            ConditionalValue(sympy.parse_expr("b"), dict()),
+        }
+
+        def attemptContradiction2():
+            solver.recordRelation(Relation(sympy.parse_expr("a"), 1))
+        error2 = runForError(attemptContradiction2)
+
+        assert type(error2) is ContradictionException
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("c")) == {
+            ConditionalValue(1, {
+                sympy.parse_expr("c"): 1,
+            }),
+        }
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("a")) == {
+            ConditionalValue(sympy.parse_expr("a"), dict()),
+        }, "Solver should forget inferred values made from new relations that contradict later"
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("b")) == {
+            ConditionalValue(sympy.parse_expr("b"), dict()),
+        }, "Solver should forget deeply inferred values made from new relations that contradict later"
+
+        solver.recordRelation(Relation(sympy.parse_expr("x/(y - 2)"), 6))
+
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("x")) == {
+            ConditionalValue(sympy.parse_expr("x"), dict()),
+        }
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("y")) == {
+            ConditionalValue(sympy.parse_expr("y"), dict()),
+        }
+
+        def attemptUnsolvable3():
+            solver.recordRelation(Relation(sympy.parse_expr("y"), 2))
+        error3 = runForError(attemptUnsolvable3)
+
+        assert type(error3) is NoSolutionException
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("x")) == {
+            ConditionalValue(sympy.parse_expr("x"), dict()),
+        }, "Solver should never record values for unsolvable variables"
+        assert solver.substituteKnownsWithConditions(sympy.parse_expr("y")) == {
+            ConditionalValue(sympy.parse_expr("y"), dict()),
+        }, "Solver should forget inferred values after finding an unsolvable variable"
+        
+    def testSolverForRobustness(self):
+        # a + b = 4
+        # a - b = 2
+        solver1 = AlgebraSolver()
+        solver1.recordRelation(Relation(sympy.parse_expr("a + b"), 4))
+        solver1.recordRelation(Relation(sympy.parse_expr("a - b"), 2))
+        solver1.recordRelation(Relation(sympy.parse_expr("a"), 3))
+        # (a = 3)
+        # (b = 1)
+        assert solver1.substituteKnownsFor(sympy.parse_expr("a")) == {3}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("b")) == {1}
+        
+        # a + 2b + c = 20
+        # -a = -4
+        # 2a + c = 14
+        solver2 = AlgebraSolver()
+        solver2.recordRelation(Relation(sympy.parse_expr("a + 2*b + c"), 20))
+        solver2.recordRelation(Relation(sympy.parse_expr("-a"), -4))
+        solver2.recordRelation(Relation(sympy.parse_expr("2*a + c"), 14))
+        # (a = 4)
+        # (b = 5)
+        # (c = 6)
+        assert solver2.substituteKnownsFor(sympy.parse_expr("a")) == {4}
+        assert solver2.substituteKnownsFor(sympy.parse_expr("b")) == {5}
+        assert solver2.substituteKnownsFor(sympy.parse_expr("c")) == {6}
+        
+        # a + b = 6
+        # b - c = 7
+        # c = d - 8
+        # d + e = -7
+        # 2 + -3*b = -10
+        solver3 = AlgebraSolver()
+        solver3.recordRelation(Relation(sympy.parse_expr("a + b"), 6))
+        solver3.recordRelation(Relation(sympy.parse_expr("b - c"), 7))
+        solver3.recordRelation(Relation(sympy.parse_expr("c"), sympy.parse_expr("d - 8")))
+        solver3.recordRelation(Relation(sympy.parse_expr("d + e"), -7))
+        solver3.recordRelation(Relation(sympy.parse_expr("2 + -3*b"), -10))
+        # (a = 2)
+        # (b = 4)
+        # (c = -3)
+        # (d = 5)
+        # (e = -12)
+        assert solver3.substituteKnownsFor(sympy.parse_expr("a")) == {2}
+        assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {4}
+        assert solver3.substituteKnownsFor(sympy.parse_expr("c")) == {-3}
+        assert solver3.substituteKnownsFor(sympy.parse_expr("d")) == {5}
+        assert solver3.substituteKnownsFor(sympy.parse_expr("e")) == {-12}
+
+        # f = m * a
+        # f = 80
+        # m = 20
+        solver4 = AlgebraSolver()
+        solver4.recordRelation(Relation(sympy.parse_expr("f"), sympy.parse_expr("m*a")))
+        solver4.recordRelation(Relation(sympy.parse_expr("f"), 80))
+        solver4.recordRelation(Relation(sympy.parse_expr("m"), 20))
+        # (f = 80)
+        # (m = 20)
+        # (a = 4)
+        assert solver4.substituteKnownsFor(sympy.parse_expr("f")) == {80}
+        assert solver4.substituteKnownsFor(sympy.parse_expr("m")) == {20}
+        assert solver4.substituteKnownsFor(sympy.parse_expr("a")) == {4}
+
+        # k1i = 1125
+        # k2i = 800
+        # k1f = 125
+        # kt = 1925
+        # k2f = 1800
+        # v2f = ±15
+        # m1 = 10
+        # m2 = 16
+        # v1i = 15
+        # v2i = 10
+        # v1f = 5
+
+        # k1i = 1/2 * m1 * v1i^2
+        # k2i = 1/2 * m2 * v2i^2
+        # k1f = 1/2 * m1 * v1f^2
+        # k2f = 1/2 * m2 * v2f^2
+        # kt = k1i + k2i
+        # kt = k1f + k2f
+        # m1 = 10
+        # m2 = 16
+        # v1i = 15
+        # v2i = 10
+        # v1f = 5
+        solver5 = AlgebraSolver()
+        solver5.recordRelation(Relation(sympy.parse_expr("k1i"), sympy.parse_expr("1/2*m1*v1i**2")))
+        solver5.recordRelation(Relation(sympy.parse_expr("k1f"), sympy.parse_expr("1/2*m1*v1f**2")))
+        solver5.recordRelation(Relation(sympy.parse_expr("k2i"), sympy.parse_expr("1/2*m2*v2i**2")))
+        solver5.recordRelation(Relation(sympy.parse_expr("k2f"), sympy.parse_expr("1/2*m2*v2f**2")))
+        solver5.recordRelation(Relation(sympy.parse_expr("kt"), sympy.parse_expr("k1i + k2i")))
+        solver5.recordRelation(Relation(sympy.parse_expr("kt"), sympy.parse_expr("k1f + k2f")))
+        solver5.recordRelation(Relation(sympy.parse_expr("m1"), 10))
+        solver5.recordRelation(Relation(sympy.parse_expr("m2"), 16))
+        solver5.recordRelation(Relation(sympy.parse_expr("v1i"), 15))
+        solver5.recordRelation(Relation(sympy.parse_expr("v2i"), 10))
+        solver5.recordRelation(Relation(sympy.parse_expr("v1f"), 5))
+
+        # (m1 = 10)
+        # (m2 = 16)
+        # (v1i = 15)
+        # (v2i = 10)
+        # (v1f = 5)
+        # (v2f = 15 OR -15)
+        # (k1i = 1125)
+        # (k2i = 800)
+        # (kt = 1925)
+        # (k1f = 125)
+        # (k2f = 1800)
+        assert solver5.substituteKnownsFor(sympy.parse_expr("m1")) == {10}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("m2")) == {16}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("v1i")) == {15}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("v2i")) == {10}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("v1f")) == {5}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("v2f")) == {-15, 15}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("k1i")) == {1125}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("k2i")) == {800}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("kt")) == {1925}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("k1f")) == {125}
+        assert solver5.substituteKnownsFor(sympy.parse_expr("k2f")) == {1800}
+
+        solver5.recordRelation(Relation(sympy.parse_expr("v2f"), 15))
+        assert solver5.substituteKnownsFor(sympy.parse_expr("v2f")) == {15}
+
+        # a + c = a + 3
+        # d - a = 2*c
+        # a*d = 4*(b + c)
+        # a/2 = 2
+        solver6 = AlgebraSolver()
+        solver6.recordRelation(Relation(sympy.parse_expr("a + c"), sympy.parse_expr("a + 3")))
+        solver6.recordRelation(Relation(sympy.parse_expr("d - a"), sympy.parse_expr("2*c")))
+        solver6.recordRelation(Relation(sympy.parse_expr("a*d"), sympy.parse_expr("4*(b + c)")))
+        solver6.recordRelation(Relation(sympy.parse_expr("a/2"), sympy.parse_expr("2")))
+        # (a = 4)
+        # (b = 7)
+        # (c = 3)
+        # (d = 10)
+        assert solver6.substituteKnownsFor(sympy.parse_expr("a")) == {4}
+        assert solver6.substituteKnownsFor(sympy.parse_expr("b")) == {7}
+        assert solver6.substituteKnownsFor(sympy.parse_expr("c")) == {3}
+        assert solver6.substituteKnownsFor(sympy.parse_expr("d")) == {10}
+    
