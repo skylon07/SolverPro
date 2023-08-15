@@ -200,13 +200,13 @@ class AlgebraSolver:
     
     def _insertSymbolToResolutionOrder(self, symbol: sympy.Symbol, conditionalSolutions: set[ConditionalValue[sympy.Atom]]):
         symbolSortRank = max(len(conditional.conditions) for conditional in conditionalSolutions)
-        insertIdx = -1
-        rankAtInsert = None
-        while rankAtInsert is None or rankAtInsert < symbolSortRank:
-            insertIdx += 1
-            if insertIdx == len(self._symbolResolutionOrder):
-                break
-            (rankAtInsert, symbolAtInsert) = self._symbolResolutionOrder[insertIdx]
+        insertIdx = len(self._symbolResolutionOrder) + 1
+        rankBeforeInsert = None
+        while rankBeforeInsert is None or rankBeforeInsert > symbolSortRank:
+            insertIdx -= 1
+            if insertIdx == 0:
+                break # I don't think this is even possible...
+            (rankBeforeInsert, symbolBeforeInsert) = self._symbolResolutionOrder[insertIdx - 1]
         self._symbolResolutionOrder.insert(insertIdx, (symbolSortRank, symbol))
 
     def _generateSubstitutionCombinations(self, currCombination: dict[sympy.Symbol, sympy.Atom] = None, resolutionIdx = 0) -> Generator[dict[sympy.Symbol, sympy.Atom], Any, None]:
