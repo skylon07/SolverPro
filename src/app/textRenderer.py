@@ -113,7 +113,10 @@ class TextRenderer:
         return formattedStr
     
     def _renderLines(self, linesStr: FormattedStr):
-        return renderMarkup(linesStr)
+        return renderMarkup(self._sanitize(linesStr))
+    
+    def _sanitize(self, linesStr: FormattedStr):
+        return linesStr.replace("\\", "�")
     
     def _correctSyntaxes(self, exprStr: str):
         return self._powReplace(exprStr)
