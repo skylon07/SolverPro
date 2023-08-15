@@ -200,8 +200,8 @@ class AlgebraSolver:
     def _insertSymbolToResolutionOrder(self, symbol: sympy.Symbol, conditionalSolutions: set[ConditionalValue[sympy.Atom]]):
         symbolSortRank = max(len(conditional.conditions) for conditional in conditionalSolutions)
         insertIdx = -1
-        insertRank = None
-        while insertRank is None or insertRank < symbolSortRank:
+        rankAtInsert = None
+        while rankAtInsert is None or rankAtInsert < symbolSortRank:
             insertIdx += 1
             if insertIdx == len(self._symbolResolutionOrder):
                 break
