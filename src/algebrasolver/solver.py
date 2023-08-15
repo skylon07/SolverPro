@@ -174,7 +174,7 @@ class AlgebraSolver:
             if len(relationExprCondition.value.free_symbols) == 0
         ):
             newestRelation = self._recordedRelations[-1]
-            raise ContradictionException(tuple(), newestRelation)
+            raise ContradictionException(dict(), newestRelation)
 
         relationsWithSingleUnknown = (
             relationExprCondition
@@ -213,7 +213,7 @@ class AlgebraSolver:
         #   a/(b - 1) = 5; b = 1; a = {}
         elif solution is sympy.EmptySet:
             newestRelation = self._recordedRelations[-1]
-            raise NoSolutionException([symbol], newestRelation)
+            raise NoSolutionException({symbol: None}, newestRelation)
         
         else:
             raise NotImplementedError(f"Solver reached unconsidered set: {type(solution).__name__}")
@@ -302,42 +302,48 @@ class AlgebraSolver:
 
 class BadRelationException(MultilineException, ABC):
     @abstractmethod
-    def __init__(self, message: FormattedStr, poorSymbols: tuple[sympy.Symbol, ...], badRelation: Relation):
-        self.poorSymbols = poorSymbols
+    def __init__(self, message: FormattedStr, poorSymbolValues: dict[sympy.Symbol, sympy.Atom], badRelation: Relation):
+        self.poorSymbolValues = poorSymbolValues
         self.badRelation = badRelation
         
-        leftExprFormatted = self.substitutePoorSymbols(badRelation.leftExpr, poorSymbols)
-        rightExprFormatted = self.substitutePoorSymbols(badRelation.rightExpr, poorSymbols)
+        leftExprFormatted = self.substitutePoorSymbols(badRelation.leftExpr, poorSymbolValues)
+        rightExprFormatted = self.substitutePoorSymbols(badRelation.rightExpr, poorSymbolValues)
         super().__init__((
             message,
             f"[red]{leftExprFormatted} = {rightExprFormatted}[/red]",
+            *[
+                f"[yellow]({poorSymbol} = {value})[/yellow]" if value is not None
+                    else f"[yellow]({poorSymbol}: unsolved)[/yellow]"
+                for (poorSymbol, value) in poorSymbolValues.items()
+                if value is not None
+            ]
         ))
 
-    def formatPoorSymbols(self, poorSymbols: tuple[sympy.Symbol, ...]):
-        return f"[yellow]{'[/yellow], [yellow]'.join(str(symbol) for symbol in poorSymbols)}[/yellow]"
+    def formatPoorSymbols(self, poorSymbolValues: dict[sympy.Symbol, sympy.Atom]):
+        return f"[yellow]{'[/yellow], [yellow]'.join(str(symbol) for symbol in poorSymbolValues.keys())}[/yellow]"
     
-    def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbols: tuple[sympy.Symbol, ...]) -> sympy.Expr:
+    def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, sympy.Atom]) -> sympy.Expr:
         return expr.subs({
             poorSymbol: sympy.Symbol(f"[yellow]{poorSymbol}[/yellow]")
-            for poorSymbol in poorSymbols
+            for poorSymbol in poorSymbolValues.keys()
         })
 
 class ContradictionException(BadRelationException):
-    def __init__(self, contradictedSymbols: tuple[sympy.Symbol, ...], badRelation: Relation):
-        symbolsStr = f" for {self.formatPoorSymbols(contradictedSymbols)}" \
-            if len(contradictedSymbols) > 0 else ""
+    def __init__(self, contradictedSymbolValues: dict[sympy.Symbol, sympy.Atom], badRelation: Relation):
+        symbolsStr = f" for {self.formatPoorSymbols(contradictedSymbolValues)}" \
+            if len(contradictedSymbolValues) > 0 else ""
         super().__init__(
             f"Relation contradicts known/inferred values{symbolsStr}",
-            contradictedSymbols,
+            contradictedSymbolValues,
             badRelation
         )
 
 class NoSolutionException(BadRelationException):
-    def __init__(self, symbolsMissingSolutions: tuple[sympy.Symbol, ...], badRelation: Relation):
-        symbolsStr = f" for {self.formatPoorSymbols(symbolsMissingSolutions)}" \
-            if len(symbolsMissingSolutions) > 0 else ""
+    def __init__(self, symbolValuesMissingSolutions: dict[sympy.Symbol, sympy.Atom], badRelation: Relation):
+        symbolsStr = f" for {self.formatPoorSymbols(symbolValuesMissingSolutions)}" \
+            if len(symbolValuesMissingSolutions) > 0 else ""
         super().__init__(
             f"Relation leads to unsolvable state{symbolsStr}",
-            symbolsMissingSolutions,
+            symbolValuesMissingSolutions,
             badRelation
         )
