@@ -123,15 +123,15 @@ class AlgebraSolver:
             self._symbolResolutionOrder = oldResolutionOrder
             raise exception
 
-    def getSymbolValues(self, symbol: sympy.Symbol):
+    def getSymbolConditionalValues(self, symbol: sympy.Symbol):
         return self._symbolValues.get(symbol)
     
     def getRelationsWithSymbol(self, symbol: sympy.Symbol):
-        return [
+        return tuple(
             relation
             for relation in self._recordedRelations
             if symbol in relation.asExprEqToZero.free_symbols
-        ]
+        )
     
     def substituteKnownsFor(self, expression: sympy.Expr):
         conditionals = self._generateSubstitutionsFor(expression)

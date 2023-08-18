@@ -137,6 +137,53 @@ class AlgebraSolverTester:
                     sympy.parse_expr("c"): -5,
                 }),
             }
+        
+    def testSolverCanGetSymbolValues(self):
+        solver = AlgebraSolver()
+
+        solver.recordRelation(Relation(sympy.parse_expr("a"), 5))
+        solver.recordRelation(Relation(sympy.parse_expr("b**2"), 4))
+        solver.recordRelation(Relation(sympy.parse_expr("c + b"), 5))
+
+        assert solver.getSymbolConditionalValues(sympy.parse_expr("a")) == {
+            ConditionalValue(5, dict()),
+        }, "Solver did not return correct values for a symbol with one value"
+        assert solver.getSymbolConditionalValues(sympy.parse_expr("b")) == {
+            ConditionalValue(-2, dict()),
+            ConditionalValue(2, dict()),
+        }, "Solver did not return correct values for a symbol with two values"
+        assert solver.getSymbolConditionalValues(sympy.parse_expr("c")) == {
+            ConditionalValue(3, { 
+                sympy.parse_expr("b"): 2,
+            }),
+            ConditionalValue(7, {
+                sympy.parse_expr("b"): -2,
+            }),
+        }, "Solver did not return correct values for a symbol with two conditional values"
+        assert solver.getSymbolConditionalValues(sympy.parse_expr("nonexistant")) is None
+
+    def testSolverFindsRelationsWithSymbol(self):
+        solver = AlgebraSolver()
+
+        solver.recordRelation(Relation(sympy.parse_expr("a + d"), 14))
+        solver.recordRelation(Relation(sympy.parse_expr("b**2 - c"), 8))
+        solver.recordRelation(Relation(sympy.parse_expr("2*c - d"), 9))
+
+        assert solver.getRelationsWithSymbol(sympy.parse_expr("a")) == (
+            Relation(sympy.parse_expr("a + d"), 14),
+        ), "Solver did not retrieve correct relations (case 1)"
+        assert solver.getRelationsWithSymbol(sympy.parse_expr("b")) == (
+            Relation(sympy.parse_expr("b**2 - c"), 8),
+        ), "Solver did not retrieve correct relations (case 2)"
+        assert solver.getRelationsWithSymbol(sympy.parse_expr("c")) == (
+            Relation(sympy.parse_expr("b**2 - c"), 8),
+            Relation(sympy.parse_expr("2*c - d"), 9),
+        ), "Solver should preserve relations in order of recording (case 1)"
+        assert solver.getRelationsWithSymbol(sympy.parse_expr("d")) == (
+            Relation(sympy.parse_expr("a + d"), 14),
+            Relation(sympy.parse_expr("2*c - d"), 9),
+        ), "Solver should preserve relations in order of recording (case 2)"
+        assert solver.getRelationsWithSymbol(sympy.parse_expr("nonexistant")) == tuple()
 
     def testSolverCatchesRedundantRelations(self):
         solver1 = AlgebraSolver()
@@ -243,7 +290,7 @@ class AlgebraSolverTester:
                 }),
             }, "Solver did not restrict known values (and conditionals) for new relation"
     
-    def testSolverResetsOnError(self):
+    def testSolverResetsOnBadRecord(self):
         solver = AlgebraSolver()
 
         solver.recordRelation(Relation(sympy.parse_expr("v"), 2))
