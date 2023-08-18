@@ -3,7 +3,7 @@ from typing import Iterable, Generator, Any, Generic, TypeVar
 
 import sympy
 
-from src.common.functions import first
+from src.common.functions import first, surroundJoin
 from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
 
@@ -341,7 +341,12 @@ class BadRelationException(MultilineException, ABC):
         ))
 
     def formatPoorSymbols(self, poorSymbolValues: dict[sympy.Symbol, set[sympy.Atom]]):
-        return f"[yellow]{'[/yellow], [yellow]'.join(str(symbol) for symbol in poorSymbolValues.keys())}[/yellow]"
+        return surroundJoin(
+            (str(symbol) for symbol in poorSymbolValues.keys()),
+            "[yellow]",
+            "[/yellow]",
+            ", "
+        )
     
     def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Atom]]) -> sympy.Expr:
         return expr.subs({

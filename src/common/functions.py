@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Iterable
 
 
 def getVersion():
@@ -22,6 +22,10 @@ def first(iterable, default = _firstNoDefault):
         raise ValueError("Iterable contained no elements (and no default value was given)")
     else:
         return default
+    
+def surroundJoin(items: Iterable, prefix: str, suffix: str, separator: str):
+    fullSeparator = suffix + separator + prefix
+    return prefix + fullSeparator.join(items) + suffix
 
 # mostly for testing
 def runForError(fn: Callable[[], None]):

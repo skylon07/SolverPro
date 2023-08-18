@@ -4,6 +4,7 @@ import sympy
 from rich.markup import render as renderMarkup
 
 from src.common.types import FormattedStr
+from src.common.functions import surroundJoin
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.parsing.lexer import LexerToken, LexerTokenTypes
 from src.algebrasolver.solver import Relation
@@ -90,7 +91,7 @@ class TextRenderer:
 
     def _prefixAndJoinLines(self, lines: tuple[FormattedStr, ...]):
         linePrefix = "    "
-        prefixedLinesStr = linePrefix + f"\n{linePrefix}".join(lines)
+        prefixedLinesStr = surroundJoin(lines, linePrefix, "", "\n")
         return prefixedLinesStr
     
     def _formatTokens(self, tokens: tuple[LexerToken, ...], formattingMap: dict[int, str]):

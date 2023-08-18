@@ -371,7 +371,7 @@ class ParseException(TracebackException):
     def __init__(self, expectedTypes: tuple[LexerTokenType, ...], tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
         unexpectedToken = tokens[unexpectedTokenIdx]
 
-        expectedTypesStr = " or ".join(f"[green]{{{tokenType}}}[/green]".lower() for tokenType in expectedTypes)
+        expectedTypesStr = " or ".join(f"{tokenType}".lower() for tokenType in expectedTypes)
         firstLetterIsVowel = str(expectedTypes[0])[0].lower() in "aeiou"
         gramaticalN = "n" if firstLetterIsVowel else ""
         fullMessage = f"Unexpected [red]{unexpectedToken.match}[/red]; expected a{gramaticalN} {expectedTypesStr}"
