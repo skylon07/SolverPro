@@ -1,6 +1,7 @@
 import sympy
 
-from src.app.appDriver import AppDriver, ProcessResult, Command
+from src.common.functions import runForError
+from src.app.appDriver import AppDriver, ProcessResult, Command, UndefinedIdentifiersException
 from src.algebrasolver.solver import Relation
 
 
@@ -75,3 +76,34 @@ class AppDriverTester:
         assert evaluateResults3_2 == (
             ProcessResult(Command.EVALUATE_EXPRESSION, {1}),
         ), "Driver did not correctly infer first variable in a series of solvable relations"
+
+    def testDriverDetectsUndefinedIdentifiers(self):
+        driver = AppDriver()
+
+        tuple(driver.processCommandLines("defined = 10"))
+
+        def attemptBadCommand1():
+            return tuple(driver.processCommandLines("undefined"))
+        error1 = runForError(attemptBadCommand1)
+        assert type(error1) is UndefinedIdentifiersException, \
+            "Driver did not throw on undefined indentifier"
+        assert error1.badTokenIdxs == (0,), \
+            "Driver did not detect the index of the bad identifier"
+
+        def attemptBadCommand2():
+            return tuple(driver.processCommandLines("defined/undefined + undefined"))
+        error2 = runForError(attemptBadCommand2)
+        assert type(error2) is UndefinedIdentifiersException, \
+            "Driver did not throw with multiple of the same undefined identifier present"
+        assert error2.badTokenIdxs == (2, 4), \
+            "Driver did not detect all indexes of the undefined identifier tokens"
+        
+        def attemptBadCommand3():
+            return tuple(driver.processCommandLines("a + b + defined + c/b*defined^e - f/g"))
+        error3 = runForError(attemptBadCommand3)
+        assert type(error3) is UndefinedIdentifiersException, \
+            "Driver did not throw with multiple unidentified identifiers present"
+        assert error3.badTokenIdxs == (0, 2, 6, 8, 12, 14, 16), \
+            "Driver did not detect all indexes of all the undidentified identifier tokens"
+
+    # TODO: add tests for robustness (from old project)
