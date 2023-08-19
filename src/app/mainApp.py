@@ -1,4 +1,3 @@
-from time import sleep
 from threading import Timer
 
 from textual import on
@@ -38,7 +37,7 @@ AppHeader Label {
 class AppHeader(Widget):
     title: var[str] = var("")
 
-    def __init__(self, title: str, *, name: str = None, id: str = None, classes: str = None):
+    def __init__(self, title: str, *, name: str | None = None, id: str | None = None, classes: str | None = None):
         super().__init__(name = name, id = id, classes = classes)
         self.title = title
 
@@ -47,7 +46,7 @@ class AppHeader(Widget):
 
 
 class MainScreen(Screen):
-    inputTimer: var[Timer] = var(None)
+    inputTimer: var[Timer | None] = var(None)
 
     def compose(self):
         yield AppHeader(f"--- Solver Pro {getVersion()} ---")
@@ -66,15 +65,17 @@ class MainScreen(Screen):
         if self.inputTimer is not None:
             self.inputTimer.cancel()
 
-        driver: AppDriver = self.app.driver
-        renderer: TextRenderer = self.app.textRenderer
+        assert type(self.app) is SolverProApp
+        driver = self.app.driver
+        renderer = self.app.textRenderer
         try:
             # only single lines are accepted for now;
             # `renderer` (for exceptions) can't handle multiple lines yet,
             # and the driver does not behave transactionally (an error on the
             # third of four lines still actually executes the first two)
             driver.validateSingleLine(commandStr)
-            result: ProcessResult = first(driver.processCommandLines(commandStr))
+            result = first(driver.processCommandLines(commandStr), None)
+            assert result is not None
             if result.type is Command.EMPTY:
                 pass
 

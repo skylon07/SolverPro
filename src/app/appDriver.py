@@ -1,3 +1,5 @@
+from typing import Iterable, Collection
+
 import sympy
 
 from src.common.functions import surroundJoin
@@ -37,6 +39,7 @@ class AppDriver:
             expr: sympy.Expr = command.data
             undefinedSymbolStrs: list[str] = list()
             for symbol in expr.free_symbols:
+                assert type(symbol) is sympy.Symbol
                 relations = self._solver.getRelationsWithSymbol(symbol)
                 noRelationsForSymbol = len(relations) == 0
                 if noRelationsForSymbol:
@@ -66,7 +69,7 @@ class ProcessResult:
 
 
 class UndefinedIdentifiersException(TracebackException):
-    def __init__(self, tokens: tuple[LexerToken, ...], badIdentifiers: tuple[str, ...]):
+    def __init__(self, tokens: Iterable[LexerToken], badIdentifiers: Collection[str]):
         badTokenIdxs = tuple(
             tokenIdx
             for (tokenIdx, token) in enumerate(tokens)

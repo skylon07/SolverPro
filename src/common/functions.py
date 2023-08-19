@@ -1,4 +1,4 @@
-from typing import Callable, Iterable
+from typing import Callable, Iterable, TypeVar
 
 
 def getVersion():
@@ -10,7 +10,9 @@ def iterDifference(iter1, iter2):
             yield item
 
 _firstNoDefault = object()
-def first(iterable, default = _firstNoDefault):
+_IterableType = TypeVar("_IterableType")
+_DefaultType = TypeVar("_DefaultType")
+def first(iterable: Iterable[_IterableType], default: _DefaultType = _firstNoDefault) -> _IterableType | _DefaultType:
     try:
         for item in iterable:
             firstItem = item

@@ -40,11 +40,11 @@ class CommandParserSequencer:
         self._moreTokens = self.numTokensParsed < len(self._tokens)
 
     @property
-    def _currToken(self):
+    def _currToken(self) -> LexerToken:
         if self._moreTokens:
             currToken = self._tokens[self.numTokensParsed]
             return currToken
-        self._throwEolException()
+        return self._throwEolException()
 
     def _consumeCurrToken(self, expectedTokenType: LexerTokenType):
         if self._currToken.type is not expectedTokenType:

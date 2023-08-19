@@ -1,4 +1,5 @@
 import re
+from typing import Iterable
 
 import sympy
 from rich.markup import render as renderMarkup
@@ -72,7 +73,7 @@ class TextRenderer:
             ), exception)
             return self._renderLines(joinedLines)
 
-    def _prefixAndJoinLinesForException(self, lines: tuple[FormattedStr, ...], exception: Exception):
+    def _prefixAndJoinLinesForException(self, lines: Iterable[FormattedStr], exception: Exception):
         isHandledException = isinstance(exception, HandledException)
         if isHandledException:
             return self._prefixAndJoinLines((
@@ -89,12 +90,12 @@ class TextRenderer:
                 "with an explanation of how you got this message to show up.[/magenta]",
             ))
 
-    def _prefixAndJoinLines(self, lines: tuple[FormattedStr, ...]):
+    def _prefixAndJoinLines(self, lines: Iterable[FormattedStr]):
         linePrefix = "    "
         prefixedLinesStr = surroundJoin(lines, linePrefix, "", "\n")
         return prefixedLinesStr
     
-    def _formatTokens(self, tokens: tuple[LexerToken, ...], formattingMap: dict[int, str]):
+    def _formatTokens(self, tokens: Iterable[LexerToken], formattingMap: dict[int, str]):
         formattedStr = ""
         lastToken = None
         for (tokenIdx, token) in enumerate(tokens):

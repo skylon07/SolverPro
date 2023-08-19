@@ -1,3 +1,4 @@
+# type: ignore
 import sympy
 
 from src.common.functions import runForError
