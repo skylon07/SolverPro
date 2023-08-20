@@ -4,54 +4,30 @@ from textual import on
 from textual.app import App
 from textual.reactive import var
 from textual.screen import Screen
-from textual.widgets import TextLog, Input, Label
-from textual.widget import Widget
-from rich.text import Text
+from textual.widgets import TextLog, Input
 
 from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, ProcessResult, Command
+from src.app.appHeader import AppHeader
 from src.app.textRenderer import TextRenderer
 
 
-APP_CSS = """
-Input.darkPlaceholder .input--placeholder {
-    background: #a0a0a0;
-}
-
-AppHeader {
-    dock: top;
-    width: 100%;
-    height: 3;
-    background: $foreground 5%;
-    color: $text;
-}
-
-AppHeader Label {
-    width: 100%;
-    height: 100%;
-    content-align: center middle;
-}
-"""
-
-
-class AppHeader(Widget):
-    title: var[str] = var("")
-
-    def __init__(self, title: str, *, name: str | None = None, id: str | None = None, classes: str | None = None):
-        super().__init__(name = name, id = id, classes = classes)
-        self.title = title
-
-    def compose(self):
-        yield Label(self.title)
-
-
 class MainScreen(Screen):
+    CSS = """
+        Input.highlighted .input--placeholder {
+            background: #a0a0a0;
+        }
+    """
+
     inputTimer: var[Timer | None] = var(None)
 
     def compose(self):
-        yield AppHeader(f"--- Solver Pro {getVersion()} ---")
+        yield AppHeader()
         yield TextLog()
         yield Input(placeholder = " < Command >")
+
+    def on_mount(self):
+        self.app.title = f"--- Solver Pro {getVersion()} ---"
 
     @on(Input.Submitted)
     def runCommand(self, event: Input.Submitted):
@@ -61,7 +37,7 @@ class MainScreen(Screen):
 
         input = self.query_one(Input)
         input.value = ""
-        input.add_class("darkPlaceholder")
+        input.add_class("highlighted")
         if self.inputTimer is not None:
             self.inputTimer.cancel()
 
@@ -97,7 +73,7 @@ class MainScreen(Screen):
             textLog.write(renderer.renderException(error))
         
         textLog.write(" ") # empty line to space for next command
-        self.inputTimer = Timer(0.1, lambda: input.remove_class("darkPlaceholder"))
+        self.inputTimer = Timer(0.1, lambda: input.remove_class("highlighted"))
         self.inputTimer.start()
 
     def _renderCommand(self, commandStr: str, succeeded: bool):
