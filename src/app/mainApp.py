@@ -7,8 +7,9 @@ from textual.screen import Screen
 from textual.widgets import TextLog, Input
 
 from src.common.functions import first, getVersion
-from src.app.appDriver import AppDriver, ProcessResult, Command
+from src.app.appDriver import AppDriver, Command
 from src.app.appHeader import AppHeader
+from src.app.termTipModal import TermTipModal
 from src.app.textRenderer import TextRenderer
 
 
@@ -37,7 +38,7 @@ class MainScreen(Screen):
 
         input = self.query_one(Input)
         input.value = ""
-        input.add_class("highlighted")
+        input.add_class('highlighted')
         if self.inputTimer is not None:
             self.inputTimer.cancel()
 
@@ -73,7 +74,7 @@ class MainScreen(Screen):
             textLog.write(renderer.renderException(error))
         
         textLog.write(" ") # empty line to space for next command
-        self.inputTimer = Timer(0.1, lambda: input.remove_class("highlighted"))
+        self.inputTimer = Timer(0.1, lambda: input.remove_class('highlighted'))
         self.inputTimer.start()
 
     def _renderCommand(self, commandStr: str, succeeded: bool):
@@ -83,15 +84,17 @@ class MainScreen(Screen):
 
 
 class SolverProApp(App):
-    SCREENS = {"main": MainScreen()}
-
-    CSS = APP_CSS
-
     driver: var[AppDriver] = var(lambda: AppDriver())
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
 
     def on_mount(self):
-        self.push_screen("main")
+        self.push_screen(MainScreen())
+
+    def action_showTermTip(self, tipName: str):
+        self.push_screen(TermTipModal(
+            "Term Title",
+            "This is a term tip modal. This will contain information about the term you just clicked on. These tips will appear whenever you click on a term. Here is some more useful information. Have a nice day! This is a term tip modal. This will contain information about the term you just clicked on. These tips will appear whenever you click on a term. Here is some more useful information. Have a nice day! This is a term tip modal. This will contain information about the term you just clicked on. These tips will appear whenever you click on a term. Here is some more useful information. Have a nice day! This is a term tip modal. This will contain information about the term you just clicked on. These tips will appear whenever you click on a term. Here is some more useful information. Have a nice day!"
+        ))
 
 
 if __name__ == "__main__":
