@@ -9,7 +9,7 @@ class LexerTokenType(EnumString):
 
 class LexerTokenTypes(Enum):
     IDENTIFIER  = LexerTokenType("IDENTIFIER")
-    INT         = LexerTokenType("INT")
+    INTEGER     = LexerTokenType("INTEGER")
     FLOAT       = LexerTokenType("FLOAT")
     PAREN_OPEN  = LexerTokenType("PAREN_OPEN")
     PAREN_CLOSE = LexerTokenType("PAREN_CLOSE")
@@ -49,7 +49,7 @@ class CommandLexer:
         self._recognizers = (
             LexerRecognizer(
                 r"(?!_)[0-9_]+(?<!_)",
-                LexerTokenTypes.INT
+                LexerTokenTypes.INTEGER
             ),
             LexerRecognizer(
                 r"\(",
@@ -92,7 +92,7 @@ class CommandLexer:
             LexerRecognizer(
                 r"(?!_)[0-9_]*(?<!_)[.]?(?!_)[0-9_]*(?<!_)([eE][+-]?(?!_)[0-9_]+(?<!_))?",
                 LexerTokenTypes.FLOAT
-            ), # yields to INT or PERIOD
+            ), # yields to INTEGER or PERIOD
         )
 
     def findTokens(self, data: str, withEol = True):

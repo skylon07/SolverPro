@@ -17,7 +17,7 @@ class CommandParserTester:
             "Parser did not correctly parse a single identifier"
 
         assert list(parser.parse((
-            LexerToken("15",    LexerTokenTypes.INT, 0),
+            LexerToken("15",    LexerTokenTypes.INTEGER, 0),
             LexerToken("",      LexerTokenTypes.EOL, 2),
         ))) == [Command.evaluateExpression(sympy.parse_expr("15"))], \
             "Parser did not correctly parse a single integer"
@@ -50,7 +50,7 @@ class CommandParserTester:
         ], "Parser did not correctly handle multiple empty commands"
 
         assert list(parser.parse((
-            LexerToken("123",           LexerTokenTypes.INT,        0),
+            LexerToken("123",           LexerTokenTypes.INTEGER,        0),
             LexerToken("",              LexerTokenTypes.EOL,        3),
             LexerToken("someVariable",  LexerTokenTypes.IDENTIFIER, 4),
             LexerToken("",              LexerTokenTypes.EOL,        16),
@@ -79,15 +79,15 @@ class CommandParserTester:
             LexerToken("+",         LexerTokenTypes.PLUS,       3),
             LexerToken("extra",     LexerTokenTypes.IDENTIFIER, 5),
             LexerToken("=",         LexerTokenTypes.EQUALS,     11),
-            LexerToken("1",         LexerTokenTypes.INT,        13),
+            LexerToken("1",         LexerTokenTypes.INTEGER,        13),
             LexerToken("/",         LexerTokenTypes.SLASH,      14),
-            LexerToken("2",         LexerTokenTypes.INT,        15),
+            LexerToken("2",         LexerTokenTypes.INTEGER,        15),
             LexerToken("*",         LexerTokenTypes.STAR,       17),
             LexerToken("mass",      LexerTokenTypes.IDENTIFIER, 19),
             LexerToken("*",         LexerTokenTypes.STAR,       24),
             LexerToken("velocity",  LexerTokenTypes.IDENTIFIER, 26),
             LexerToken("^",         LexerTokenTypes.CARROT,     34),
-            LexerToken("2",         LexerTokenTypes.INT,        35),
+            LexerToken("2",         LexerTokenTypes.INTEGER,        35),
             LexerToken("+",         LexerTokenTypes.PLUS,       37),
             LexerToken("-",         LexerTokenTypes.DASH,       39),
             LexerToken("4.6",       LexerTokenTypes.FLOAT,      40),
@@ -97,33 +97,33 @@ class CommandParserTester:
         
         assert list(parser.parse((
             LexerToken("(",    LexerTokenTypes.PAREN_OPEN,     0),
-            LexerToken("1",    LexerTokenTypes.INT,            1),
+            LexerToken("1",    LexerTokenTypes.INTEGER,            1),
             LexerToken("+",    LexerTokenTypes.PLUS,           3),
             LexerToken("x",    LexerTokenTypes.IDENTIFIER,     5),
             LexerToken(")",    LexerTokenTypes.PAREN_CLOSE,    6),
             LexerToken("*",    LexerTokenTypes.STAR,           8),
             LexerToken("(",    LexerTokenTypes.PAREN_OPEN,     10),
-            LexerToken("4",    LexerTokenTypes.INT,            11),
+            LexerToken("4",    LexerTokenTypes.INTEGER,            11),
             LexerToken("*",    LexerTokenTypes.STAR,           12),
             LexerToken("-",    LexerTokenTypes.DASH,           13),
             LexerToken("(",    LexerTokenTypes.PAREN_OPEN,     14),
-            LexerToken("1",    LexerTokenTypes.INT,            15),
+            LexerToken("1",    LexerTokenTypes.INTEGER,            15),
             LexerToken("+",    LexerTokenTypes.PLUS,           16),
             LexerToken("a",    LexerTokenTypes.IDENTIFIER,     17),
             LexerToken("/",    LexerTokenTypes.SLASH,          18),
-            LexerToken("2",    LexerTokenTypes.INT,            19),
+            LexerToken("2",    LexerTokenTypes.INTEGER,            19),
             LexerToken(")",    LexerTokenTypes.PAREN_CLOSE,    20),
             LexerToken("+",    LexerTokenTypes.PLUS,           22),
-            LexerToken("5",    LexerTokenTypes.INT,            24),
+            LexerToken("5",    LexerTokenTypes.INTEGER,            24),
             LexerToken(")",    LexerTokenTypes.PAREN_CLOSE,    25),
             LexerToken("+",    LexerTokenTypes.PLUS,           27),
             LexerToken("(",    LexerTokenTypes.PAREN_OPEN,     29),
-            LexerToken("4",    LexerTokenTypes.INT,            30),
+            LexerToken("4",    LexerTokenTypes.INTEGER,            30),
             LexerToken("/",    LexerTokenTypes.SLASH,          31),
-            LexerToken("2",    LexerTokenTypes.INT,            32),
+            LexerToken("2",    LexerTokenTypes.INTEGER,            32),
             LexerToken(")",    LexerTokenTypes.PAREN_CLOSE,    33),
             LexerToken("^",    LexerTokenTypes.CARROT,         34),
-            LexerToken("2",    LexerTokenTypes.INT,            35),
+            LexerToken("2",    LexerTokenTypes.INTEGER,            35),
             LexerToken("",     LexerTokenTypes.EOL,            36),
         ))) == [Command.evaluateExpression(sympy.parse_expr("(1+x)*(4*-(1+a/2)+5)+(4/2)**2"))], \
             "Parser failed to parse an order of operations nightmare (can you blame it?)"
@@ -132,7 +132,7 @@ class CommandParserTester:
         parser = CommandParser()
 
         assert list(parser.parse((
-            LexerToken("45",    LexerTokenTypes.INT, 0),
+            LexerToken("45",    LexerTokenTypes.INTEGER, 0),
             LexerToken("",      LexerTokenTypes.EOL, 2),
         ))) == [Command.evaluateExpression(sympy.parse_expr("45"))]
 
@@ -187,7 +187,7 @@ class CommandParserTester:
         ))) == [Command.evaluateExpression(sympy.parse_expr("a**b"))]
 
         assert list(parser.parse((
-            LexerToken("14",    LexerTokenTypes.INT,    0),
+            LexerToken("14",    LexerTokenTypes.INTEGER,    0),
             LexerToken("",      LexerTokenTypes.EOL,    2),
         ))) == [Command.evaluateExpression(sympy.parse_expr("14"))]
 
@@ -247,11 +247,11 @@ class CommandParserTester:
             LexerToken("/", LexerTokenTypes.SLASH,      38),
             LexerToken("l", LexerTokenTypes.IDENTIFIER, 40),
             LexerToken("+", LexerTokenTypes.PLUS,       42),
-            LexerToken("4", LexerTokenTypes.INT,        44),
+            LexerToken("4", LexerTokenTypes.INTEGER,        44),
             LexerToken("-", LexerTokenTypes.DASH,       46),
-            LexerToken("5", LexerTokenTypes.INT,        48),
+            LexerToken("5", LexerTokenTypes.INTEGER,        48),
             LexerToken("^", LexerTokenTypes.CARROT,     50),
-            LexerToken("7", LexerTokenTypes.INT,        52),
+            LexerToken("7", LexerTokenTypes.INTEGER,        52),
             LexerToken("",  LexerTokenTypes.EOL,        53),
         ))) == [Command.evaluateExpression(sympy.parse_expr("a-b+c*d/e**f-g+h/a*j/l+4-5**7"))]
         
@@ -553,11 +553,11 @@ class CommandParserTester:
         # this test makes sure the app's parser does its actual job
         def attempt_pythonLikeExpr():
             return list(parser.parse((
-                LexerToken("1",     LexerTokenTypes.INT,        0),
+                LexerToken("1",     LexerTokenTypes.INTEGER,        0),
                 LexerToken("if",    LexerTokenTypes.IDENTIFIER, 2),
-                LexerToken("1",     LexerTokenTypes.INT,        5),
+                LexerToken("1",     LexerTokenTypes.INTEGER,        5),
                 LexerToken("else",  LexerTokenTypes.IDENTIFIER, 7),
-                LexerToken("0",     LexerTokenTypes.INT,        12),
+                LexerToken("0",     LexerTokenTypes.INTEGER,        12),
                 LexerToken("",      LexerTokenTypes.EOL,        13),
             )))
         error_pythonLikeExpr = runForError(attempt_pythonLikeExpr)

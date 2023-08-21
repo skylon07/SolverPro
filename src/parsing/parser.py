@@ -308,7 +308,7 @@ class CommandParserSequencer:
 
         # branch: number
         numberFirsts = (
-            LexerTokenTypes.INT,
+            LexerTokenTypes.INTEGER,
             LexerTokenTypes.FLOAT,
         )
         if self._currToken.type in numberFirsts:
@@ -322,9 +322,9 @@ class CommandParserSequencer:
         return (tokenType, identifierStr)
     
     def _sequenceNumber(self):
-        # branch: INT/FLOAT
+        # branch: INTEGER/FLOAT
         validNumbers = (
-            LexerTokenTypes.INT,
+            LexerTokenTypes.INTEGER,
             LexerTokenTypes.FLOAT,
         )
         if self._currToken.type in validNumbers:
@@ -371,7 +371,7 @@ class ParseException(TracebackException):
     def __init__(self, expectedTypes: tuple[LexerTokenType, ...], tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
         unexpectedToken = tokens[unexpectedTokenIdx]
 
-        expectedTypesStr = " or ".join(f"{tokenType}".lower() for tokenType in expectedTypes)
+        expectedTypesStr = " or ".join(f"[green]{{{tokenType}}}[/green]".lower() for tokenType in expectedTypes)
         firstLetterIsVowel = str(expectedTypes[0])[0].lower() in "aeiou"
         gramaticalN = "n" if firstLetterIsVowel else ""
         fullMessage = f"Unexpected [red]{unexpectedToken.match}[/red]; expected a{gramaticalN} {expectedTypesStr}"
@@ -380,4 +380,4 @@ class ParseException(TracebackException):
 
 class EolException(TracebackException):
     def __init__(self, tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
-        super().__init__("Unexpected end of line", tokens, [unexpectedTokenIdx])
+        super().__init__("Unexpected [red]{end of line}[/red]", tokens, [unexpectedTokenIdx])
