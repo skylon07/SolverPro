@@ -150,8 +150,8 @@ class TermTips:
                 (
                     "An invisible delimiter that indicates the end of a line of input.",
 
-                    "This data is needed to allow Solver Pro to distinguish between a complete input " \
-                    "and an incomplete one.",
+                    "If an end of line is \"unexpected\", that indicates an incomplete command " \
+                    "was entered."
                 )
             ),
         }
