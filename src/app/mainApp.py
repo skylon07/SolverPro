@@ -15,6 +15,12 @@ from src.app.textRenderer import TextRenderer
 
 class MainScreen(Screen):
     CSS = """
+        MainScreen TextLog {
+            link-hover-style: underline;
+            link-hover-color: #0a1eff;
+            link-hover-background: #3250f0 40%;
+        }
+    
         Input.highlighted .input--placeholder {
             background: #a0a0a0;
         }
@@ -85,10 +91,11 @@ class SolverProApp(App):
     def on_mount(self):
         self.push_screen(MainScreen())
 
-    def action_showTermTip(self, tipName: str):
+    def action_showTermTip(self, term: str):
+        tip = self.termTips.lookupTerm(term)
         self.push_screen(TermTipModal(
-            "Term Title",
-            "This is a term tip modal. This will contain information about the term you just clicked on. These tips will appear whenever you click on a term. Here is some more useful information. Have a nice day! This is a term tip modal. This will contain information about the term you just clicked on. These tips will appear whenever you click on a term. Here is some more useful information. Have a nice day! This is a term tip modal. This will contain information about the term you just clicked on. These tips will appear whenever you click on a term. Here is some more useful information. Have a nice day! This is a term tip modal. This will contain information about the term you just clicked on. These tips will appear whenever you click on a term. Here is some more useful information. Have a nice day!"
+            tip.term,
+            tip.definitionLines,
         ))
 
 

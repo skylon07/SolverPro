@@ -1,8 +1,11 @@
+from typing import Collection
+
 from textual.reactive import var
 from textual.screen import ModalScreen
 from textual.containers import VerticalScroll, Vertical, Horizontal
 from textual.widgets import Label, Button
 from textual.widgets import Footer
+from rich.console import RenderableType
 
 
 class TermTipModal(ModalScreen):
@@ -11,9 +14,11 @@ class TermTipModal(ModalScreen):
             align: center middle;
         }
         
-        TermTipModal #dialog {
+        TermTipModal #content {
             width: 60%;
-            height: 70%;
+            max-width: 60;
+            height: 40%;
+            max-height: 14;
             background: $foreground 15%;
         }
         
@@ -23,14 +28,17 @@ class TermTipModal(ModalScreen):
             content-align: center middle;
         }
 
-        TermTipModal #body {
+        TermTipModal .bodyItem {
             width: 100%;
             padding: 0 1;
         }
 
         TermTipModal #buttonbar {
+            width: 60%;
+            max-width: 60;
             height: auto;
             align: right bottom;
+            background: $foreground 15%;
         }
 
         TermTipModal #close {
@@ -50,20 +58,21 @@ class TermTipModal(ModalScreen):
     ]
 
     title: var[str] = var("")
-    body: var[str] = var("")
+    bodyItems: var[Collection[RenderableType]] = var(tuple())
 
-    def __init__(self, title: str = "", body: str = "", *, name: str | None = None, id: str | None = None, classes: str | None = None):
+    def __init__(self, title: str = "", bodyItems: Collection[RenderableType] = tuple(), *, name: str | None = None, id: str | None = None, classes: str | None = None):
         super().__init__(name = name, id = id, classes = classes)
         self.title = title
-        self.body = body
+        self.bodyItems = bodyItems
 
     def compose(self):
-        with Vertical(id = 'dialog'):
-            with VerticalScroll():
-                yield Label(self.title, id = 'title')
-                yield Label(self.body, id = 'body')
-            with Horizontal(id = "buttonbar"):
-                yield Button("Close", id = 'close')
+        with VerticalScroll(id = 'content'):
+            yield Label(self.title, id = 'title')
+            for bodyItem in self.bodyItems:
+                yield Label(bodyItem, classes = "bodyItem")
+                yield Label("", classes = "bodyItem")
+        with Horizontal(id = "buttonbar"):
+            yield Button("Close", id = 'close')
         yield Footer()
     
     def action_closeEscape(self):
