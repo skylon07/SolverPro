@@ -16,6 +16,11 @@ class TextRenderer:
         powRegex = re.compile(r"\*\*")
         self._powReplace = lambda exprStr: powRegex.sub("^", exprStr)
 
+    def renderInputLog(self, inputStr: str, succeeded: bool):
+        marker = "[green]✓[/green]" if succeeded \
+            else "[red]✕[/red]"
+        return self._renderLines(marker + f" {inputStr}")
+
     def renderRelation(self, relation: Relation, warnRedundant: bool):
         relationStr = self._correctSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
         linesList = [relationStr]

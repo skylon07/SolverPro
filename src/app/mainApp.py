@@ -58,29 +58,24 @@ class MainScreen(Screen):
 
             elif result.type is Command.RECORD_RELATION:
                 (relation, isRedundant) = result.data
-                textLog.write(self._renderCommand(commandStr, True))
+                textLog.write(renderer.renderInputLog(commandStr, True))
                 textLog.write(renderer.renderRelation(relation, isRedundant))
 
             elif result.type is Command.EVALUATE_EXPRESSION:
                 exprs = result.data
-                textLog.write(self._renderCommand(commandStr, True))
+                textLog.write(renderer.renderInputLog(commandStr, True))
                 textLog.write(renderer.renderExpressions(exprs))
 
             else:
                 raise NotImplementedError(f"Command result of type {result.type} not implemented")
         
         except Exception as error:
-            textLog.write(self._renderCommand(commandStr, False))
+            textLog.write(renderer.renderInputLog(commandStr, False))
             textLog.write(renderer.renderException(error))
         
         textLog.write(" ") # empty line to space for next command
         self.inputTimer = Timer(0.1, lambda: input.remove_class('highlighted'))
         self.inputTimer.start()
-
-    def _renderCommand(self, commandStr: str, succeeded: bool):
-        marker = self.app.console.render_str("[green]✓[/green]") if succeeded \
-            else self.app.console.render_str("[red]✕[/red]")
-        return marker + f" {commandStr}"
 
 
 class SolverProApp(App):
