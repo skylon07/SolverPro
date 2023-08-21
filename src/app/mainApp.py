@@ -10,6 +10,7 @@ from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, Command
 from src.app.appHeader import AppHeader
 from src.app.termTipModal import TermTipModal
+from src.app.termTips import TermTips
 from src.app.textRenderer import TextRenderer
 
 
@@ -87,6 +88,7 @@ class MainScreen(Screen):
 class SolverProApp(App):
     driver: var[AppDriver] = var(lambda: AppDriver())
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
+    termTips: var[TermTips] = var(lambda: TermTips())
 
     def on_mount(self):
         self.push_screen(MainScreen())

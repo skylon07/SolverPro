@@ -120,10 +120,21 @@ class TextRenderer:
         return formattedStr
     
     def _renderLines(self, linesStr: FormattedStr):
-        return renderMarkup(self._sanitize(linesStr))
+        return renderMarkup(self._injectTermLinks(self._sanitize(linesStr)))
     
     def _sanitize(self, linesStr: FormattedStr):
         return linesStr.replace("\\", "�")
     
     def _correctSyntaxes(self, exprStr: str):
         return self._powReplace(exprStr)
+    
+    def _injectTermLinks(self, text: FormattedStr):
+        # done in reverse to avoid keeping track of index offsets after replacement
+        for match in reversed(tuple(re.compile(r"\{.*?\}").finditer(text))):
+            (matchStartIdx, matchEndIdx) = match.span()
+            textBeforeMatch = text[:matchStartIdx]
+            matchedText = match.group()
+            term = matchedText[1:-1]
+            textAfterMatch = text[matchEndIdx:]
+            text = f"{textBeforeMatch}[@click=showTermTip('{term}')][underline]{matchedText}[/underline][/@click]{textAfterMatch}"
+        return text
