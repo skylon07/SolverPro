@@ -130,11 +130,12 @@ class TextRenderer:
     
     def _injectTermLinks(self, text: FormattedStr):
         # done in reverse to avoid keeping track of index offsets after replacement
-        for match in reversed(tuple(re.compile(r"\{.*?\}").finditer(text))):
+        for match in reversed(tuple(re.compile(r"__.*?__").finditer(text))):
             (matchStartIdx, matchEndIdx) = match.span()
             textBeforeMatch = text[:matchStartIdx]
             matchedText = match.group()
-            term = matchedText[1:-1]
+            syntaxLength = len("__")
+            term = matchedText[syntaxLength : -syntaxLength]
             textAfterMatch = text[matchEndIdx:]
-            text = f"{textBeforeMatch}[@click=showTermTip('{term}')][underline]{matchedText}[/underline][/@click]{textAfterMatch}"
+            text = f"{textBeforeMatch}[@click=showTermTip('{term}')][underline]{term}[/underline][/@click]{textAfterMatch}"
         return text
