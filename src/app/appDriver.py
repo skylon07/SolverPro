@@ -78,7 +78,7 @@ class UndefinedIdentifiersException(TracebackException):
         plural = "s" if len(badIdentifiers) > 1 else ""
         badIdentifiersStr = surroundJoin(badIdentifiers, "[red]", "[/red]", ", ")
         super().__init__(
-            f"Undefined identifier{plural} {badIdentifiersStr}",
+            f"Undefined {{identifier{plural}}} {badIdentifiersStr}",
             tokens,
             badTokenIdxs
         )

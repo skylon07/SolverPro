@@ -20,6 +20,7 @@ class TermTips:
     def __init__(self):
         self._renderer = TextRenderer()
         self._terms: dict[str, TermTip | str] = {
+            'identifiers': 'identifier',
             'identifier': TermTip(
                 "Identifier",
                 (
