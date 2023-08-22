@@ -27,8 +27,14 @@ class TermTips:
                     "A word or other group of letters/numbers acting as a label to some value.",
                     
                     # TODO: edit this when aliasing is implemented
-                    "The only \"identifiers\" currently implemented are the variables contained " \
-                    "in expressions and relations."
+                    "While numbers are allowed in identifier names, the identifier must start with a " \
+                    "non-number character. The only \"identifiers\" currently implemented by " \
+                    "Solver Pro are the variables contained in expressions and relations.",
+
+                    # TODO: when colors are implemented, make sure to change these to the right ones
+                    "Identifiers: [white]a  my_var  train2Car3[/white]",
+
+                    "Not Identifiers: [white]1.5  3rdBox  +  ()[/white]",
                 )
             ),
             'integer': TermTip(
