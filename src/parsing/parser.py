@@ -375,9 +375,9 @@ class ParseException(TracebackException):
         firstLetterIsVowel = str(expectedTypes[0])[0].lower() in "aeiou"
         gramaticalN = "n" if firstLetterIsVowel else ""
         fullMessage = f"Unexpected [red]{unexpectedToken.match}[/red]; expected a{gramaticalN} {expectedTypesStr}"
-        super().__init__(fullMessage, tokens, [unexpectedTokenIdx])
+        super().__init__(fullMessage, tokens, [unexpectedTokenIdx], True)
 
 
 class EolException(TracebackException):
     def __init__(self, tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
-        super().__init__("Unexpected [red]{end of line}[/red]", tokens, [unexpectedTokenIdx])
+        super().__init__("Unexpected [red]{end of line}[/red]", tokens, [unexpectedTokenIdx], True)

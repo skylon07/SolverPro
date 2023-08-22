@@ -48,6 +48,11 @@ class TextRenderer:
             ]) <= 1, "Exception rendering cannot yet handle multiple input lines"
             
             formattingMap = {tokenIdx: "red" for tokenIdx in exception.badTokenIdxs}
+            if exception.grayOutAfterBadTokens:
+                formattingMap.update({
+                    tokenIdx: "#b0b0b0"
+                    for tokenIdx in range(max(exception.badTokenIdxs) + 1, len(exception.tokens))
+                })
             exprLine = self._formatTokens(exception.tokens, formattingMap)
             joinedLines = self._prefixAndJoinLinesForException((
                 f"[white]{exprLine}[/white]",
