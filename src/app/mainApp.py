@@ -8,8 +8,8 @@ from textual.widgets import TextLog, Input
 
 from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, Command
-from src.app.appHeader import AppHeader
-from src.app.termTipModal import TermTipModal
+from src.app.widgets.appHeader import AppHeader
+from src.app.widgets.termTipModal import TermTipModal
 from src.app.termTips import TermTips
 from src.app.textRenderer import TextRenderer
 
