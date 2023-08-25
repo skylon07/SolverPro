@@ -80,7 +80,7 @@ class TermTips:
                 )
             ),
             'equals': TermTip(
-                "Operator: Equals",
+                "Operator: Equate",
                 (
                     "The bridge between two expressions in an equality relation.",
 
@@ -116,7 +116,7 @@ class TermTips:
                 )
             ),
             'star': TermTip(
-                "Operator: Multiply",
+                "Operator: Asterisk",
                 (
                     "A binary operator signifying the multiplication of two values.",
 
@@ -126,7 +126,7 @@ class TermTips:
                 )
             ),
             'slash': TermTip(
-                "Operator: Divide",
+                "Operator: Slash",
                 (
                     "A binary operator signifying the division of two values.",
 
@@ -139,7 +139,7 @@ class TermTips:
                 )
             ),
             'carrot': TermTip(
-                "Operator: Exponentiate",
+                "Operator: Carrot",
                 (
                     "A binary operator signifying the exponentiation of two values.",
 
