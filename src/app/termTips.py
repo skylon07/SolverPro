@@ -38,7 +38,7 @@ class TermTips:
                 )
             ),
             'integer': TermTip(
-                "Integer Number",
+                "Number: Integer",
                 (
                     "A whole number without a decimal or exponent part.",
 
@@ -47,7 +47,7 @@ class TermTips:
                 )
             ),
             'float': TermTip(
-                "Floating Point Number",
+                "Number: Floating Point",
                 (
                     "A number representing a decimal or a scientific number.",
 
@@ -58,7 +58,7 @@ class TermTips:
                 )
             ),
             'rational': TermTip(
-                "Rational Number",
+                "Number: Rational",
                 (
                     "Two numbers forming a ratio, one divided by another.",
 
@@ -68,19 +68,19 @@ class TermTips:
                 ),
             ),
             'paren_open': TermTip(
-                "Opening Parenthesis",
+                "Parenthesis (Opening)",
                 (
                     "The opening parenthesis \"(\" of a pair of parentheses.",
                 )
             ),
             'paren_close': TermTip(
-                "Closing Parenthesis",
+                "Parenthesis (Closing)",
                 (
                     "The closing parenthesis \")\" of a pair of parentheses.",
                 )
             ),
             'equals': TermTip(
-                "Equals Sign",
+                "Operator: Equals",
                 (
                     "The bridge between two expressions in an equality relation.",
 
@@ -88,7 +88,7 @@ class TermTips:
                 )
             ),
             'plus': TermTip(
-                "Plus Sign",
+                "Operator: Plus",
                 (
                     "A binary/unary operator signifying either the addition of two values or single positive values.",
 
@@ -102,7 +102,7 @@ class TermTips:
                 )
             ),
             'dash': TermTip(
-                "Minus Sign",
+                "Operator: Minus",
                 (
                     "A binary/unary operator signifying either the subtraction of two values or single negative values.",
 
@@ -116,7 +116,7 @@ class TermTips:
                 )
             ),
             'star': TermTip(
-                "Multiply Sign",
+                "Operator: Multiply",
                 (
                     "A binary operator signifying the multiplication of two values.",
 
@@ -126,7 +126,7 @@ class TermTips:
                 )
             ),
             'slash': TermTip(
-                "Divide Sign",
+                "Operator: Divide",
                 (
                     "A binary operator signifying the division of two values.",
 
@@ -139,7 +139,7 @@ class TermTips:
                 )
             ),
             'carrot': TermTip(
-                "Exponent Sign",
+                "Operator: Exponentiate",
                 (
                     "A binary operator signifying the exponentiation of two values.",
 
