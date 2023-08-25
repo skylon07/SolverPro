@@ -8,7 +8,7 @@ from src.app.textRenderer import TextRenderer
 
 class TermTip:
     def __init__(self, term: FormattedStr, definitionLines: Iterable[RenderableType]):
-        self.term = f"[#b0b0b0]--=[/#b0b0b0]  {term}  [#b0b0b0]=--[/#b0b0b0]"
+        self.term = term
         self.definitionLines = tuple(
             f"[#b0b0b0]{line}[/#b0b0b0]" if type(line) is str
                 else line
@@ -178,3 +178,8 @@ class TermTips:
             )
         assert type(item) is TermTip
         return item
+    
+    def getTermTips(self):
+        for (term, tip) in self._terms.items():
+            if type(tip) is TermTip:
+                yield (term, tip)

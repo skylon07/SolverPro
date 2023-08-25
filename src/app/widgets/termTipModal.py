@@ -1,5 +1,6 @@
 from typing import Collection
 
+from textual import on
 from textual.reactive import var
 from textual.screen import ModalScreen
 from textual.containers import VerticalScroll, Vertical, Horizontal
@@ -60,9 +61,9 @@ class TermTipModal(ModalScreen):
     title: var[str] = var("")
     bodyItems: var[Collection[RenderableType]] = var(tuple())
 
-    def __init__(self, title: str = "", bodyItems: Collection[RenderableType] = tuple(), *, name: str | None = None, id: str | None = None, classes: str | None = None):
+    def __init__(self, term: str = "", bodyItems: Collection[RenderableType] = tuple(), *, name: str | None = None, id: str | None = None, classes: str | None = None):
         super().__init__(name = name, id = id, classes = classes)
-        self.title = title
+        self.title = f"[#b0b0b0]--=[/#b0b0b0]  {term}  [#b0b0b0]=--[/#b0b0b0]"
         self.bodyItems = bodyItems
 
     def compose(self):
@@ -81,5 +82,6 @@ class TermTipModal(ModalScreen):
     def action_closeEnter(self):
         self.dismiss()
 
-    def on_button_pressed(self, event: Button.Pressed):
+    @on(Button.Pressed)
+    def onClose(self, event: Button.Pressed):
         self.dismiss()
