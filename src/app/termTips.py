@@ -71,12 +71,16 @@ class TermTips:
                 "Parenthesis (Opening)",
                 (
                     "The opening parenthesis \"(\" of a pair of parentheses.",
+
+                    # TODO: distinguish from brackets and braces when they are implemented
                 )
             ),
             'paren_close': TermTip(
                 "Parenthesis (Closing)",
                 (
                     "The closing parenthesis \")\" of a pair of parentheses.",
+
+                    # TODO: distinguish from brackets and braces when they are implemented
                 )
             ),
             'equals': TermTip(
