@@ -45,13 +45,22 @@ class MainScreen(Screen):
         MainScreen #dictionaryButton {
             background: rgb(55, 65, 90);
         }
+        MainScreen #dictionaryButton:hover {
+            background: rgb(55, 65, 90) 50%;
+        }
 
         MainScreen #historyButton {
             background: rgb(55, 75, 50);
         }
+        MainScreen #historyButton:hover {
+            background: rgb(55, 75, 50) 50%;
+        }
 
         MainScreen #tutorialButton {
             background: rgb(85, 50, 60);
+        }
+        MainScreen #tutorialButton:hover {
+            background: rgb(85, 50, 60) 50%;
         }
 
         MainScreen .spacer {
