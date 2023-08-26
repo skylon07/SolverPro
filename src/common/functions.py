@@ -2,7 +2,7 @@ from typing import Callable, Iterable, TypeVar
 
 
 def getVersion():
-    return "0.2.0"
+    return "0.3.0"
 
 def iterDifference(iter1, iter2):
     for item in iter1:
