@@ -134,7 +134,7 @@ class MainScreen(Screen):
         assert type(self.app) is SolverProApp
         menuItem = str(event.button.label).lower()
         if menuItem == 'dictionary':
-            self.app.push_screen('termTipList')
+            self.app.push_screen(TermTipListScreen())
         else:
             error = ValueError(f"Invalid menu item [magenta]{menuItem}[/magenta]")
             renderer = self.app.textRenderer
@@ -142,16 +142,12 @@ class MainScreen(Screen):
 
 
 class SolverProApp(App):
-    SCREENS = {
-        'main': MainScreen(),
-        'termTipList': TermTipListScreen(),
-    }
     driver: var[AppDriver] = var(lambda: AppDriver())
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
     termTips: var[TermTips] = var(lambda: TermTips())
 
     def on_mount(self):
-        self.push_screen('main')
+        self.push_screen(MainScreen())
 
     def action_showTermTip(self, term: str):
         tip = self.termTips.lookupTerm(term)
