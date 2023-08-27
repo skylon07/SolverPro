@@ -30,10 +30,16 @@ class _CommandParserSequencer:
     _maxPrecOpers = (
         LexerTokenTypes.CARROT,
     )
+    _valueTypes = (
+        LexerTokenTypes.INTEGER,
+        LexerTokenTypes.FLOAT,
+        LexerTokenTypes.IDENTIFIER,
+    )
 
     def __init__(self, commandTokens: tuple[LexerToken, ...]):
         self._tokens = commandTokens
         self._setNumTokensParsed(0)
+        self._allowExpressionList = True
 
     def _setNumTokensParsed(self, numParsed: int):
         self.numTokensParsed = numParsed
@@ -183,6 +189,21 @@ class _CommandParserSequencer:
         expression = self._convertLowPrecExprList(lowPrecExprList)
         return expression
     
+    def sequenceExpressionList(self) -> list[sympy.Expr]:
+        # (all branches)
+        expressions = [self.sequenceExpression()]
+
+        # distinguish branches: expression, expression COMMA expression, ...
+        while self._currToken.type is LexerTokenTypes.COMMA:
+            self._consumeCurrToken(self._currToken.type)
+            expressions.append(self.sequenceExpression())
+
+        # default branch: expression
+        # branch: expression COMMA expression
+        # branch: expression COMMA expression COMMA expression
+        # ...
+        return expressions
+    
     def sequenceLowPrecExpr(self):
         # (all branches)
         midPrecExprList = self.sequenceMidPrecExpr()
@@ -298,41 +319,31 @@ class _CommandParserSequencer:
             expression = self.sequenceExpression()
             self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
             return expression
+        
+        # branch: BRACE_OPEN expressionList BRACE_CLOSE
+        elif self._currToken.type is LexerTokenTypes.BRACE_OPEN and self._allowExpressionList:
+            self._consumeCurrToken(self._currToken.type)
+            self._allowExpressionList = False
+            expressions = self.sequenceExpressionList()
+            self._allowExpressionList = True
+            self._consumeCurrToken(LexerTokenTypes.BRACE_CLOSE)
+            expressionsStr = ", ".join(str(expr) for expr in expressions)
+            return sympy.Symbol(f"{{{expressionsStr}}}")
 
-        # default branch: value
+        # # default branch: value
         (tokenType, valueStr) = self.sequenceValue()
         return (tokenType, valueStr)
 
     def sequenceValue(self):
         tokenType = self._currToken.type
 
-        # branch: number
-        numberFirsts = (
-            LexerTokenTypes.INTEGER,
-            LexerTokenTypes.FLOAT,
-        )
-        if self._currToken.type in numberFirsts:
-            # both branches
-            number = self.sequenceNumber()
-            return (tokenType, number)
-        
-        # default branch: IDENTIFIER
-        identifierStr = self._currToken.match
-        self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
-        return (tokenType, identifierStr)
-    
-    def sequenceNumber(self):
-        # branch: INTEGER/FLOAT
-        validNumbers = (
-            LexerTokenTypes.INTEGER,
-            LexerTokenTypes.FLOAT,
-        )
-        if self._currToken.type in validNumbers:
-            numberStr = self._currToken.match
+        # (all valid branches)
+        if self._currToken.type in self._valueTypes:
+            valueStr = self._currToken.match
             self._consumeCurrToken(self._currToken.type)
-            return numberStr
-
-        return self._throwParseException(validNumbers) # `return` fixes type inference...?
+            return (tokenType, valueStr)
+        
+        return self._throwParseException(self._valueTypes) # `return` fixes type inference...?
     
 
 class CommandType(EnumString):

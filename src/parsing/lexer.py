@@ -13,6 +13,9 @@ class LexerTokenTypes(Enum):
     FLOAT       = LexerTokenType("FLOAT")
     PAREN_OPEN  = LexerTokenType("PAREN_OPEN")
     PAREN_CLOSE = LexerTokenType("PAREN_CLOSE")
+    BRACE_OPEN  = LexerTokenType("BRACE_OPEN")
+    BRACE_CLOSE = LexerTokenType("BRACE_CLOSE")
+    COMMA       = LexerTokenType("COMMA")
     EQUALS      = LexerTokenType("EQUALS")
     PLUS        = LexerTokenType("PLUS")
     DASH        = LexerTokenType("DASH")
@@ -58,6 +61,18 @@ class CommandLexer:
             LexerRecognizer(
                 r"\)",
                 LexerTokenTypes.PAREN_CLOSE
+            ),
+            LexerRecognizer(
+                r"\{",
+                LexerTokenTypes.BRACE_OPEN
+            ),
+            LexerRecognizer(
+                r"\}",
+                LexerTokenTypes.BRACE_CLOSE
+            ),
+            LexerRecognizer(
+                r",",
+                LexerTokenTypes.COMMA
             ),
             LexerRecognizer(
                 r"=",
