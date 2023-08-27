@@ -8,13 +8,13 @@ from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 class CommandParser:
     def parse(self, commandTokens: tuple[LexerToken, ...]):
         while len(commandTokens) > 0:
-            sequencer = CommandParserSequencer(commandTokens)
+            sequencer = _CommandParserSequencer(commandTokens)
             command = sequencer.sequenceCommand()
             yield command
             commandTokens = commandTokens[sequencer.numTokensParsed:]
 
 
-class CommandParserSequencer:
+class _CommandParserSequencer:
     _lowPrecOpers = (
         LexerTokenTypes.PLUS,
         LexerTokenTypes.DASH,
@@ -161,36 +161,36 @@ class CommandParserSequencer:
 
         # branch: relation EOL
         if isRelation:
-            relation = self._sequenceRelation()
+            relation = self.sequenceRelation()
             self._consumeCurrToken(LexerTokenTypes.EOL)
             return Command.recordRelation(relation)
         
         # default branch: expression EOL
-        expression = self._sequenceExpression()
+        expression = self.sequenceExpression()
         self._consumeCurrToken(LexerTokenTypes.EOL)
         return Command.evaluateExpression(expression)
     
-    def _sequenceRelation(self):
+    def sequenceRelation(self):
         # default branch: expression EQUALS expression
-        leftExpr = self._sequenceExpression()
+        leftExpr = self.sequenceExpression()
         self._consumeCurrToken(LexerTokenTypes.EQUALS)
-        rightExpr = self._sequenceExpression()
+        rightExpr = self.sequenceExpression()
         return (leftExpr, rightExpr)
     
-    def _sequenceExpression(self):
+    def sequenceExpression(self):
         # default branch: lowPrecExpr
-        lowPrecExprList = self._sequenceLowPrecExpr()
+        lowPrecExprList = self.sequenceLowPrecExpr()
         expression = self._convertLowPrecExprList(lowPrecExprList)
         return expression
     
-    def _sequenceLowPrecExpr(self):
+    def sequenceLowPrecExpr(self):
         # (all branches)
-        midPrecExprList = self._sequenceMidPrecExpr()
+        midPrecExprList = self.sequenceMidPrecExpr()
 
         # branch: midPrecExpr operLow lowPrecExpr
         if self._moreTokens and self._currToken.type in self._lowPrecOpers:
-            lowPrecOperToken = self._sequenceOperLow()
-            expandedExprList = self._sequenceLowPrecExpr()
+            lowPrecOperToken = self.sequenceOperLow()
+            expandedExprList = self.sequenceLowPrecExpr()
             expandedExprList.insert(0, lowPrecOperToken)
             expandedExprList.insert(0, midPrecExprList)
             return expandedExprList
@@ -198,14 +198,14 @@ class CommandParserSequencer:
         # default branch: midPrecExpr
         return [midPrecExprList]
     
-    def _sequenceMidPrecExpr(self):
+    def sequenceMidPrecExpr(self):
         # (all branches)
-        highPrecExprList = self._sequenceHighPrecExpr()
+        highPrecExprList = self.sequenceHighPrecExpr()
 
         # branch: highPrecExpr operMid midPrecExpr
         if self._moreTokens and self._currToken.type in self._midPrecOpers:
-            midPrecOperToken = self._sequenceOperMid()
-            expandedExprList = self._sequenceMidPrecExpr()
+            midPrecOperToken = self.sequenceOperMid()
+            expandedExprList = self.sequenceMidPrecExpr()
             expandedExprList.insert(0, midPrecOperToken)
             expandedExprList.insert(0, highPrecExprList)
             return expandedExprList
@@ -213,26 +213,26 @@ class CommandParserSequencer:
         # default branch: highPrecExpr
         return [highPrecExprList]
     
-    def _sequenceHighPrecExpr(self):
+    def sequenceHighPrecExpr(self):
         # branch: operHigh highPrecExpr
         if self._moreTokens and self._currToken.type in self._highPrecOpers:
-            highPrecOperToken = self._sequenceOperHigh()
-            expandedExprList = self._sequenceHighPrecExpr()
+            highPrecOperToken = self.sequenceOperHigh()
+            expandedExprList = self.sequenceHighPrecExpr()
             expandedExprList.insert(0, highPrecOperToken)
             return expandedExprList
         
         # default branch: maxPrecExpr
-        maxPrecExprList = self._sequenceMaxPrecExpr()
+        maxPrecExprList = self.sequenceMaxPrecExpr()
         return [maxPrecExprList]
     
-    def _sequenceMaxPrecExpr(self):
+    def sequenceMaxPrecExpr(self):
         # (all branches)
-        evaluation = self._sequenceEvaluation()
+        evaluation = self.sequenceEvaluation()
 
         # branch: evaluation operMax maxPrecExpr
         if self._moreTokens and self._currToken.type in self._maxPrecOpers:
-            maxPrecOperToken = self._sequenceOperMax()
-            expandedExprList = self._sequenceMaxPrecExpr()
+            maxPrecOperToken = self.sequenceOperMax()
+            expandedExprList = self.sequenceMaxPrecExpr()
             expandedExprList.insert(0, maxPrecOperToken)
             expandedExprList.insert(0, evaluation)
             return expandedExprList
@@ -240,7 +240,7 @@ class CommandParserSequencer:
         # default branch: evaluation
         return [evaluation]
 
-    def _sequenceOperLow(self):
+    def sequenceOperLow(self):
         # branch: PLUS/DASH
         validLowOpers = (
             LexerTokenTypes.PLUS,
@@ -253,7 +253,7 @@ class CommandParserSequencer:
         
         self._throwParseException(validLowOpers)
 
-    def _sequenceOperMid(self):
+    def sequenceOperMid(self):
         # branch: STAR/SLASH
         validMidOpers = (
             LexerTokenTypes.STAR,
@@ -266,7 +266,7 @@ class CommandParserSequencer:
         
         self._throwParseException(validMidOpers)
     
-    def _sequenceOperHigh(self):
+    def sequenceOperHigh(self):
         # branch: PLUS/DASH
         validHighOpers = (
             LexerTokenTypes.PLUS,
@@ -279,7 +279,7 @@ class CommandParserSequencer:
         
         self._throwParseException(validHighOpers)
     
-    def _sequenceOperMax(self):
+    def sequenceOperMax(self):
         # branch: CARROT
         validMaxOpers = (
             LexerTokenTypes.CARROT,
@@ -291,19 +291,19 @@ class CommandParserSequencer:
         
         self._throwParseException(validMaxOpers)
 
-    def _sequenceEvaluation(self):
+    def sequenceEvaluation(self):
         # branch: PAREN_OPEN expression PAREN_CLOSE
         if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
             self._consumeCurrToken(self._currToken.type)
-            expression = self._sequenceExpression()
+            expression = self.sequenceExpression()
             self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
             return expression
 
         # default branch: value
-        (tokenType, valueStr) = self._sequenceValue()
+        (tokenType, valueStr) = self.sequenceValue()
         return (tokenType, valueStr)
 
-    def _sequenceValue(self):
+    def sequenceValue(self):
         tokenType = self._currToken.type
 
         # branch: number
@@ -313,7 +313,7 @@ class CommandParserSequencer:
         )
         if self._currToken.type in numberFirsts:
             # both branches
-            number = self._sequenceNumber()
+            number = self.sequenceNumber()
             return (tokenType, number)
         
         # default branch: IDENTIFIER
@@ -321,7 +321,7 @@ class CommandParserSequencer:
         self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
         return (tokenType, identifierStr)
     
-    def _sequenceNumber(self):
+    def sequenceNumber(self):
         # branch: INTEGER/FLOAT
         validNumbers = (
             LexerTokenTypes.INTEGER,
