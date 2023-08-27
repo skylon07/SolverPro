@@ -139,6 +139,16 @@ class AlgebraSolverTester:
                 }),
             }
         
+    def testSolverHandlesComplexValues(self):
+        solver = AlgebraSolver()
+
+        solver.recordRelation(Relation(sympy.parse_expr("a**2"), -4))
+
+        assert solver.substituteKnownsFor(sympy.parse_expr("a")) == {
+            sympy.parse_expr("-2*I"),
+            sympy.parse_expr("2*I"),
+        }
+        
     def testSolverCanGetSymbolValues(self):
         solver = AlgebraSolver()
 
