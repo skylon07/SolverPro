@@ -1,7 +1,5 @@
 from typing import Callable, Iterable, TypeVar
 
-import sympy
-
 
 def getVersion():
     return "0.3.0"
@@ -30,18 +28,6 @@ def first(iterable: Iterable[_IterableType], default: _DefaultType = _firstNoDef
 def surroundJoin(items: Iterable, prefix: str, suffix: str, separator: str):
     fullSeparator = suffix + separator + prefix
     return prefix + fullSeparator.join(items) + suffix
-
-def isNonSymbolicValue(value: sympy.Basic):
-    if isinstance(value, sympy.Number):
-        return True
-    elif value is sympy.I:
-        return True
-    elif isinstance(value, sympy.Symbol):
-        return False
-    elif isinstance(value, sympy.Expr):
-        return all(isNonSymbolicValue(arg) for arg in value.args)
-    else:
-        return False
 
 # mostly for testing
 def runForError(fn: Callable[[], None]):

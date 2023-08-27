@@ -5,13 +5,39 @@ from src.common.exceptions import TracebackException
 from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 
+def isNonSymbolicValue(value: sympy.Basic):
+    if isinstance(value, sympy.Number):
+        return True
+    elif value is sympy.I:
+        return True
+    elif isinstance(value, sympy.Symbol):
+        return False
+    elif isinstance(value, sympy.Expr):
+        return all(isNonSymbolicValue(arg) for arg in value.args)
+    else:
+        return False
+    
+def isExpressionListSymbol(value: sympy.Symbol):
+    symbolStr = str(value)
+    if symbolStr[0] == "{" and symbolStr[-1] == "}":
+        exprListStr = symbolStr[1:-1]
+        if "{" not in exprListStr and "}" not in exprListStr:
+            return True
+    return False
+
+
 class CommandParser:
-    def parse(self, commandTokens: tuple[LexerToken, ...]):
+    def parseCommand(self, commandTokens: tuple[LexerToken, ...]):
         while len(commandTokens) > 0:
             sequencer = _CommandParserSequencer(commandTokens)
             command = sequencer.sequenceCommand()
             yield command
             commandTokens = commandTokens[sequencer.numTokensParsed:]
+
+    def parseExpressionList(self, exprListTokens: tuple[LexerToken, ...]):
+        sequencer = _CommandParserSequencer(exprListTokens)
+        expressions = sequencer.sequenceExpressionList()
+        return expressions
 
 
 class _CommandParserSequencer:

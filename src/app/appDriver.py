@@ -6,7 +6,7 @@ from src.common.functions import surroundJoin
 from src.common.exceptions import TracebackException
 from src.algebrasolver.solver import AlgebraSolver, Relation
 from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
-from src.parsing.parser import CommandParser, Command, CommandType
+from src.parsing.parser import CommandParser, Command, CommandType, isExpressionListSymbol
 
 
 class AppDriver:
@@ -17,7 +17,7 @@ class AppDriver:
 
     def processCommandLines(self, commandsStr: str):
         tokens = tuple(self._lexer.findTokens(commandsStr))
-        for command in self._parser.parse(tokens):
+        for command in self._parser.parseCommand(tokens):
             # TODO: make this transactional in the case of erroring
             yield self._processCommand(command, tokens)
 
@@ -42,7 +42,7 @@ class AppDriver:
                 assert type(symbol) is sympy.Symbol
                 relations = self._solver.getRelationsWithSymbol(symbol)
                 noRelationsForSymbol = len(relations) == 0
-                if noRelationsForSymbol:
+                if noRelationsForSymbol and not isExpressionListSymbol(symbol):
                     undefinedSymbolStrs.append(str(symbol))
             if len(undefinedSymbolStrs) > 0:
                 raise UndefinedIdentifiersException(tokens, undefinedSymbolStrs)
@@ -69,7 +69,7 @@ class ProcessResult:
 
 
 class UndefinedIdentifiersException(TracebackException):
-    def __init__(self, tokens: Iterable[LexerToken], badIdentifiers: Collection[str]):
+    def __init__(self, tokens: Collection[LexerToken], badIdentifiers: Collection[str]):
         badTokenIdxs = tuple(
             tokenIdx
             for (tokenIdx, token) in enumerate(tokens)
