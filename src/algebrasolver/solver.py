@@ -3,7 +3,7 @@ from typing import Iterable, Collection, Generator, Any, Generic, TypeVar
 
 import sympy
 
-from src.common.functions import first, surroundJoin
+from src.common.functions import first, surroundJoin, isNonSymbolicValue
 from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
 
@@ -13,7 +13,7 @@ SolutionSet = set[sympy.Basic]
 
 _ValueType = TypeVar("_ValueType")
 class ConditionalValue(Generic[_ValueType]):
-    def __init__(self, value: _ValueType, conditions: dict[sympy.Symbol, sympy.Atom]):
+    def __init__(self, value: _ValueType, conditions: dict[sympy.Symbol, sympy.Basic]):
         self.value = value
         self.conditions = conditions
 
@@ -62,7 +62,7 @@ class AlgebraSolver:
         self._recordedRelations: list[Relation] = list()
         # a mapping of a variable to its potential values and conditions
         # (like b = 4 when a = 2 and b = 5 when a = -1)
-        self._symbolValues: dict[sympy.Symbol, set[ConditionalValue[sympy.Atom]]] = dict()
+        self._symbolValues: dict[sympy.Symbol, set[ConditionalValue[sympy.Basic]]] = dict()
         # the order in which symbols are substituted
         self._symbolResolutionOrder: list[tuple[int, sympy.Symbol]] = list()
 
@@ -73,7 +73,7 @@ class AlgebraSolver:
         oldResolutionOrder = list(self._symbolResolutionOrder)
         
         # if there is a contradiction, it would be with these
-        contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None] = {
+        contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None] = {
             symbol: {
                 conditional.value
                 for conditional in self._symbolValues[symbol]
@@ -111,11 +111,13 @@ class AlgebraSolver:
                         if newValuesAreRestrictions:
                             self._symbolValues[symbol] = newSolutions
                             isRedundant = False # since it technically did provide new information...
-                            # TODO: remove other symbol values that relied on any conditions now not present
+                            # TODO: (optimization) remove other symbol values that relied on any conditions now not present
+                            #       (since other symbols might have conditions that will never be true when substituted,
+                            #       due to the values that were just removed)
                         else:
                             self._symbolValues[symbol] = oldSolutions
                         
-                        self._insertSymbolToResolutionOrder(symbol, self._symbolValues[symbol])
+                        self._insertSymbolToResolutionOrder(symbol)
             
             self._recordedRelations.append(relation)
             self._inferSymbolValuesFromRelations(contradictedSymbolValues)
@@ -170,14 +172,14 @@ class AlgebraSolver:
                     return (False, None)
         return (True, isRedundantWithContradictions)
 
-    def _inferSymbolValuesFromRelations(self, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None]):
+    def _inferSymbolValuesFromRelations(self, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None]):
         anySymbolsUpdated = False
         for relation in self._recordedRelations:
             (symbol, conditionalSolutions) = self._calculateAnySolutionsFromRelation(relation, contradictedSymbolValues)
             someSubbedRelationWasSolvable = symbol is not None
             if someSubbedRelationWasSolvable:
                 self._symbolValues[symbol] = conditionalSolutions
-                self._insertSymbolToResolutionOrder(symbol, conditionalSolutions)
+                self._insertSymbolToResolutionOrder(symbol)
                 
                 inferredValues = {
                     solution.value
@@ -193,7 +195,7 @@ class AlgebraSolver:
         if anySymbolsUpdated:
             self._inferSymbolValuesFromRelations(contradictedSymbolValues)
 
-    def _calculateAnySolutionsFromRelation(self, relation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None]):
+    def _calculateAnySolutionsFromRelation(self, relation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None]):
         relationsWithKnownsSubbed = tuple(self._generateSubstitutionsFor(relation.asExprEqToZero))
         if not all(
             relationExprCondition.value == 0
@@ -217,7 +219,7 @@ class AlgebraSolver:
         (symbol, conditionalSolutions) = self._convertConditionalSolutionsToSetsOfConditions(conditionalSolutionPairs)
         return (symbol, conditionalSolutions)
 
-    def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Basic]], baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None]) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
+    def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Basic]], baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None]) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
         for relationExprCondition in relationExprConditions:
             relationExpr = relationExprCondition.value
             assert(len(relationExpr.free_symbols) == 1), \
@@ -228,7 +230,7 @@ class AlgebraSolver:
             solutionSet = self._interpretSympySolution(unknownSymbol, solution, baseRelation, contradictedSymbolValues)
             yield (unknownSymbol, ConditionalValue(solutionSet, relationExprCondition.conditions))
 
-    def _interpretSympySolution(self, symbol: sympy.Symbol, solution: sympy.Set, baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None]):
+    def _interpretSympySolution(self, symbol: sympy.Symbol, solution: sympy.Set, baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None]):
         # normal solutions to problem
         # example:
         #   a^2 = 4; a = {2, -2}
@@ -254,18 +256,17 @@ class AlgebraSolver:
                     "Substitutions in relation led to different unknown variables"
 
         symbol = None
-        totalSolutionSet: set[ConditionalValue[sympy.Atom]] = set()
+        totalSolutionSet: set[ConditionalValue[sympy.Basic]] = set()
         for (symbol, conditionalValueSet) in conditionalSolutionPairs:
             valueSet = conditionalValueSet.value
             conditions = conditionalValueSet.conditions
             for value in valueSet:
-                # TODO: fix x*I cases (I = √-1)
-                assert isinstance(value, sympy.Atom), \
-                    "Solver makes false assumption that FiniteSets only contain Atoms"
+                assert isNonSymbolicValue(value), \
+                    "Solver makes false assumption that FiniteSets only contain non-symbolic values"
                 totalSolutionSet.add(ConditionalValue(value, conditions))
         return (symbol, totalSolutionSet)
     
-    def _insertSymbolToResolutionOrder(self, symbol: sympy.Symbol, conditionalSolutions: set[ConditionalValue[sympy.Atom]]):
+    def _insertSymbolToResolutionOrder(self, symbol: sympy.Symbol):
         assert symbol in self._symbolValues, "Should not insert symbol's resolution order before it has values"
         symbolSortRank = self._calculateSymbolResolutionRank(symbol)
         insertIdx = len(self._symbolResolutionOrder) + 1
@@ -297,7 +298,7 @@ class AlgebraSolver:
         ].index(symbol)
         return self._symbolResolutionOrder.pop(symbolIdx)
 
-    def _generateSubstitutionCombinations(self, currCombination: dict[sympy.Symbol, sympy.Atom] | None = None, resolutionIdx = 0) -> Generator[dict[sympy.Symbol, sympy.Atom], Any, None]:
+    def _generateSubstitutionCombinations(self, currCombination: dict[sympy.Symbol, sympy.Basic] | None = None, resolutionIdx = 0) -> Generator[dict[sympy.Symbol, sympy.Basic], Any, None]:
         if currCombination is None:
             currCombination = dict()
         
@@ -319,7 +320,7 @@ class AlgebraSolver:
                         yield finishedCombination
             assert anyConditionsMet, "Solver failed to find a valid condition"
 
-    def _testConditionsMet(self, conditionalValue: ConditionalValue[Any], currCombination: dict[sympy.Symbol, sympy.Atom]):
+    def _testConditionsMet(self, conditionalValue: ConditionalValue[Any], currCombination: dict[sympy.Symbol, sympy.Basic]):
         for (symbol, value) in conditionalValue.conditions.items():
             if currCombination[symbol] != value:
                 return False
@@ -328,7 +329,7 @@ class AlgebraSolver:
 
 class BadRelationException(MultilineException, ABC):
     @abstractmethod
-    def __init__(self, message: FormattedStr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None], contradictingRelation: Relation):
+    def __init__(self, message: FormattedStr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None], contradictingRelation: Relation):
         self.poorSymbolValues = poorSymbolValues
         self.contradictingRelation = contradictingRelation
         
@@ -345,7 +346,7 @@ class BadRelationException(MultilineException, ABC):
             ]
         ))
 
-    def formatPoorSymbols(self, poorSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None]):
+    def formatPoorSymbols(self, poorSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None]):
         return surroundJoin(
             (str(symbol) for symbol in poorSymbolValues.keys()),
             "[yellow]",
@@ -353,14 +354,14 @@ class BadRelationException(MultilineException, ABC):
             ", "
         )
     
-    def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None]) -> sympy.Basic:
+    def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None]) -> sympy.Basic:
         return expr.subs({
             poorSymbol: sympy.Symbol(f"[yellow]{poorSymbol}[/yellow]")
             for poorSymbol in poorSymbolValues.keys()
         })
 
 class ContradictionException(BadRelationException):
-    def __init__(self, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None], badRelation: Relation):
+    def __init__(self, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None], badRelation: Relation):
         symbolsStr = f" for {self.formatPoorSymbols(contradictedSymbolValues)}" \
             if len(contradictedSymbolValues) > 0 else ""
         super().__init__(
@@ -370,7 +371,7 @@ class ContradictionException(BadRelationException):
         )
 
 class NoSolutionException(BadRelationException):
-    def __init__(self, symbolsMissingSolutions: Collection[sympy.Symbol], badSymbolValues: dict[sympy.Symbol, set[sympy.Atom] | None], badRelation: Relation):
+    def __init__(self, symbolsMissingSolutions: Collection[sympy.Symbol], badSymbolValues: dict[sympy.Symbol, set[sympy.Basic] | None], badRelation: Relation):
         symbolsStr = f" for {self.formatPoorSymbols({symbol: None for symbol in symbolsMissingSolutions})}" \
             if len(symbolsMissingSolutions) > 0 else ""
         for unsolvedSymbol in symbolsMissingSolutions:
