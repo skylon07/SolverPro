@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, TypeVar
+from typing import Callable, Iterable, TypeVar, Any
 
 
 def getVersion():
@@ -30,7 +30,7 @@ def surroundJoin(items: Iterable, prefix: str, suffix: str, separator: str):
     return prefix + fullSeparator.join(items) + suffix
 
 # mostly for testing
-def runForError(fn: Callable[[], None]):
+def runForError(fn: Callable[[], Any]):
     try:
         fn()
         return None

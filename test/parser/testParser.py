@@ -1,4 +1,3 @@
-# type: ignore
 import sympy
 
 from src.common.functions import runForError
@@ -7,7 +6,7 @@ from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 
 class CommandParserTester:
-    def testParserCallbackChains(self):
+    def testParserCommandResults(self):
         parser = CommandParser()
 
         assert list(parser.parseCommand((
@@ -132,8 +131,8 @@ class CommandParserTester:
         parser = CommandParser()
 
         assert list(parser.parseCommand((
-            LexerToken("45",    LexerTokenTypes.INTEGER, 0),
-            LexerToken("",      LexerTokenTypes.EOL, 2),
+            LexerToken("45",    LexerTokenTypes.INTEGER,    0),
+            LexerToken("",      LexerTokenTypes.EOL,        2),
         ))) == [Command.evaluateExpression(sympy.parse_expr("45"))]
 
         assert list(parser.parseCommand((
@@ -247,11 +246,11 @@ class CommandParserTester:
             LexerToken("/", LexerTokenTypes.SLASH,      38),
             LexerToken("l", LexerTokenTypes.IDENTIFIER, 40),
             LexerToken("+", LexerTokenTypes.PLUS,       42),
-            LexerToken("4", LexerTokenTypes.INTEGER,        44),
+            LexerToken("4", LexerTokenTypes.INTEGER,    44),
             LexerToken("-", LexerTokenTypes.DASH,       46),
-            LexerToken("5", LexerTokenTypes.INTEGER,        48),
+            LexerToken("5", LexerTokenTypes.INTEGER,    48),
             LexerToken("^", LexerTokenTypes.CARROT,     50),
-            LexerToken("7", LexerTokenTypes.INTEGER,        52),
+            LexerToken("7", LexerTokenTypes.INTEGER,    52),
             LexerToken("",  LexerTokenTypes.EOL,        53),
         ))) == [Command.evaluateExpression(sympy.parse_expr("a-b+c*d/e**f-g+h/a*j/l+4-5**7"))]
         
@@ -553,11 +552,11 @@ class CommandParserTester:
         # this test makes sure the app's parser does its actual job
         def attempt_pythonLikeExpr():
             return list(parser.parseCommand((
-                LexerToken("1",     LexerTokenTypes.INTEGER,        0),
+                LexerToken("1",     LexerTokenTypes.INTEGER,    0),
                 LexerToken("if",    LexerTokenTypes.IDENTIFIER, 2),
-                LexerToken("1",     LexerTokenTypes.INTEGER,        5),
+                LexerToken("1",     LexerTokenTypes.INTEGER,    5),
                 LexerToken("else",  LexerTokenTypes.IDENTIFIER, 7),
-                LexerToken("0",     LexerTokenTypes.INTEGER,        12),
+                LexerToken("0",     LexerTokenTypes.INTEGER,    12),
                 LexerToken("",      LexerTokenTypes.EOL,        13),
             )))
         error_pythonLikeExpr = runForError(attempt_pythonLikeExpr)
