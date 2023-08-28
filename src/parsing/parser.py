@@ -56,9 +56,11 @@ class _CommandParserSequencer:
     _maxPrecOpers = (
         LexerTokenTypes.CARROT,
     )
-    _valueTypes = (
+    _numberTypes = (
         LexerTokenTypes.INTEGER,
         LexerTokenTypes.FLOAT,
+    )
+    _valueTypes = _numberTypes + (
         LexerTokenTypes.IDENTIFIER,
     )
 
@@ -66,6 +68,7 @@ class _CommandParserSequencer:
         self._tokens = commandTokens
         self._setNumTokensParsed(0)
         self._allowExpressionList = True
+        self._allowIdentifierValues = True
 
     def _setNumTokensParsed(self, numParsed: int):
         self.numTokensParsed = numParsed
@@ -347,14 +350,19 @@ class _CommandParserSequencer:
         elif self._currToken.type is LexerTokenTypes.BRACE_OPEN and self._allowExpressionList:
             self._consumeCurrToken(self._currToken.type)
             self._allowExpressionList = False
+            self._allowIdentifierValues = False
             expressions = self.sequenceExpressionList()
+            self._allowIdentifierValues = True
             self._allowExpressionList = True
             self._consumeCurrToken(LexerTokenTypes.BRACE_CLOSE)
             expressionsStr = ", ".join(str(expr) for expr in expressions)
             return sympy.Symbol(f"{{{expressionsStr}}}")
 
-        # # default branch: value
-        (tokenType, valueStr) = self.sequenceValue()
+        # # default branch: value/number
+        if self._allowIdentifierValues:
+            (tokenType, valueStr) = self.sequenceValue()
+        else:
+            (tokenType, valueStr) = self.sequenceNumber()
         return (tokenType, valueStr)
 
     def sequenceValue(self):
@@ -366,7 +374,18 @@ class _CommandParserSequencer:
             self._consumeCurrToken(self._currToken.type)
             return (tokenType, valueStr)
         
-        return self._throwUnexpectedToken(self._valueTypes) # `return` fixes type inference...?
+        return self._throwUnexpectedToken(self._valueTypes)
+    
+    def sequenceNumber(self):
+        tokenType = self._currToken.type
+
+        # (all valid branches)
+        if self._currToken.type in self._numberTypes:
+            numberStr = self._currToken.match
+            self._consumeCurrToken(self._currToken.type)
+            return (tokenType, numberStr)
+        
+        return self._throwUnexpectedToken(self._numberTypes)
     
 
 class CommandType(EnumString):
