@@ -145,7 +145,7 @@ class CommandParserTester:
             LexerToken('+',     LexerTokenTypes.PLUS,           2),
             LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     4),
             LexerToken('10',    LexerTokenTypes.INTEGER,        5),
-            LexerToken(',',     LexerTokenTypes.COMMA,          8),
+            LexerToken('+',     LexerTokenTypes.PLUS,           8),
             LexerToken('2',     LexerTokenTypes.INTEGER,        10),
             LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    11),
             LexerToken('/',     LexerTokenTypes.SLASH,          13),
@@ -156,7 +156,7 @@ class CommandParserTester:
             LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    19),
             LexerToken('',      LexerTokenTypes.EOL,            20),
         ))) == [Command.evaluateExpression(
-            4 + sympy.Symbol("{10, 2}") / sympy.Symbol("{4, 5}") # type: ignore
+            4 + sympy.Symbol("{12}") / sympy.Symbol("{4, 5}") # type: ignore
         )], "Parser failed to parse an expression with two expression list symbols"
 
     def testParserProcessesExpressionLists(self):
