@@ -127,6 +127,83 @@ class CommandParserTester:
         ))) == [Command.evaluateExpression(sympy.parse_expr("(1+x)*(4*-(1+a/2)+5)+(4/2)**2"))], \
             "Parser failed to parse an order of operations nightmare (can you blame it?)"
         
+    def testParserHandlesExpressionListSymbols(self):
+        parser = CommandParser()
+
+        assert list(parser.parseCommand((
+            LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     0),
+            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     1),
+            LexerToken('+',     LexerTokenTypes.PLUS,           2),
+            LexerToken('r',     LexerTokenTypes.IDENTIFIER,     3),
+            LexerToken('*',     LexerTokenTypes.STAR,           4),
+            LexerToken('b',     LexerTokenTypes.IDENTIFIER,     5),
+            LexerToken(',',     LexerTokenTypes.COMMA,          6),
+            LexerToken('(',     LexerTokenTypes.PAREN_OPEN,     8),
+            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     9),
+            LexerToken('+',     LexerTokenTypes.PLUS,           10),
+            LexerToken('b',     LexerTokenTypes.IDENTIFIER,     11),
+            LexerToken(')',     LexerTokenTypes.PAREN_CLOSE,    12),
+            LexerToken('/',     LexerTokenTypes.SLASH,          13),
+            LexerToken('d',     LexerTokenTypes.IDENTIFIER,     14),
+            LexerToken(',',     LexerTokenTypes.COMMA,          15),
+            LexerToken('14',    LexerTokenTypes.INTEGER,        17),
+            LexerToken('-',     LexerTokenTypes.DASH,           19),
+            LexerToken('12',    LexerTokenTypes.INTEGER,        20),
+            LexerToken('*',     LexerTokenTypes.STAR,           22),
+            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     23),
+            LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    24),
+            LexerToken('',      LexerTokenTypes.EOL,            25),
+        ))) == [Command.evaluateExpression(sympy.Symbol("{a + b*r, (a + b)/d, 14 - 12*a}"))], \
+            "Parser failed to parse a basic expression with a single expression list symbol"
+        
+        assert list(parser.parseCommand((
+            LexerToken('4', LexerTokenTypes.INTEGER,        0),
+            LexerToken('+', LexerTokenTypes.PLUS,           2),
+            LexerToken('{', LexerTokenTypes.BRACE_OPEN,     4),
+            LexerToken('a', LexerTokenTypes.IDENTIFIER,     5),
+            LexerToken('*', LexerTokenTypes.STAR,           6),
+            LexerToken('b', LexerTokenTypes.IDENTIFIER,     7),
+            LexerToken(',', LexerTokenTypes.COMMA,          8),
+            LexerToken('2', LexerTokenTypes.INTEGER,        10),
+            LexerToken('}', LexerTokenTypes.BRACE_CLOSE,    11),
+            LexerToken('/', LexerTokenTypes.SLASH,          13),
+            LexerToken('{', LexerTokenTypes.BRACE_OPEN,     15),
+            LexerToken('4', LexerTokenTypes.INTEGER,        16),
+            LexerToken(',', LexerTokenTypes.COMMA,          17),
+            LexerToken('5', LexerTokenTypes.INTEGER,        18),
+            LexerToken('}', LexerTokenTypes.BRACE_CLOSE,    19),
+            LexerToken('',  LexerTokenTypes.EOL,            20),
+        ))) == [Command.evaluateExpression(
+            4 + sympy.Symbol("{a*b, 2}") / sympy.Symbol("{4, 5}") # type: ignore
+        )], "Parser failed to parse an expression with two expression list symbols"
+
+    def testParserProcessesExpressionLists(self):
+        parser = CommandParser()
+
+        assert list(parser.parseExpressionList((
+            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     1),
+            LexerToken('+',     LexerTokenTypes.PLUS,           2),
+            LexerToken('r',     LexerTokenTypes.IDENTIFIER,     3),
+            LexerToken('*',     LexerTokenTypes.STAR,           4),
+            LexerToken('b',     LexerTokenTypes.IDENTIFIER,     5),
+            LexerToken(',',     LexerTokenTypes.COMMA,          6),
+            LexerToken('(',     LexerTokenTypes.PAREN_OPEN,     8),
+            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     9),
+            LexerToken('+',     LexerTokenTypes.PLUS,           10),
+            LexerToken('b',     LexerTokenTypes.IDENTIFIER,     11),
+            LexerToken(')',     LexerTokenTypes.PAREN_CLOSE,    12),
+            LexerToken('/',     LexerTokenTypes.SLASH,          13),
+            LexerToken('d',     LexerTokenTypes.IDENTIFIER,     14),
+            LexerToken(',',     LexerTokenTypes.COMMA,          15),
+            LexerToken('14',    LexerTokenTypes.INTEGER,        17),
+            LexerToken('-',     LexerTokenTypes.DASH,           19),
+            LexerToken('12',    LexerTokenTypes.INTEGER,        20),
+            LexerToken('*',     LexerTokenTypes.STAR,           22),
+            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     23),
+            LexerToken('',      LexerTokenTypes.EOL,            25),
+        ))) == [sympy.parse_expr("a+r*b"), sympy.parse_expr("(a+b)/d"), sympy.parse_expr("14-12*a")], \
+            "Parser failed to parse a basic expression with a single expression list symbol"
+        
     def testParserForRobustness(self):
         parser = CommandParser()
 
@@ -562,3 +639,13 @@ class CommandParserTester:
         error_pythonLikeExpr = runForError(attempt_pythonLikeExpr)
         assert type(error_pythonLikeExpr) is ParseException
         assert error_pythonLikeExpr.badTokenIdxs == [1]
+
+        def attempt_emptyExpressionList():
+            return list(parser.parseCommand((
+                LexerToken('{', LexerTokenTypes.BRACE_OPEN,     0),
+                LexerToken('}', LexerTokenTypes.BRACE_CLOSE,    1),
+                LexerToken('',  LexerTokenTypes.EOL,            2),
+            )))
+        error_emptyExpressionList = runForError(attempt_emptyExpressionList)
+        assert type(error_emptyExpressionList) is ParseException
+        assert error_emptyExpressionList.badTokenIdxs == [1]

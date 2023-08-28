@@ -311,3 +311,46 @@ class CommandLexerTester:
             LexerToken(".1E5",  LexerTokenTypes.FLOAT,  29),
             LexerToken("4.e-7", LexerTokenTypes.FLOAT,  34),
         ], "Lexer does not correctly process decimal points"
+
+        assert list(lexer.findTokens("{1, 2, 3}", withEol = False)) == [
+            LexerToken("{", LexerTokenTypes.BRACE_OPEN,     0),
+            LexerToken("1", LexerTokenTypes.INTEGER,        1),
+            LexerToken(",", LexerTokenTypes.COMMA,          2),
+            LexerToken("2", LexerTokenTypes.INTEGER,        4),
+            LexerToken(",", LexerTokenTypes.COMMA,          5),
+            LexerToken("3", LexerTokenTypes.INTEGER,        7),
+            LexerToken("}", LexerTokenTypes.BRACE_CLOSE,    8),
+        ], "Lexer did not correctly process basic expression list of ints"
+        
+        assert list(lexer.findTokens("{(12 + 2)^2, a * 4, a^2 + b^2 = c^2}", withEol = False)) == [
+            LexerToken("{",     LexerTokenTypes.BRACE_OPEN,     0),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     1),
+            LexerToken("12",    LexerTokenTypes.INTEGER,        2),
+            LexerToken("+",     LexerTokenTypes.PLUS,           5),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        7),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    8),
+            LexerToken("^",     LexerTokenTypes.CARROT,         9),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        10),
+            LexerToken(",",     LexerTokenTypes.COMMA,          11),
+            LexerToken("a",     LexerTokenTypes.IDENTIFIER,     13),
+            LexerToken("*",     LexerTokenTypes.STAR,           15),
+            LexerToken("4",     LexerTokenTypes.INTEGER,        17),
+            LexerToken(",",     LexerTokenTypes.COMMA,          18),
+            LexerToken("a",     LexerTokenTypes.IDENTIFIER,     20),
+            LexerToken("^",     LexerTokenTypes.CARROT,         21),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        22),
+            LexerToken("+",     LexerTokenTypes.PLUS,           24),
+            LexerToken("b",     LexerTokenTypes.IDENTIFIER,     26),
+            LexerToken("^",     LexerTokenTypes.CARROT,         27),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        28),
+            LexerToken("=",     LexerTokenTypes.EQUALS,         30),
+            LexerToken("c",     LexerTokenTypes.IDENTIFIER,     32),
+            LexerToken("^",     LexerTokenTypes.CARROT,         33),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        34),
+            LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    35),
+        ], "Lexer did not correctly process expression list of various kinds of expressions"
+        
+        assert list(lexer.findTokens("{}", withEol = False)) == [
+            LexerToken("{",     LexerTokenTypes.BRACE_OPEN,     0),
+            LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    1),
+        ], "Lexer did not correctly process empty expression list"
