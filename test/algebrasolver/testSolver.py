@@ -195,8 +195,6 @@ class AlgebraSolverTester:
         ), "Solver should preserve relations in order of recording (case 2)"
         assert solver.getRelationsWithSymbol(sympy.parse_expr("nonexistant")) == tuple()
 
-        # TODO: relations with expression lists
-
     def testSolverCatchesRedundantRelations(self):
         solver1 = AlgebraSolver()
         
@@ -224,8 +222,13 @@ class AlgebraSolverTester:
         assert isRedundant1_3 is True, \
             "Solver claimed symmetrical relation was not redundant"
         
-        # TODO: relations with expression lists
-        #       (a = {2, 1}; a = {1, 2})
+        solver4 = AlgebraSolver()
+
+        isRedundant1_4 = solver4.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
+        assert isRedundant1_4 is False
+        
+        isRedundant2_4 = solver4.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
+        assert isRedundant2_4 is True
 
     def testSolverDetectsContradictions(self):
         solver = AlgebraSolver()
@@ -236,7 +239,7 @@ class AlgebraSolverTester:
         error1 = runForError(recordContradiction1)
         
         assert type(error1) is ContradictionException
-        assert error1.poorSymbolValues == {
+        assert error1.poorSymbolValues == { # type: ignore
             sympy.parse_expr("a"): {3},
         }, "Solver did not find correct contradicting symbols in single-var case"
         assert error1.contradictingRelation == Relation(
@@ -275,9 +278,31 @@ class AlgebraSolverTester:
             sympy.parse_expr("x - y + z"), 6 # type: ignore
         ), "Solver found contradiction in the wrong relation for two-var case"
 
-        # TODO: relations with expression lists
-        #       (a = {1, 2}; a = {1, 2, 3}),
-        #       (b = {4, 8}; b = 5)
+    def testSolverFindsContradictionsWithExpressionLists(self):
+        solver = AlgebraSolver()
+
+        solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
+        solver.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{4, 8}")))
+
+        def recordContradiction1():
+            solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2, 3}")))
+        error1 = runForError(recordContradiction1)
+        
+        assert type(error1) is ContradictionException
+        assert error1.poorSymbolValues == {
+            sympy.parse_expr("a"): {1, 2},
+        }
+        assert error1.contradictingRelation == Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2, 3}"))
+
+        def recordContradiction2():
+            solver.recordRelation(Relation(sympy.parse_expr("b"), 5)) # type: ignore
+        error2 = runForError(recordContradiction2)
+        
+        assert type(error2) is ContradictionException
+        assert error2.poorSymbolValues == {
+            sympy.parse_expr("b"): {4, 8},
+        }
+        assert error2.contradictingRelation == Relation(sympy.parse_expr("b"), 5) # type: ignore
         
     def testSolverCanRestrictSolutions(self):
         solver1 = AlgebraSolver()

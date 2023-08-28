@@ -132,12 +132,12 @@ class CommandParserTester:
 
         assert list(parser.parseCommand((
             LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     0),
-            LexerToken('22',    LexerTokenTypes.INTEGER,        1),
-            LexerToken(',',     LexerTokenTypes.COMMA,          3),
-            LexerToken('6',     LexerTokenTypes.INTEGER,        5),
+            LexerToken('6',     LexerTokenTypes.INTEGER,        1),
+            LexerToken(',',     LexerTokenTypes.COMMA,          2),
+            LexerToken('22',    LexerTokenTypes.INTEGER,        4),
             LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    6),
             LexerToken('',      LexerTokenTypes.EOL,            7),
-        ))) == [Command.evaluateExpression(sympy.Symbol("{22, 6}"))], \
+        ))) == [Command.evaluateExpression(sympy.Symbol("{6, 22}"))], \
             "Parser failed to parse an expression with two expression list symbols"
         
         assert list(parser.parseCommand((
@@ -158,6 +158,18 @@ class CommandParserTester:
         ))) == [Command.evaluateExpression(
             4 + sympy.Symbol("{12}") / sympy.Symbol("{4, 5}") # type: ignore
         )], "Parser failed to parse an expression with two expression list symbols"
+
+        assert list(parser.parseCommand((
+            LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     0),
+            LexerToken('3',     LexerTokenTypes.INTEGER,        1),
+            LexerToken(',',     LexerTokenTypes.COMMA,          2),
+            LexerToken('2',    LexerTokenTypes.INTEGER,         4),
+            LexerToken(',',     LexerTokenTypes.COMMA,          5),
+            LexerToken('1',    LexerTokenTypes.INTEGER,         7),
+            LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    8),
+            LexerToken('',      LexerTokenTypes.EOL,            9),
+        ))) == [Command.evaluateExpression(sympy.Symbol("{1, 2, 3}"))], \
+            "Parser failed to sort expression list before making it a symbol"
 
     def testParserProcessesExpressionLists(self):
         parser = CommandParser()
