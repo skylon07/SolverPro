@@ -352,6 +352,7 @@ class _CommandParserSequencer:
             self._allowExpressionList = False
             self._allowIdentifierValues = False
             expressions = self.sequenceExpressionList()
+            expressions.sort() # type: ignore (it does work)
             self._allowIdentifierValues = True
             self._allowExpressionList = True
             self._consumeCurrToken(LexerTokenTypes.BRACE_CLOSE)
