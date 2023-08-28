@@ -76,7 +76,7 @@ class AlgebraSolver:
                 for conditional in self._database[symbol]
             }
             for symbol in relation.asExprEqToZero.free_symbols
-            if symbol in self._database
+            if symbol in self._database and not isExpressionListSymbol(symbol)
         }
         try:
             (isRedundant, isRedundantWithContradictions) = self._checkForRedundancies(relation)
@@ -179,6 +179,11 @@ class AlgebraSolver:
 
     def _calculateAnySolutionsFromRelation(self, relation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]):
         relationsWithKnownsSubbed = tuple(_CombinationsSubstituter(relation.asExprEqToZero, self._database))
+        assert not any(
+            isExpressionListSymbol(symbol) # type: ignore
+            for conditionalExpr in relationsWithKnownsSubbed
+            for symbol in conditionalExpr.value.free_symbols
+        )
         if not all(
             relationExprCondition.value == 0
             for relationExprCondition in relationsWithKnownsSubbed
@@ -200,6 +205,7 @@ class AlgebraSolver:
                 "Solver got a solution set that wasn't a FiniteSet"
         
         (symbol, conditionalSolutions) = self._convertConditionalSolutionsToSetsOfConditions(conditionalSolutionPairs)
+        assert not isExpressionListSymbol(symbol) # type: ignore
         return (symbol, conditionalSolutions)
 
     def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Expr]], baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
