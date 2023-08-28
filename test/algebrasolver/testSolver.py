@@ -195,6 +195,8 @@ class AlgebraSolverTester:
         ), "Solver should preserve relations in order of recording (case 2)"
         assert solver.getRelationsWithSymbol(sympy.parse_expr("nonexistant")) == tuple()
 
+        # TODO: relations with expression lists
+
     def testSolverCatchesRedundantRelations(self):
         solver1 = AlgebraSolver()
         
@@ -221,6 +223,9 @@ class AlgebraSolverTester:
         isRedundant1_3 = solver3.recordRelation(Relation(sympy.parse_expr("a + c"), sympy.parse_expr("a + c")))
         assert isRedundant1_3 is True, \
             "Solver claimed symmetrical relation was not redundant"
+        
+        # TODO: relations with expression lists
+        #       (a = {2, 1}; a = {1, 2})
 
     def testSolverDetectsContradictions(self):
         solver = AlgebraSolver()
@@ -269,6 +274,10 @@ class AlgebraSolverTester:
         assert error4.contradictingRelation == Relation(
             sympy.parse_expr("x - y + z"), 6 # type: ignore
         ), "Solver found contradiction in the wrong relation for two-var case"
+
+        # TODO: relations with expression lists
+        #       (a = {1, 2}; a = {1, 2, 3}),
+        #       (b = {4, 8}; b = 5)
         
     def testSolverCanRestrictSolutions(self):
         solver1 = AlgebraSolver()
@@ -301,6 +310,10 @@ class AlgebraSolverTester:
                     sympy.parse_expr("a"): -2, # type: ignore
                 }),
             }, "Solver did not restrict known values (and conditionals) for new relation"
+        
+        # TODO: relations with expression lists
+        #       (a = {1, 2, 3}; a = {1, 2}),
+        #       (b = {4, 8, 12}; b = 8)
     
     def testSolverResetsOnBadRecord(self):
         solver = AlgebraSolver()
