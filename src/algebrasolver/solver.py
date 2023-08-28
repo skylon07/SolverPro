@@ -6,7 +6,8 @@ import sympy
 from src.common.functions import first, surroundJoin
 from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
-from src.parsing.parser import isNonSymbolicValue
+from src.parsing.lexer import CommandLexer
+from src.parsing.parser import CommandParser, isExpressionListSymbol, isNonSymbolicValue
 
 
 SolutionSet = set[sympy.Expr]
@@ -61,26 +62,21 @@ class AlgebraSolver:
     def __init__(self):
         # a list of relational expressions with an implied equality to zero
         self._recordedRelations: list[Relation] = list()
-        # a mapping of a variable to its potential values and conditions
-        # (like b = 4 when a = 2 and b = 5 when a = -1)
-        self._symbolValues: dict[sympy.Symbol, set[ConditionalValue[sympy.Expr]]] = dict()
-        # the order in which symbols are substituted
-        self._symbolResolutionOrder: list[tuple[int, sympy.Symbol]] = list()
+        self._database = _SymbolsDatabase()
 
     def recordRelation(self, relation: Relation):
         # TODO: use transactional data types that can be reversed more efficiently
         oldRelations = list(self._recordedRelations)
-        oldSymbolValues = dict(self._symbolValues)
-        oldResolutionOrder = list(self._symbolResolutionOrder)
+        oldDatabase = self._database.copy()
         
         # if there is a contradiction, it would be with these
         contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None] = {
             symbol: {
                 conditional.value
-                for conditional in self._symbolValues[symbol]
+                for conditional in self._database[symbol]
             }
             for symbol in relation.asExprEqToZero.free_symbols
-            if symbol in self._symbolValues
+            if symbol in self._database
         }
         try:
             (isRedundant, isRedundantWithContradictions) = self._checkForRedundancies(relation)
@@ -96,8 +92,7 @@ class AlgebraSolver:
                 if couldBeRestrictRedefCase:
                     symbol = first(relation.asExprEqToZero.free_symbols)
                     assert type(symbol) is sympy.Symbol
-                    oldSolutions = self._symbolValues.pop(symbol)
-                    self._popSymbolFromResolutionOrder(symbol)
+                    oldSolutions = self._database.pop(symbol)
                     
                     try:
                         (newSymbol, newSolutions) = self._calculateAnySolutionsFromRelation(relation, dict())
@@ -110,15 +105,13 @@ class AlgebraSolver:
                         newValuesAreRestrictions = len(newSolutions) < len(oldSolutions) and \
                             all(solution.value in oldSolutionValues for solution in newSolutions)
                         if newValuesAreRestrictions:
-                            self._symbolValues[symbol] = newSolutions
+                            self._database[symbol] = newSolutions
                             isRedundant = False # since it technically did provide new information...
                             # TODO: (optimization) remove other symbol values that relied on any conditions now not present
                             #       (since other symbols might have conditions that will never be true when substituted,
                             #       due to the values that were just removed)
                         else:
-                            self._symbolValues[symbol] = oldSolutions
-                        
-                        self._insertSymbolToResolutionOrder(symbol)
+                            self._database[symbol] = oldSolutions
             
             self._recordedRelations.append(relation)
             self._inferSymbolValuesFromRelations(contradictedSymbolValues)
@@ -126,12 +119,11 @@ class AlgebraSolver:
         
         except Exception as exception:
             self._recordedRelations = oldRelations
-            self._symbolValues = oldSymbolValues
-            self._symbolResolutionOrder = oldResolutionOrder
+            self._database = oldDatabase
             raise exception
 
     def getSymbolConditionalValues(self, symbol: sympy.Symbol):
-        return self._symbolValues.get(symbol)
+        return self._database.get(symbol)
     
     def getRelationsWithSymbol(self, symbol: sympy.Symbol):
         return tuple(
@@ -141,7 +133,7 @@ class AlgebraSolver:
         )
     
     def substituteKnownsFor(self, expression: sympy.Expr):
-        conditionals = self._generateSubstitutionsFor(expression)
+        conditionals = _CombinationsSubstituter(expression, self._database)
         values = {
             conditional.value
             for conditional in conditionals
@@ -149,22 +141,12 @@ class AlgebraSolver:
         return values
     
     def substituteKnownsWithConditions(self, expression: sympy.Expr):
-        conditionals = self._generateSubstitutionsFor(expression)
+        conditionals = _CombinationsSubstituter(expression, self._database)
         return set(conditionals)
-    
-    def _generateSubstitutionsFor(self, expression: sympy.Expr) -> Generator[ConditionalValue[sympy.Basic], Any, None]:
-        for symbolValueCombination in self._generateSubstitutionCombinations():
-            conditions = {
-                symbol: conditionalValue
-                for (symbol, conditionalValue) in symbolValueCombination.items()
-                if symbol in expression.free_symbols
-            }
-            subExpr = expression.subs(symbolValueCombination)
-            yield ConditionalValue(subExpr, conditions)
 
     def _checkForRedundancies(self, relation: Relation):
         isRedundantWithContradictions = False
-        for conditionalSubbedRelationExpr in self._generateSubstitutionsFor(relation.asExprEqToZero):
+        for conditionalSubbedRelationExpr in _CombinationsSubstituter(relation.asExprEqToZero, self._database):
             subbedRelationExpr = conditionalSubbedRelationExpr.value
             if subbedRelationExpr != 0:
                 if len(subbedRelationExpr.free_symbols) == 0:
@@ -179,8 +161,7 @@ class AlgebraSolver:
             (symbol, conditionalSolutions) = self._calculateAnySolutionsFromRelation(relation, contradictedSymbolValues)
             someSubbedRelationWasSolvable = symbol is not None
             if someSubbedRelationWasSolvable:
-                self._symbolValues[symbol] = conditionalSolutions
-                self._insertSymbolToResolutionOrder(symbol)
+                self._database[symbol] = conditionalSolutions
                 
                 inferredValues = {
                     solution.value
@@ -197,7 +178,7 @@ class AlgebraSolver:
             self._inferSymbolValuesFromRelations(contradictedSymbolValues)
 
     def _calculateAnySolutionsFromRelation(self, relation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]):
-        relationsWithKnownsSubbed = tuple(self._generateSubstitutionsFor(relation.asExprEqToZero))
+        relationsWithKnownsSubbed = tuple(_CombinationsSubstituter(relation.asExprEqToZero, self._database))
         if not all(
             relationExprCondition.value == 0
             for relationExprCondition in relationsWithKnownsSubbed
@@ -208,6 +189,7 @@ class AlgebraSolver:
         relationsWithSingleUnknown = (
             relationExprCondition
             for relationExprCondition in relationsWithKnownsSubbed
+            # no expression list symbols are present; they've all been substituted
             if len(relationExprCondition.value.free_symbols) == 1
         )
         
@@ -220,7 +202,7 @@ class AlgebraSolver:
         (symbol, conditionalSolutions) = self._convertConditionalSolutionsToSetsOfConditions(conditionalSolutionPairs)
         return (symbol, conditionalSolutions)
 
-    def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Basic]], baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
+    def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Expr]], baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
         for relationExprCondition in relationExprConditions:
             relationExpr = relationExprCondition.value
             assert(len(relationExpr.free_symbols) == 1), \
@@ -269,30 +251,112 @@ class AlgebraSolver:
                 totalSolutionSet.add(ConditionalValue(value, conditions))
         return (symbol, totalSolutionSet)
     
+
+class _SymbolsDatabase:
+    """
+    A database for known symbols. Logically this is a union between two dictionaries:
+    1. An initially empty dictionary of variable/value mappings, added to as values are inferred
+    2. An infinite dictionary mapping "expression list symbols" to a list of actual expressions 
+    """
+
+    _DefaultType = TypeVar("_DefaultType")
+
+    def __init__(self):
+        # a mapping of a variable to its potential values and conditions
+        # (like b = 4 when a = 2 and b = 5 when a = -1)
+        self._symbolValues: dict[sympy.Symbol, set[ConditionalValue[sympy.Expr]]] = dict()
+        # a mapping of symbols to conditional values for "expression list symbols"
+        self._exprListSymbolValues: dict[sympy.Symbol, set[ConditionalValue[sympy.Expr]]] = dict()
+        # the order in which symbols are iterated over (for substitution)
+        self._symbolResolutionOrder: list[tuple[int, sympy.Symbol]] = list()
+
+        self._expressionLexer = CommandLexer()
+        self._expressionParser = CommandParser()
+
+    def __getitem__(self, key: sympy.Symbol):
+        if isExpressionListSymbol(key):
+            if key not in self._exprListSymbolValues:
+                self._exprListSymbolValues[key] = self._parseExprListSymbol(key)
+                # resolution order doesn't include expression list symbols;
+                # the generator knows how to handle this
+                # self._insertSymbolToResolutionOrder(key)
+            return self._exprListSymbolValues[key]
+        else:
+            return self._symbolValues[key]
+    
+    def __setitem__(self, key: sympy.Symbol, value: set[ConditionalValue[sympy.Expr]]):
+        if isExpressionListSymbol(key):
+            raise ValueError("Cannot set values for expression list symbols")
+        if key in self._symbolValues:
+            self._popSymbolFromResolutionOrder(key)
+        self._symbolValues[key] = value
+        self._insertSymbolToResolutionOrder(key)
+
+    def __iter__(self):
+        for (rank, symbol) in self._symbolResolutionOrder:
+            yield symbol
+
+    def __contains__(self, key: sympy.Symbol):
+        return key in self._symbolValues or isExpressionListSymbol(key)
+
+    def copy(self):
+        newDatabase = _SymbolsDatabase()
+        newDatabase._symbolValues = dict(self._symbolValues)
+        newDatabase._exprListSymbolValues = dict(self._exprListSymbolValues)
+        newDatabase._symbolResolutionOrder = list(self._symbolResolutionOrder)
+        return newDatabase
+    
+    def get(self, key: sympy.Symbol, default: _DefaultType = None) -> set[ConditionalValue[sympy.Expr]] | _DefaultType:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+    
+    def pop(self, key: sympy.Symbol):
+        if isExpressionListSymbol(key):
+            raise ValueError("Cannot pop values for expression list symbols")
+        self._popSymbolFromResolutionOrder(key)
+        return self._symbolValues.pop(key)
+
+    def _parseExprListSymbol(self, exprListSymbol: sympy.Symbol) -> set[ConditionalValue[sympy.Expr]]:
+        assert isExpressionListSymbol(exprListSymbol)
+        exprListStr = str(exprListSymbol)[1:-1]
+        exprTokens = tuple(self._expressionLexer.findTokens(exprListStr))
+        expressionList = self._expressionParser.parseExpressionList(exprTokens)
+        return {
+            ConditionalValue(expression, dict())
+            for expression in expressionList
+        }
+    
     def _insertSymbolToResolutionOrder(self, symbol: sympy.Symbol):
-        assert symbol in self._symbolValues, "Should not insert symbol's resolution order before it has values"
+        assert symbol in self, "Should not insert symbol's resolution order before it has values"
         symbolSortRank = self._calculateSymbolResolutionRank(symbol)
-        insertIdx = len(self._symbolResolutionOrder) + 1
-        rankBeforeInsert = None
-        while rankBeforeInsert is None or rankBeforeInsert > symbolSortRank:
-            insertIdx -= 1
-            if insertIdx == 0:
-                break # I don't think this is even possible...
-            (rankBeforeInsert, symbolBeforeInsert) = self._symbolResolutionOrder[insertIdx - 1]
-        self._symbolResolutionOrder.insert(insertIdx, (symbolSortRank, symbol))
+        if symbolSortRank == 0:
+            self._symbolResolutionOrder.insert(0, (symbolSortRank, symbol))
+        else:
+            insertIdx = len(self._symbolResolutionOrder) + 1
+            rankBeforeInsert = None
+            while rankBeforeInsert is None or rankBeforeInsert > symbolSortRank:
+                insertIdx -= 1
+                if insertIdx == 0:
+                    break
+                (rankBeforeInsert, symbolBeforeInsert) = self._symbolResolutionOrder[insertIdx - 1]
+            self._symbolResolutionOrder.insert(insertIdx, (symbolSortRank, symbol))
 
     def _calculateSymbolResolutionRank(self, symbol: sympy.Symbol):
-        conditionSymbols = {
-            symbol
-            for conditionValue in self._symbolValues[symbol]
-            for symbol in conditionValue.conditions.keys()
-        }
-        rank = 1 + sum(
-            self._calculateSymbolResolutionRank(symbol)
-            for symbol in conditionSymbols
-        )
-        return rank
-
+        if isExpressionListSymbol(symbol):
+            return 0
+        else:
+            conditionSymbols = {
+                symbol
+                for conditionValue in self[symbol]
+                for symbol in conditionValue.conditions.keys()
+            }
+            rank = 1 + sum(
+                self._calculateSymbolResolutionRank(symbol)
+                for symbol in conditionSymbols
+            )
+            return rank
 
     def _popSymbolFromResolutionOrder(self, symbol: sympy.Symbol):
         symbolIdx = [
@@ -300,32 +364,67 @@ class AlgebraSolver:
             for (rank, symbol) in self._symbolResolutionOrder
         ].index(symbol)
         return self._symbolResolutionOrder.pop(symbolIdx)
+    
 
-    def _generateSubstitutionCombinations(self, currCombination: dict[sympy.Symbol, sympy.Expr] | None = None, resolutionIdx = 0) -> Generator[dict[sympy.Symbol, sympy.Expr], Any, None]:
-        if currCombination is None:
-            currCombination = dict()
-        
-        noSymbolsLeftToInclude = resolutionIdx == len(self._symbolResolutionOrder)
-        if noSymbolsLeftToInclude:
-            # copied to avoid the side-effects of changing currCombination
-            finishedCombination = dict(currCombination)
-            yield finishedCombination
-        
+class _CombinationsSubstituter:
+    def __init__(self, expression: sympy.Expr, database: _SymbolsDatabase):
+        self._expression = expression
+        self._database = database
+        self._currCombination = dict()
+        self._resolutionOrder = tuple(database)
+        self._exprListSymbols = tuple(
+            exprListSymbol
+            for exprListSymbol in expression.free_symbols
+            if type(exprListSymbol) is sympy.Symbol and isExpressionListSymbol(exprListSymbol)
+        )
+
+    def __iter__(self) -> Generator[ConditionalValue[sympy.Expr], Any, None]:
+        for symbolValueCombination in self._generateCombinations(0, 0):
+            conditions = {
+                symbol: conditionalValue
+                for (symbol, conditionalValue) in symbolValueCombination.items()
+                if symbol in self._expression.free_symbols
+            }
+            subExpr = self._expression.subs(symbolValueCombination)
+            yield ConditionalValue(subExpr, conditions) # type: ignore
+    
+    def _generateCombinations(self, numExprListsResolved, resolutionIdx):
+        noExprListsLeft = numExprListsResolved == len(self._exprListSymbols)
+        if noExprListsLeft:
+            noSymbolsLeftToInclude = resolutionIdx == len(self._resolutionOrder)
+            if noSymbolsLeftToInclude:
+                # copied to avoid the side-effects of changing currCombination across iterations
+                finishedCombination = dict(self._currCombination)
+                yield finishedCombination
+                return
+            
+            else:
+                symbolToInclude = self._resolutionOrder[resolutionIdx]
+                resolutionIdx += 1
         else:
-            (symbolRank, symbolToInclude) = self._symbolResolutionOrder[resolutionIdx]
-            anyConditionsMet = False
-            for conditionalValue in self._symbolValues[symbolToInclude]:
-                if self._testConditionsMet(conditionalValue, currCombination):
-                    anyConditionsMet = True
-                    # overwritten to save on memory (instead of copying and creating a bunch of dicts)
-                    currCombination[symbolToInclude] = conditionalValue.value
-                    for finishedCombination in self._generateSubstitutionCombinations(currCombination, resolutionIdx + 1):
-                        yield finishedCombination
-            assert anyConditionsMet, "Solver failed to find a valid condition"
+            symbolToInclude = self._exprListSymbols[numExprListsResolved]
+            numExprListsResolved += 1
+        anyConditionsMet = False
+        for conditionalValue in self._database[symbolToInclude]:
+            if self._testConditionsMet(conditionalValue):
+                anyConditionsMet = True
+                # overwritten to save on memory (instead of copying and creating a bunch of dicts)
+                self._currCombination[symbolToInclude] = conditionalValue.value
+                for finishedCombination in self._generateCombinations(numExprListsResolved, resolutionIdx):
+                    yield finishedCombination
+        assert anyConditionsMet, "Solver failed to find a valid condition"
 
-    def _testConditionsMet(self, conditionalValue: ConditionalValue[Any], currCombination: dict[sympy.Symbol, sympy.Expr]):
+    def _testConditionsMet(self, conditionalValue: ConditionalValue[Any]):
         for (symbol, value) in conditionalValue.conditions.items():
-            if currCombination[symbol] != value:
+            if isExpressionListSymbol(symbol):
+                # expression list symbols from the expression are resolved first;
+                # if we're testing a condition based on it, and it isn't in the
+                # combination, it therefore isn't in the expression and can't lead
+                # to contradictions during substitution
+                conditionIsIrrelevant = symbol not in self._currCombination
+                if conditionIsIrrelevant:
+                    continue 
+            if self._currCombination[symbol] != value:
                 return False
         return True
 
