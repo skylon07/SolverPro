@@ -5,8 +5,9 @@ from textual.reactive import var, reactive
 from textual.screen import Screen
 from textual.containers import VerticalScroll, Horizontal, HorizontalScroll
 from textual.widget import Widget
-from textual.widgets import Button, Label, Input
+from textual.widgets import Button, Input
 
+from src.app.widgets.dynamicLabel import DynamicLabel
 from src.algebrasolver.solver import Relation
 
 
@@ -74,7 +75,7 @@ class RelationEditRow(Widget):
             height: 3;
         }
 
-        RelationEditRow .hidden {
+        RelationEditRow.hidden, RelationEditRow .hidden {
             display: none;
         }
 
@@ -87,7 +88,7 @@ class RelationEditRow(Widget):
             background: rgb(60, 60, 60);
         }
 
-        RelationEditRow Label {
+        RelationEditRow DynamicLabel {
             height: 1fr;
             margin-top: 1;
             margin-left: 3;
@@ -148,7 +149,7 @@ class RelationEditRow(Widget):
     def compose(self):
         with Horizontal(id = 'staticGroup'):
             with HorizontalScroll():
-                yield Label(self.relationStr)
+                yield DynamicLabel(self.relationStr)
             yield Button("Edit", id = 'edit')
             yield Button("Delete", id = 'delete')
         with Horizontal(id = 'editGroup', classes = 'hidden'):
@@ -172,7 +173,11 @@ class RelationEditRow(Widget):
 
     @on(Button.Pressed, '#delete')
     def deleteOwnRelation(self):
-        pass # TODO
+        assert self.relation is not None
+        assert type(self.app) is _lazyImportSolverProApp()
+        
+        self.app.deleteRelation(self.relation)
+        self.add_class('hidden')
     
     @on(Button.Pressed, '#cancel')
     def exitEditMode(self):
@@ -182,5 +187,15 @@ class RelationEditRow(Widget):
     @on(Input.Submitted)
     @on(Button.Pressed, '#save')
     def saveChanges(self):
-        pass # TODO
-        self.exitEditMode()
+        assert self.relation is not None
+        assert type(self.app) is _lazyImportSolverProApp()
+        
+        input = self.query_one(Input)
+        label = self.query_one(DynamicLabel)
+        self.relation = self.app.replaceRelation(self.relation, input.value)
+        errorProcessingRelation = self.relation is None
+        if errorProcessingRelation:
+            pass # TODO: display an alert indicating the error?
+        else:
+            label.data = self.relationStr
+            self.exitEditMode()

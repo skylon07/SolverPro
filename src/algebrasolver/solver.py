@@ -73,6 +73,7 @@ class AlgebraSolver:
         self._madeContradictionCheckBySubbing = False
         
         # TODO: use transactional data types that can be reversed more efficiently
+        #       (this API also needs to be public for the driver -- there's a TODO about this)
         oldRelations = list(self._recordedRelations)
         oldDatabase = self._symbolValuesDatabase.copy()
         oldInferenceTable = self._inferenceTable.copy()

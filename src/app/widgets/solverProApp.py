@@ -15,6 +15,7 @@ from src.app.widgets.dictionaryScreen import DictionaryScreen
 from src.app.widgets.historyScreen import HistoryScreen
 from src.app.termTips import TermTips
 from src.app.textRenderer import TextRenderer
+from src.algebrasolver.solver import Relation
 
 
 class MainScreen(Screen):
@@ -153,7 +154,8 @@ class MainScreen(Screen):
     @on(Button.Pressed, '#historyButton')
     def openHistoryScreen(self):
         assert type(self.app) is SolverProApp
-        self.app.push_screen(HistoryScreen(self.app.driver.getRelations()))
+        relations_newestFirst = reversed(self.app.driver.getRelations())
+        self.app.push_screen(HistoryScreen(relations_newestFirst))
 
 
 class SolverProApp(App):
@@ -161,9 +163,13 @@ class SolverProApp(App):
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
     termTips: var[TermTips] = var(lambda: TermTips())
 
-    def on_mount(self):
-        self.push_screen(MainScreen())
+    mainScreen: var[MainScreen | None] = var(None)
 
+    def on_mount(self):
+        self.mainScreen = MainScreen()
+        self.push_screen(self.mainScreen)
+
+    # defined as an action for term tip links
     def action_showTermTip(self, term: str):
         tip = self.termTips.lookupTerm(term)
         self.push_screen(TermTipModal(
@@ -171,4 +177,30 @@ class SolverProApp(App):
             tip.definitionLines,
         ))
 
-    
+    def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
+        # TODO: wrap in try-except and do the same stuff as a regular command
+        result = self.driver.replaceRelation(oldRelation, newRelationCommand)
+        
+        # DEBUG
+        assert self.mainScreen is not None
+        self.mainScreen.query_one(TextLog).write("TEST -- REPLACE")
+
+        if result is not None:
+            # TODO: write an info message about replacement
+            (relation, isRedundant) = result.data
+            assert type(relation) is Relation
+            return relation
+        else:
+            # TODO: write an actually helpful error
+            # DEBUG
+            self.mainScreen.query_one(TextLog).write("ERROR")
+            return None
+
+
+    def deleteRelation(self, relation: Relation):
+        self.driver.deleteRelation(relation)
+
+        # TODO: write an info message about deletion
+        # DEBUG
+        assert self.mainScreen is not None
+        self.mainScreen.query_one(TextLog).write("TEST -- DELETE")

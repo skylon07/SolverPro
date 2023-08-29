@@ -2,7 +2,7 @@ from typing import Iterable, Collection
 
 import sympy
 
-from src.common.functions import surroundJoin
+from src.common.functions import surroundJoin, first
 from src.common.exceptions import TracebackException
 from src.algebrasolver.solver import AlgebraSolver, Relation
 from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
@@ -27,8 +27,29 @@ class AppDriver:
         
     def getRelations(self):
         return self._solver.getRelations()
+    
+    def deleteRelation(self, relation: Relation):
+        self._solver.popRelation(relation)
+
+    def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
+        # TODO: this should probably also be validated as a relation command before executing
+        self.validateSingleLine(newRelationCommand)
+        # TODO: this would be a good use case for transactional solver stuff when that's implemented
+        self._solver.popRelation(oldRelation)
+        result = first(self.processCommandLines(newRelationCommand), None)
+        if result is None or result.type is not Command.RECORD_RELATION:
+            self._solver.recordRelation(oldRelation)
+            return None
+        else:
+            (relation, isRedundant) = result.data
+            assert type(relation) is Relation
+            return result
 
     def _processCommand(self, command: Command, tokens: tuple[LexerToken, ...]):
+        # the paradigm here: `command` is something that needs to happen, the `result`
+        # is what's returned after doing what needs to happen (the `type` for either
+        # representing the `type` of work that needs to be/was done)
+        
         if command.type is Command.EMPTY:
             return ProcessResult(Command.EMPTY, None)
         
