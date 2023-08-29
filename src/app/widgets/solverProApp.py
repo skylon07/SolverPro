@@ -143,7 +143,7 @@ class MainScreen(Screen):
         assert type(self.app) is SolverProApp
         menuItem = str(event.button.label).lower()
         if menuItem == 'dictionary':
-            self.app.push_screen(DictionaryScreen())
+            self.app.push_screen(DictionaryScreen(self.app.termTips.getTermTips()))
         else:
             error = ValueError(f"Invalid menu item [magenta]{menuItem}[/magenta]")
             renderer = self.app.textRenderer

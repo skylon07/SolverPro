@@ -1,9 +1,12 @@
+from typing import Iterable
+
 from textual import on
+from textual.reactive import var
 from textual.screen import Screen
 from textual.containers import VerticalScroll, Horizontal
 from textual.widgets import Button, Label
 
-from src.app.termTips import TermTips, TermTip
+from src.app.termTips import TermTip
 
 def _lazyImportSolverProApp():
     from src.app.widgets.solverProApp import SolverProApp
@@ -59,9 +62,15 @@ class DictionaryScreen(Screen):
         }
     """
 
+    termTips: var[list[tuple[str, TermTip]] | None] = var(None)
+
+    def __init__(self, termTips: Iterable[tuple[str, TermTip]], *, name: str | None = None, id: str | None = None, classes: str | None = None):
+        super().__init__(name = name, id = id, classes = classes)
+        self.termTips = sorted(termTips, key = self._termTipSorter)
+
     def compose(self):
-        termsAndTips = tuple(TermTips().getTermTips())
-        sortedTermTips = sorted(termsAndTips, key = self._termTipSorter)
+        assert self.termTips is not None
+        sortedTermTips = list(self.termTips)
         with VerticalScroll(id = 'mainContainer'):
             yield Button("← Back", id = 'backButton')
             while len(sortedTermTips) > 0:
