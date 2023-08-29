@@ -24,6 +24,9 @@ class AppDriver:
     def validateSingleLine(self, commandStr: str):
         if "\n" in commandStr:
             raise NotImplementedError("Multiline commands not supported")
+        
+    def getRelations(self):
+        return self._solver.getRelations()
 
     def _processCommand(self, command: Command, tokens: tuple[LexerToken, ...]):
         if command.type is Command.EMPTY:

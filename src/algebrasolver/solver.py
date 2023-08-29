@@ -125,6 +125,9 @@ class AlgebraSolver:
     def getSymbolConditionalValues(self, symbol: sympy.Symbol):
         return self._database.get(symbol)
     
+    def getRelations(self):
+        return tuple(self._recordedRelations)
+    
     def getRelationsWithSymbol(self, symbol: sympy.Symbol):
         return tuple(
             relation

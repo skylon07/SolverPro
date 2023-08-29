@@ -8,6 +8,7 @@ from textual.widgets import Button, Label
 
 from src.app.termTips import TermTip
 
+
 def _lazyImportSolverProApp():
     from src.app.widgets.solverProApp import SolverProApp
     return SolverProApp
@@ -86,9 +87,8 @@ class DictionaryScreen(Screen):
                     sortedTermTips = sortedTermTips[5:]
             yield Label(classes = 'spacer')
                 
-    
     @on(Button.Pressed)
-    def termClicked(self, event: Button.Pressed):
+    def handleClick(self, event: Button.Pressed):
         if event.button.id == 'backButton':
             self.dismiss()
             return

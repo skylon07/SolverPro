@@ -12,6 +12,7 @@ from src.app.appDriver import AppDriver, Command
 from src.app.widgets.appHeader import AppHeader
 from src.app.widgets.termTipModal import TermTipModal
 from src.app.widgets.dictionaryScreen import DictionaryScreen
+from src.app.widgets.historyScreen import HistoryScreen
 from src.app.termTips import TermTips
 from src.app.textRenderer import TextRenderer
 
@@ -81,8 +82,7 @@ class MainScreen(Screen):
                 yield Label(classes = 'spacer')
                 yield Button("Dictionary", id = 'dictionaryButton', classes = 'managerButton')
                 yield Label(classes = 'spacer')
-                # TODO: history screen
-                yield Button("History (WIP)", id = 'historyButton', classes = 'managerButton')
+                yield Button("History", id = 'historyButton', classes = 'managerButton')
                 yield Label(classes = 'spacer')
                 # TODO: tutorial screen(s)
                 yield Button("Tutorial (WIP)", id = 'tutorialButton', classes = 'managerButton')
@@ -90,6 +90,13 @@ class MainScreen(Screen):
 
     def on_mount(self):
         self.app.title = f"--- Solver Pro {getVersion()} ---"
+        # DEBUG
+        first(self.app.driver.processCommandLines("a = 1")) # type: ignore
+        first(self.app.driver.processCommandLines("b = 2")) # type: ignore
+        first(self.app.driver.processCommandLines("c = 3")) # type: ignore
+        first(self.app.driver.processCommandLines("d = 4")) # type: ignore
+        first(self.app.driver.processCommandLines("e = 5")) # type: ignore
+        first(self.app.driver.processCommandLines("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff = 6")) # type: ignore
 
     @on(Input.Submitted)
     def runCommand(self, event: Input.Submitted):
@@ -144,6 +151,8 @@ class MainScreen(Screen):
         menuItem = str(event.button.label).lower()
         if menuItem == 'dictionary':
             self.app.push_screen(DictionaryScreen(self.app.termTips.getTermTips()))
+        elif menuItem == 'history':
+            self.app.push_screen(HistoryScreen(self.app.driver.getRelations()))
         else:
             error = ValueError(f"Invalid menu item [magenta]{menuItem}[/magenta]")
             renderer = self.app.textRenderer
