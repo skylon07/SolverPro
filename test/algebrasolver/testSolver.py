@@ -415,6 +415,85 @@ class AlgebraSolverTester:
         assert solver.substituteKnownsWithConditions(sympy.parse_expr("y")) == {
             ConditionalValue(sympy.parse_expr("y"), dict()),
         }, "Solver should forget inferred values after finding an unsolvable variable"
+
+    def testSolverCanPopRelations(self):
+        solver = AlgebraSolver()
+
+        solver.recordRelation(Relation(sympy.parse_expr("a"), 1)) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("b"), 2)) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("c"), 3)) # type: ignore
+
+        assert solver.substituteKnownsFor(sympy.parse_expr("a")) == {1}
+        assert solver.substituteKnownsFor(sympy.parse_expr("b")) == {2}
+        assert solver.substituteKnownsFor(sympy.parse_expr("c")) == {3}
+
+        solver.popRelation(Relation(sympy.parse_expr("a"), 1)) # type: ignore
+
+        assert solver.substituteKnownsFor(sympy.parse_expr("a")) == {sympy.parse_expr("a")}
+        assert solver.substituteKnownsFor(sympy.parse_expr("b")) == {2}
+        assert solver.substituteKnownsFor(sympy.parse_expr("c")) == {3}
+
+        solver.popRelation(Relation(sympy.parse_expr("b"), 2)) # type: ignore
+
+        assert solver.substituteKnownsFor(sympy.parse_expr("a")) == {sympy.parse_expr("a")}
+        assert solver.substituteKnownsFor(sympy.parse_expr("b")) == {sympy.parse_expr("b")}
+        assert solver.substituteKnownsFor(sympy.parse_expr("c")) == {3}
+
+        solver.popRelation(Relation(sympy.parse_expr("c"), 3)) # type: ignore
+
+        assert solver.substituteKnownsFor(sympy.parse_expr("a")) == {sympy.parse_expr("a")}
+        assert solver.substituteKnownsFor(sympy.parse_expr("b")) == {sympy.parse_expr("b")}
+        assert solver.substituteKnownsFor(sympy.parse_expr("c")) == {sympy.parse_expr("c")}
+
+    def testSolverForgetsVariablesWhenRelationPops(self):
+        solver1 = AlgebraSolver()
+
+        solver1.recordRelation(Relation(sympy.parse_expr("a + b"), 3)) # type: ignore
+        solver1.recordRelation(Relation(sympy.parse_expr("c + d"), 7)) # type: ignore
+        solver1.recordRelation(Relation(sympy.parse_expr("c"), 3)) # type: ignore
+        solver1.recordRelation(Relation(sympy.parse_expr("b"), sympy.parse_expr("d / 2")))
+
+        assert solver1.substituteKnownsFor(sympy.parse_expr("a")) == {1}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("b")) == {2}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("c")) == {3}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("d")) == {4}
+
+        solver1.popRelation(Relation(sympy.parse_expr("c"), 3)) # type: ignore
+
+        assert solver1.substituteKnownsFor(sympy.parse_expr("a")) == {sympy.parse_expr("a")}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("b")) == {sympy.parse_expr("b")}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("c")) == {sympy.parse_expr("c")}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("d")) == {sympy.parse_expr("d")}
+
+        solver1.recordRelation(Relation(sympy.parse_expr("c"), 3)) # type: ignore
+
+        assert solver1.substituteKnownsFor(sympy.parse_expr("a")) == {1}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("b")) == {2}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("c")) == {3}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("d")) == {4}
+
+        solver1.popRelation(Relation(sympy.parse_expr("b"), sympy.parse_expr("d / 2")))
+
+        assert solver1.substituteKnownsFor(sympy.parse_expr("a")) == {sympy.parse_expr("a")}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("b")) == {sympy.parse_expr("b")}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("c")) == {3}
+        assert solver1.substituteKnownsFor(sympy.parse_expr("d")) == {4}
+
+        # TODO: more cases...
+
+    def testSolverKeepsVariablesWhenPoppingRedundancy(self):
+        solver1 = AlgebraSolver()
+
+        solver1.recordRelation(Relation(sympy.parse_expr("2*a"), 4)) # type: ignore
+        solver1.recordRelation(Relation(sympy.parse_expr("3*a"), 6)) # type: ignore
+
+        assert solver1.substituteKnownsFor(sympy.parse_expr("a")) == {2}
+
+        solver1.popRelation(Relation(sympy.parse_expr("2*a"), 4)) # type: ignore
+
+        assert solver1.substituteKnownsFor(sympy.parse_expr("a")) == {2}
+
+        # TODO: more cases...
         
     def testSolverForRobustness(self):
         # a + b = 4
@@ -557,4 +636,3 @@ class AlgebraSolverTester:
         assert solver6.substituteKnownsFor(sympy.parse_expr("b")) == {7}
         assert solver6.substituteKnownsFor(sympy.parse_expr("c")) == {3}
         assert solver6.substituteKnownsFor(sympy.parse_expr("d")) == {10}
-    
