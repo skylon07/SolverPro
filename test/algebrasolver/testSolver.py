@@ -283,6 +283,7 @@ class AlgebraSolverTester:
 
         solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
         solver.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{4, 8}")))
+        solver.recordRelation((Relation(sympy.parse_expr("c"), sympy.Symbol("{1, 2, 3, 4}"))))
 
         def recordContradiction1():
             solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2, 3}")))
@@ -292,17 +293,30 @@ class AlgebraSolverTester:
         assert error1.poorSymbolValues == {
             sympy.parse_expr("a"): {1, 2},
         }
-        assert error1.contradictingRelation == Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2, 3}"))
+        assert error1.contradictingRelation == Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2, 3}")), \
+            "Solver did not find a contradiction in solutions with extra values"
 
         def recordContradiction2():
-            solver.recordRelation(Relation(sympy.parse_expr("b"), 5)) # type: ignore
+            solver.recordRelation(Relation(sympy.parse_expr("b"), 4)) # type: ignore
         error2 = runForError(recordContradiction2)
         
         assert type(error2) is ContradictionException
         assert error2.poorSymbolValues == {
             sympy.parse_expr("b"): {4, 8},
         }
-        assert error2.contradictingRelation == Relation(sympy.parse_expr("b"), 5) # type: ignore
+        assert error2.contradictingRelation == Relation(sympy.parse_expr("b"), sympy.Symbol("{4, 8}")), \
+            "Solver did not restrict solutions (using single values) before finding contradiction"
+
+        def recordContradiction3():
+            solver.recordRelation(Relation(sympy.parse_expr("c"), sympy.Symbol("{2, 3}")))
+        error3 = runForError(recordContradiction3)
+
+        assert type(error3) is ContradictionException
+        assert error3.poorSymbolValues == {
+            sympy.parse_expr("c"): {1, 2, 3, 4}
+        }
+        assert error3.contradictingRelation == Relation(sympy.parse_expr("c"), sympy.Symbol("{1, 2, 3, 4}")), \
+            "Solver did not restrict solutions (using expr lists) before finding contradictions"
         
     def testSolutionRestricting(self):
         solver1 = AlgebraSolver()
@@ -336,9 +350,14 @@ class AlgebraSolverTester:
                 }),
             }, "Solver did not restrict known values (and conditionals) for new relation"
         
-        ### TODO: relations with expression lists
-        ###       (a = {1, 2, 3}; a = {1, 2}),
-        ###       (b = {4, 8, 12}; b = 8)
+        solver3 = AlgebraSolver()
+
+        solver3.recordRelation(Relation(sympy.parse_expr("a**2"), 4)) # type: ignore
+        solver3.recordRelation(Relation(sympy.parse_expr("(a + b)**2"), 9)) # type: ignore
+        assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {-5, -1, 1, 5}
+
+        solver3.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{1, 5}")))
+        assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {1, 5}
     
     def testResetsOnBadRecord(self):
         solver = AlgebraSolver()
