@@ -111,10 +111,18 @@ class AlgebraSolver:
                     assert symbol == newSymbol, "Restriction solutions don't match found symbol" # this shouldn't be possible either!
                     if symbol is not None:
                         oldSolutionValues = tuple(solution.value for solution in oldSolutions)
-                        newValuesAreRestrictions = len(newSolutions) < len(oldSolutions) and \
+                        newValuesAreActuallyRestrictions = len(newSolutions) < len(oldSolutions) and \
                             all(solution.value in oldSolutionValues for solution in newSolutions)
-                        if newValuesAreRestrictions:
+                        if newValuesAreActuallyRestrictions:
                             newSolutionValues = {condition.value for condition in newSolutions}
+                            isRestrictionOfExpressionList = any(
+                                isExpressionListSymbol(conditionSymbol)
+                                for oldCondition in oldSolutions
+                                for conditionSymbol in oldCondition.conditions
+                            )
+                            if isRestrictionOfExpressionList:
+                                raise ContradictionException(contradictedSymbolValues, relation)
+                            
                             newSolutionsWithCorrectConditions = {
                                 condition
                                 for condition in oldSolutions
@@ -572,7 +580,7 @@ class _CombinationsSubstituter:
                 self._currCombination[symbolToInclude] = conditionalValue.value
                 for finishedCombination in self._generateCombinations(numExprListsResolved, resolutionIdx):
                     yield finishedCombination
-        assert anyConditionsMet, "Solver failed to find a valid condition"
+        assert anyConditionsMet, "Solver failed to find a valid condition (happens with uncaught bad restriction-redef cases)"
 
     def _testConditionsMet(self, conditionalValue: ConditionalValue[Any]):
         for (symbol, value) in conditionalValue.conditions.items():
