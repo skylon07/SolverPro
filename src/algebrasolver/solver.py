@@ -65,8 +65,6 @@ class AlgebraSolver:
     def __init__(self):
         # a list of relational expressions with an implied equality to zero
         self._recordedRelations: list[Relation] = list()
-        # TODO: should setting/popping item from symbol database and inference table
-        #       be done in a function, since they're always done together?
         self._symbolValuesDatabase = _SymbolsDatabase()
         self._inferenceTable = _RelationSymbolTable()
         self._madeContradictionCheckBySubbing = False
@@ -102,8 +100,7 @@ class AlgebraSolver:
                 if couldBeRestrictRedefCase:
                     symbol = first(relation.asExprEqToZero.free_symbols)
                     assert type(symbol) is sympy.Symbol
-                    oldSolutions = self._symbolValuesDatabase.pop(symbol)
-                    oldRelation = self._inferenceTable.pop(symbol)
+                    (oldSolutions, oldRelation) = self._popInferredSolutions(symbol)
                     
                     try:
                         (newSymbol, newSolutions) = self._calculateAnySolutionsFromRelation(relation, dict())
@@ -116,15 +113,13 @@ class AlgebraSolver:
                         newValuesAreRestrictions = len(newSolutions) < len(oldSolutions) and \
                             all(solution.value in oldSolutionValues for solution in newSolutions)
                         if newValuesAreRestrictions:
-                            self._symbolValuesDatabase[symbol] = newSolutions
-                            self._inferenceTable[symbol] = relation
+                            self._setInferredSolutions(symbol, newSolutions, relation)
                             isRedundant = False # since it technically did provide new information...
                             # TODO: (optimization) remove other symbol values that relied on any conditions now not present
                             #       (since other symbols might have conditions that will never be true when substituted,
                             #       due to the values that were just removed)
                         else:
-                            self._symbolValuesDatabase[symbol] = oldSolutions
-                            self._inferenceTable[symbol] = oldRelation
+                            self._setInferredSolutions(symbol, oldSolutions, oldRelation)
             
             self._recordedRelations.append(relation)
             self._inferSymbolValuesFromRelations(contradictedSymbolValues)
@@ -154,8 +149,7 @@ class AlgebraSolver:
         inferredSymbol = self._inferenceTable.get(relation)
         databaseDependsOnRelation = inferredSymbol is not None
         if databaseDependsOnRelation:
-            self._symbolValuesDatabase.pop(inferredSymbol)
-            self._inferenceTable.pop(relation)
+            self._popInferredSolutions(inferredSymbol)
             poppedSymbols = {inferredSymbol}
             # TODO: there's probably some dependency-path optimization that could be made here
             anyPopped = True
@@ -166,8 +160,7 @@ class AlgebraSolver:
                         conditions = conditionalValue.conditions
                         symbolDependsOnPoppedSymbols = any(poppedSymbol in conditions for poppedSymbol in poppedSymbols)
                         if symbolDependsOnPoppedSymbols:
-                            self._symbolValuesDatabase.pop(symbol)
-                            self._inferenceTable.pop(symbol)
+                            self._popInferredSolutions(symbol)
                             poppedSymbols.add(symbol)
                             anyPopped = True
                             break # to move on to the next symbol
@@ -186,6 +179,16 @@ class AlgebraSolver:
     def substituteKnownsWithConditions(self, expression: sympy.Expr):
         conditionals = _CombinationsSubstituter(expression, self._symbolValuesDatabase)
         return set(conditionals)
+    
+    def _setInferredSolutions(self, symbol: sympy.Symbol, solutions: set[ConditionalValue[sympy.Expr]], associatedRelation: Relation):
+        self._symbolValuesDatabase[symbol] = solutions
+        self._inferenceTable[symbol] = associatedRelation
+
+    def _popInferredSolutions(self, symbol: sympy.Symbol):
+        solutions = self._symbolValuesDatabase.pop(symbol)
+        associatedRelation = self._inferenceTable.pop(symbol)
+        return (solutions, associatedRelation)
+
 
     def _checkForRedundancies(self, relation: Relation):
         isRedundantWithContradictions = False
@@ -212,10 +215,9 @@ class AlgebraSolver:
             (symbol, conditionalSolutions) = self._calculateAnySolutionsFromRelation(relation, contradictedSymbolValues)
             someSubbedRelationWasSolvable = symbol is not None
             if someSubbedRelationWasSolvable:
-                self._symbolValuesDatabase[symbol] = conditionalSolutions
                 assert relation not in self._inferenceTable, "Solver inferred new value from already consumed relation" # impossible... unless things aren't getting recorded/popped right
                 assert symbol not in self._inferenceTable, "Solver inferred new value for already inferred symbol" # impossible... because it should have subbed, right?
-                self._inferenceTable[relation] = symbol
+                self._setInferredSolutions(symbol, conditionalSolutions, relation)
                 
                 inferredValues = {
                     solution.value
