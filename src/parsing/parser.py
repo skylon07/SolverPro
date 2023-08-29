@@ -49,11 +49,11 @@ class _CommandParserSequencer:
         LexerTokenTypes.STAR,
         LexerTokenTypes.SLASH,
     )
-    _highPrecOpers = (
+    _highPrecUnaryOpers = (
         LexerTokenTypes.PLUS,
         LexerTokenTypes.DASH,
     )
-    _maxPrecOpers = (
+    _highPrecBinaryOpers = (
         LexerTokenTypes.CARROT,
     )
     _numberTypes = (
@@ -126,12 +126,16 @@ class _CommandParserSequencer:
         return finalExpr
 
     def _convertHighPrecExprList(self, highPrecExprList: list) -> sympy.Expr:
-        for (idx, item) in enumerate(highPrecExprList):
-            if type(item) is list:
-                maxPrecExprList = item
-                highPrecExprList[idx] = self._convertMaxPrecExprList(maxPrecExprList)
+        for (idx, valuePair) in enumerate(highPrecExprList):
+            if type(valuePair) is tuple:
+                (valueType, valueStr) = valuePair
+                if valueType is LexerTokenTypes.IDENTIFIER:
+                    value = sympy.Symbol(valueStr)
+                else:
+                    value = sympy.parse_expr(valueStr)
+                highPrecExprList[idx] = value
         
-        # reversed since we want to parse right-to-left
+        # reversed since these operators parse right-to-left
         finalExpr: sympy.Expr = highPrecExprList[-1]
         for (revIdx, operToken) in enumerate(reversed(highPrecExprList)):
             if type(operToken) is LexerToken:
@@ -140,30 +144,11 @@ class _CommandParserSequencer:
                     finalExpr = +finalExpr
                 elif operToken.type is LexerTokenTypes.DASH:
                     finalExpr = -finalExpr
-                else:
-                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(high prec)")
-        return finalExpr
-
-    def _convertMaxPrecExprList(self, maxPrecExprList: list) -> sympy.Expr:
-        for (idx, valuePair) in enumerate(maxPrecExprList):
-            if type(valuePair) is tuple:
-                (valueType, valueStr) = valuePair
-                if valueType is LexerTokenTypes.IDENTIFIER:
-                    value = sympy.Symbol(valueStr)
-                else:
-                    value = sympy.parse_expr(valueStr)
-                maxPrecExprList[idx] = value
-        
-        # reversed since we want to parse right-to-left
-        finalExpr: sympy.Expr = maxPrecExprList[-1]
-        for (revIdx, operToken) in enumerate(reversed(maxPrecExprList)):
-            if type(operToken) is LexerToken:
-                idx = -(revIdx + 1)
-                if operToken.type is LexerTokenTypes.CARROT:
-                    operand = maxPrecExprList[idx - 1]
+                elif operToken.type is LexerTokenTypes.CARROT:
+                    operand = highPrecExprList[idx - 1]
                     finalExpr = operand ** finalExpr
                 else:
-                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(max prec)")
+                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(high prec)")
         return finalExpr
     
     def _throwUnexpectedToken(self, expectedTypes: tuple[LexerTokenType, ...]):
@@ -262,25 +247,20 @@ class _CommandParserSequencer:
     
     def sequenceHighPrecExpr(self):
         # branch: operHigh highPrecExpr
-        if self._moreTokens and self._currToken.type in self._highPrecOpers:
-            highPrecOperToken = self.sequenceOperHigh()
+        if self._moreTokens and self._currToken.type in self._highPrecUnaryOpers:
+            highPrecOperToken = self.sequenceUnaryOperHigh()
             expandedExprList = self.sequenceHighPrecExpr()
             expandedExprList.insert(0, highPrecOperToken)
             return expandedExprList
         
-        # default branch: maxPrecExpr
-        maxPrecExprList = self.sequenceMaxPrecExpr()
-        return [maxPrecExprList]
-    
-    def sequenceMaxPrecExpr(self):
-        # (all branches)
+        # (rest of branches)
         evaluation = self.sequenceEvaluation()
-
-        # branch: evaluation operMax maxPrecExpr
-        if self._moreTokens and self._currToken.type in self._maxPrecOpers:
-            maxPrecOperToken = self.sequenceOperMax()
-            expandedExprList = self.sequenceMaxPrecExpr()
-            expandedExprList.insert(0, maxPrecOperToken)
+        
+        # branch: evaluation operHigh highPrecExpr
+        if self._moreTokens and self._currToken.type in self._highPrecBinaryOpers:
+            highPrecOperToken = self.sequenceBinaryOperHigh()
+            expandedExprList = self.sequenceHighPrecExpr()
+            expandedExprList.insert(0, highPrecOperToken)
             expandedExprList.insert(0, evaluation)
             return expandedExprList
         
@@ -313,32 +293,25 @@ class _CommandParserSequencer:
         
         return self._throwUnexpectedToken(validMidOpers)
     
-    def sequenceOperHigh(self):
+    def sequenceUnaryOperHigh(self):
         # branch: PLUS/DASH
-        validHighOpers = (
-            LexerTokenTypes.PLUS,
-            LexerTokenTypes.DASH,
-        )
-        if self._currToken.type in validHighOpers:
+        if self._currToken.type in self._highPrecUnaryOpers:
             highPrecOperToken = self._currToken
             self._consumeCurrToken(self._currToken.type)
             return highPrecOperToken
         
-        return self._throwUnexpectedToken(validHighOpers)
+        return self._throwUnexpectedToken(self._highPrecUnaryOpers)
     
-    def sequenceOperMax(self):
+    def sequenceBinaryOperHigh(self):
         # branch: CARROT
-        validMaxOpers = (
-            LexerTokenTypes.CARROT,
-        )
-        if self._currToken.type in validMaxOpers:
-            maxPrecOperToken = self._currToken
+        if self._currToken.type in self._highPrecBinaryOpers:
+            highPrecOperToken = self._currToken
             self._consumeCurrToken(self._currToken.type)
-            return maxPrecOperToken
+            return highPrecOperToken
         
-        return self._throwUnexpectedToken(validMaxOpers)
+        return self._throwUnexpectedToken(self._highPrecBinaryOpers)
 
-    def sequenceEvaluation(self):
+    def sequenceEvaluation(self) -> sympy.Expr | tuple[LexerTokenType, str]:
         # branch: PAREN_OPEN expression PAREN_CLOSE
         if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
             self._consumeCurrToken(self._currToken.type)
