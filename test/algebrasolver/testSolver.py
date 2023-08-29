@@ -336,9 +336,9 @@ class AlgebraSolverTester:
                 }),
             }, "Solver did not restrict known values (and conditionals) for new relation"
         
-        # TODO: relations with expression lists
-        #       (a = {1, 2, 3}; a = {1, 2}),
-        #       (b = {4, 8, 12}; b = 8)
+        ### TODO: relations with expression lists
+        ###       (a = {1, 2, 3}; a = {1, 2}),
+        ###       (b = {4, 8, 12}; b = 8)
     
     def testResetsOnBadRecord(self):
         solver = AlgebraSolver()

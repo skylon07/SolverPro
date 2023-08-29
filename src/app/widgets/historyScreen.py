@@ -195,7 +195,7 @@ class RelationEditRow(Widget):
         self.relation = self.app.replaceRelation(self.relation, input.value)
         errorProcessingRelation = self.relation is None
         if errorProcessingRelation:
-            pass # TODO: display an alert indicating the error?
+            pass ## TODO: display an alert indicating the error?
         else:
             label.data = self.relationStr
             self.exitEditMode()

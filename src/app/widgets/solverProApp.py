@@ -101,15 +101,14 @@ class MainScreen(Screen):
 
     @on(Input.Submitted)
     def runCommand(self, event: Input.Submitted):
-        commandStr = event.value
-
-        textLog = self.query_one(TextLog)
-
-        input = self.query_one(Input)
+        input = event.input
+        commandStr = input.value
         input.value = ""
         input.add_class('highlighted')
         if self.inputTimer is not None:
             self.inputTimer.cancel()
+
+        textLog = self.query_one(TextLog)
 
         assert type(self.app) is SolverProApp
         driver = self.app.driver
@@ -178,7 +177,8 @@ class SolverProApp(App):
         ))
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        # TODO: wrap in try-except and do the same stuff as a regular command
+        ## TODO: wrap in try-except and do the same stuff as a regular command
+        ##       (will probably need to refactor MainScreen a bit)
         result = self.driver.replaceRelation(oldRelation, newRelationCommand)
         
         # DEBUG
@@ -186,12 +186,12 @@ class SolverProApp(App):
         self.mainScreen.query_one(TextLog).write("TEST -- REPLACE")
 
         if result is not None:
-            # TODO: write an info message about replacement
+            ## TODO: write an info message about replacement
             (relation, isRedundant) = result.data
             assert type(relation) is Relation
             return relation
         else:
-            # TODO: write an actually helpful error
+            ## TODO: write an actually helpful error
             # DEBUG
             self.mainScreen.query_one(TextLog).write("ERROR")
             return None
@@ -200,7 +200,7 @@ class SolverProApp(App):
     def deleteRelation(self, relation: Relation):
         self.driver.deleteRelation(relation)
 
-        # TODO: write an info message about deletion
+        ## TODO: write an info message about deletion
         # DEBUG
         assert self.mainScreen is not None
         self.mainScreen.query_one(TextLog).write("TEST -- DELETE")

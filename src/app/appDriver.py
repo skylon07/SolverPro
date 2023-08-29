@@ -18,7 +18,6 @@ class AppDriver:
     def processCommandLines(self, commandsStr: str):
         tokens = tuple(self._lexer.findTokens(commandsStr))
         for command in self._parser.parseCommand(tokens):
-            # TODO: make this transactional in the case of erroring
             yield self._processCommand(command, tokens)
 
     def validateSingleLine(self, commandStr: str):
@@ -32,7 +31,7 @@ class AppDriver:
         self._solver.popRelation(relation)
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        # TODO: this should probably also be validated as a relation command before executing
+        ## TODO: this should probably also be validated as a relation command before executing
         self.validateSingleLine(newRelationCommand)
         # TODO: this would be a good use case for transactional solver stuff when that's implemented
         self._solver.popRelation(oldRelation)
@@ -49,7 +48,7 @@ class AppDriver:
         # the paradigm here: `command` is something that needs to happen, the `result`
         # is what's returned after doing what needs to happen (the `type` for either
         # representing the `type` of work that needs to be/was done)
-        
+
         if command.type is Command.EMPTY:
             return ProcessResult(Command.EMPTY, None)
         
