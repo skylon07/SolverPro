@@ -62,10 +62,9 @@ class HistoryScreen(Screen):
                 yield RelationEditRow(relation)
 
 
-    @on(Button.Pressed)
-    def handleClick(self, event: Button.Pressed):
-        if event.button.id == 'backButton':
-            self.dismiss()
+    @on(Button.Pressed, '#backButton')
+    def goBack(self):
+        self.dismiss()
 
 
 class RelationEditRow(Widget):
@@ -141,7 +140,6 @@ class RelationEditRow(Widget):
     """
 
     relation: var[Relation | None] = var(None)
-    _editMode: var[bool] = var(False)
 
     def __init__(self, relation: Relation, *, name: str | None = None, id: str | None = None, classes: str | None = None):
         super().__init__(name = name, id = id, classes = classes)
@@ -164,37 +162,25 @@ class RelationEditRow(Widget):
         assert self.relation is not None
         return f"{self.relation.leftExpr} = {self.relation.rightExpr}"
     
-    @on(Button.Pressed)
-    def handleClick(self, event: Button.Pressed):
-        buttonId = event.button.id
-        if buttonId == 'edit':
-            self.editMode = True
-        elif buttonId == 'delete':
-            pass # TODO
-        elif buttonId == 'cancel':
-            self.editMode = False
-        elif buttonId == 'save':
-            self.save()
+    @on(Button.Pressed, '#edit')
+    def enterEditMode(self):
+        self.query_one('#staticGroup').add_class('hidden')
+        self.query_one('#editGroup').remove_class('hidden')
+        input = self.query_one(Input)
+        input.value = self.relationStr
+        input.focus()
 
-    @property
-    def editMode(self):
-        return self._editMode
+    @on(Button.Pressed, '#delete')
+    def deleteOwnRelation(self):
+        pass # TODO
     
-    @editMode.setter
-    def editMode(self, newMode: bool):
-        self._editMode = newMode
-        isEditing = newMode is True
-        if isEditing:
-            self.query_one('#staticGroup').add_class('hidden')
-            self.query_one('#editGroup').remove_class('hidden')
-            input = self.query_one(Input)
-            input.value = self.relationStr
-            input.focus()
-        else:
-            self.query_one('#staticGroup').remove_class('hidden')
-            self.query_one('#editGroup').add_class('hidden')
+    @on(Button.Pressed, '#cancel')
+    def exitEditMode(self):
+        self.query_one('#staticGroup').remove_class('hidden')
+        self.query_one('#editGroup').add_class('hidden')
 
     @on(Input.Submitted)
-    def save(self):
+    @on(Button.Pressed, '#save')
+    def saveChanges(self):
         pass # TODO
-        self.editMode = False
+        self.exitEditMode()

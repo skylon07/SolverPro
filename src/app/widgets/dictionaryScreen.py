@@ -87,12 +87,12 @@ class DictionaryScreen(Screen):
                     sortedTermTips = sortedTermTips[5:]
             yield Label(classes = 'spacer')
                 
-    @on(Button.Pressed)
-    def handleClick(self, event: Button.Pressed):
-        if event.button.id == 'backButton':
-            self.dismiss()
-            return
-        
+    @on(Button.Pressed, '#backButton')
+    def goBack(self):
+        self.dismiss()
+
+    @on(Button.Pressed, '.termButton')
+    def displayTerm(self, event: Button.Pressed):
         term = event.button.id
         assert term is not None
         assert type(self.app) is _lazyImportSolverProApp()

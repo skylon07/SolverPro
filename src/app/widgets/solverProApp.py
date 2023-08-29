@@ -145,18 +145,15 @@ class MainScreen(Screen):
         self.inputTimer = Timer(0.1, lambda: input.remove_class('highlighted'))
         self.inputTimer.start()
 
-    @on(Button.Pressed)
-    def openMenuItem(self, event: Button.Pressed):
+    @on(Button.Pressed, '#dictionaryButton')
+    def openDictionaryScreen(self):
         assert type(self.app) is SolverProApp
-        menuItem = str(event.button.label).lower()
-        if menuItem == 'dictionary':
-            self.app.push_screen(DictionaryScreen(self.app.termTips.getTermTips()))
-        elif menuItem == 'history':
-            self.app.push_screen(HistoryScreen(self.app.driver.getRelations()))
-        else:
-            error = ValueError(f"Invalid menu item [magenta]{menuItem}[/magenta]")
-            renderer = self.app.textRenderer
-            self.query_one(TextLog).write(renderer.renderException(error))
+        self.app.push_screen(DictionaryScreen(self.app.termTips.getTermTips()))
+    
+    @on(Button.Pressed, '#historyButton')
+    def openHistoryScreen(self):
+        assert type(self.app) is SolverProApp
+        self.app.push_screen(HistoryScreen(self.app.driver.getRelations()))
 
 
 class SolverProApp(App):
@@ -173,3 +170,5 @@ class SolverProApp(App):
             tip.term,
             tip.definitionLines,
         ))
+
+    

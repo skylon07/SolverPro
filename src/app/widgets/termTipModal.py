@@ -82,6 +82,6 @@ class TermTipModal(ModalScreen):
     def action_closeEnter(self):
         self.dismiss()
 
-    @on(Button.Pressed)
-    def onClose(self, event: Button.Pressed):
+    @on(Button.Pressed, '#close')
+    def closeModal(self):
         self.dismiss()
