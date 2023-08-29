@@ -101,6 +101,11 @@ class AlgebraSolver:
                 if couldBeRestrictRedefCase:
                     symbol = first(nonExprSymbols)
                     assert type(symbol) is sympy.Symbol
+
+                    isRestrictionOfExpressionList = self._dependsOnExpressionListSymbols(symbol)
+                    if isRestrictionOfExpressionList:
+                        raise ContradictionException(contradictedSymbolValues, relation)
+
                     (oldSolutions, oldRelation) = self._popInferredSolutions(symbol)
                     
                     try:
@@ -115,14 +120,6 @@ class AlgebraSolver:
                             all(solution.value in oldSolutionValues for solution in newSolutions)
                         if newValuesAreActuallyRestrictions:
                             newSolutionValues = {condition.value for condition in newSolutions}
-                            isRestrictionOfExpressionList = any(
-                                isExpressionListSymbol(conditionSymbol)
-                                for oldCondition in oldSolutions
-                                for conditionSymbol in oldCondition.conditions
-                            )
-                            if isRestrictionOfExpressionList:
-                                raise ContradictionException(contradictedSymbolValues, relation)
-                            
                             newSolutionsWithCorrectConditions = {
                                 condition
                                 for condition in oldSolutions
@@ -130,6 +127,7 @@ class AlgebraSolver:
                             }
                             self._setInferredSolutions(symbol, newSolutionsWithCorrectConditions, relation)
                             isRedundant = False # since it technically did provide new information...
+                            
                             # TODO: (optimization) remove other symbol values that relied on any conditions now not present
                             #       (since other symbols might have conditions that will never be true when substituted,
                             #       due to the values that were just removed)
@@ -204,7 +202,6 @@ class AlgebraSolver:
         associatedRelation = self._inferenceTable.pop(symbol)
         return (solutions, associatedRelation)
 
-
     def _checkForRedundancies(self, relation: Relation):
         isRedundantWithContradictions = False
         for conditionalSubbedRelationExpr in _CombinationsSubstituter(relation.asExprEqToZero, self._symbolValuesDatabase):
@@ -216,6 +213,18 @@ class AlgebraSolver:
                 else:
                     return (False, None)
         return (True, isRedundantWithContradictions)
+    
+    def _dependsOnExpressionListSymbols(self, symbol: sympy.Symbol, symbolsChecked: set[sympy.Symbol] | None = None):
+        if symbolsChecked is None:
+            symbolsChecked = set()
+        
+        if symbol not in symbolsChecked:
+            symbolsChecked.add(symbol)
+            for conditionalValue in self._symbolValuesDatabase[symbol]:
+                for conditionalSymbol in conditionalValue.conditions:
+                    if isExpressionListSymbol(conditionalSymbol) or self._dependsOnExpressionListSymbols(conditionalSymbol, symbolsChecked):
+                        return True
+        return False
 
     def _inferSymbolValuesFromRelations(self, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]):
         anySymbolsUpdated = False
@@ -580,7 +589,7 @@ class _CombinationsSubstituter:
                 self._currCombination[symbolToInclude] = conditionalValue.value
                 for finishedCombination in self._generateCombinations(numExprListsResolved, resolutionIdx):
                     yield finishedCombination
-        assert anyConditionsMet, "Solver failed to find a valid condition (happens with uncaught bad restriction-redef cases)"
+        assert anyConditionsMet, "Solver failed to find a valid condition (was a bad restriction-redef case on expression lists not caught?)"
 
     def _testConditionsMet(self, conditionalValue: ConditionalValue[Any]):
         for (symbol, value) in conditionalValue.conditions.items():
