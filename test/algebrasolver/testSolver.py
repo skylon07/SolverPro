@@ -284,6 +284,7 @@ class AlgebraSolverTester:
         solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
         solver.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{4, 8}")))
         solver.recordRelation((Relation(sympy.parse_expr("c"), sympy.Symbol("{1, 2, 3, 4}"))))
+        solver.recordRelation((Relation(sympy.parse_expr("d"), sympy.parse_expr("c"))))
 
         def recordContradiction1():
             solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2, 3}")))
@@ -307,14 +308,14 @@ class AlgebraSolverTester:
         assert error2.contradictingRelation == Relation(sympy.parse_expr("b"), 4) # type: ignore
 
         def recordContradiction3():
-            solver.recordRelation(Relation(sympy.parse_expr("c"), sympy.Symbol("{2, 3}")))
+            solver.recordRelation(Relation(sympy.parse_expr("d"), sympy.Symbol("{2, 3}")))
         error3 = runForError(recordContradiction3)
 
         assert type(error3) is ContradictionException
         assert error3.poorSymbolValues == {
-            sympy.parse_expr("c"): {1, 2, 3, 4}
+            sympy.parse_expr("d"): {1, 2, 3, 4}
         }
-        assert error3.contradictingRelation == Relation(sympy.parse_expr("c"), sympy.Symbol("{2, 3}"))
+        assert error3.contradictingRelation == Relation(sympy.parse_expr("d"), sympy.Symbol("{2, 3}"))
         
     def testSolutionRestricting(self):
         solver1 = AlgebraSolver()
