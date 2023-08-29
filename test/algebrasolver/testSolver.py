@@ -5,13 +5,13 @@ from src.algebrasolver.solver import AlgebraSolver, ConditionalValue, Relation, 
 
 
 class AlgebraSolverTester:
-    def testSolverRecordsRelations(self):
+    def testRecordsRelations(self):
         solver = AlgebraSolver()
         solver.recordRelation(Relation(sympy.parse_expr("2*a"), sympy.parse_expr("b + c")))
         assert solver._recordedRelations == [Relation(sympy.parse_expr("2*a"), sympy.parse_expr("b + c"))], \
             "Solver did not record relation as a single expression equal to zero"
         
-    def testSolverSubstitutesKnownVariables(self):
+    def testSubstitutesKnownVariables(self):
         solver = AlgebraSolver()
         
         solver.recordRelation(Relation(sympy.parse_expr("a"), 4)) # type: ignore
@@ -27,7 +27,7 @@ class AlgebraSolverTester:
         assert solver.substituteKnownsFor(sympy.parse_expr("a*c + b*d")) == {sympy.parse_expr("3*d + 28")}, \
             "Solver did not correctly substitute expression with leftover variable"
         
-    def testSolverSubstitutesConditionalsCorrectly(self):
+    def testSubstitutesConditionalsCorrectly(self):
         solver1 = AlgebraSolver()
         
         solver1.recordRelation(Relation(sympy.parse_expr("a**2"), 9)) # type: ignore
@@ -138,7 +138,7 @@ class AlgebraSolverTester:
                 }),
             }
         
-    def testSolverHandlesComplexValues(self):
+    def testHandlesComplexValues(self):
         solver = AlgebraSolver()
 
         solver.recordRelation(Relation(sympy.parse_expr("a**2"), -4)) # type: ignore
@@ -148,7 +148,7 @@ class AlgebraSolverTester:
             sympy.parse_expr("2*I"),
         }
         
-    def testSolverCanGetSymbolValues(self):
+    def testGetsSymbolValues(self):
         solver = AlgebraSolver()
 
         solver.recordRelation(Relation(sympy.parse_expr("a"), 5)) # type: ignore
@@ -172,7 +172,7 @@ class AlgebraSolverTester:
         }, "Solver did not return correct values for a symbol with two conditional values"
         assert solver.getSymbolConditionalValues(sympy.parse_expr("nonexistant")) is None
 
-    def testSolverFindsRelationsWithSymbol(self):
+    def testFindsRelationsWithSymbol(self):
         solver = AlgebraSolver()
 
         solver.recordRelation(Relation(sympy.parse_expr("a + d"), 14)) # type: ignore
@@ -195,7 +195,7 @@ class AlgebraSolverTester:
         ), "Solver should preserve relations in order of recording (case 2)"
         assert solver.getRelationsWithSymbol(sympy.parse_expr("nonexistant")) == tuple()
 
-    def testSolverCatchesRedundantRelations(self):
+    def testCatchesRedundantRelations(self):
         solver1 = AlgebraSolver()
         
         isRedundant1_1 = solver1.recordRelation(Relation(sympy.parse_expr("a"), 12)) # type: ignore
@@ -230,7 +230,7 @@ class AlgebraSolverTester:
         isRedundant2_4 = solver4.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
         assert isRedundant2_4 is True
 
-    def testSolverDetectsContradictions(self):
+    def testDetectsContradictions(self):
         solver = AlgebraSolver()
         
         solver.recordRelation(Relation(sympy.parse_expr("a"), 3)) # type: ignore
@@ -278,7 +278,7 @@ class AlgebraSolverTester:
             sympy.parse_expr("x - y + z"), 6 # type: ignore
         ), "Solver found contradiction in the wrong relation for two-var case"
 
-    def testSolverFindsContradictionsWithExpressionLists(self):
+    def testFindsContradictionsWithExpressionLists(self):
         solver = AlgebraSolver()
 
         solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
@@ -304,7 +304,7 @@ class AlgebraSolverTester:
         }
         assert error2.contradictingRelation == Relation(sympy.parse_expr("b"), 5) # type: ignore
         
-    def testSolverCanRestrictSolutions(self):
+    def testSolutionRestricting(self):
         solver1 = AlgebraSolver()
 
         solver1.recordRelation(Relation(sympy.parse_expr("a**2"), 16)) # type: ignore
@@ -340,7 +340,7 @@ class AlgebraSolverTester:
         #       (a = {1, 2, 3}; a = {1, 2}),
         #       (b = {4, 8, 12}; b = 8)
     
-    def testSolverResetsOnBadRecord(self):
+    def testResetsOnBadRecord(self):
         solver = AlgebraSolver()
 
         solver.recordRelation(Relation(sympy.parse_expr("v"), 2)) # type: ignore
@@ -416,7 +416,7 @@ class AlgebraSolverTester:
             ConditionalValue(sympy.parse_expr("y"), dict()),
         }, "Solver should forget inferred values after finding an unsolvable variable"
 
-    def testSolverCanPopRelations(self):
+    def testRelationPopping(self):
         solver = AlgebraSolver()
 
         solver.recordRelation(Relation(sympy.parse_expr("a"), 1)) # type: ignore
@@ -445,7 +445,7 @@ class AlgebraSolverTester:
         assert solver.substituteKnownsFor(sympy.parse_expr("b")) == {sympy.parse_expr("b")}
         assert solver.substituteKnownsFor(sympy.parse_expr("c")) == {sympy.parse_expr("c")}
 
-    def testSolverForgetsVariablesWhenRelationPops(self):
+    def testForgetsVariablesWhenRelationPops(self):
         solver1 = AlgebraSolver()
 
         solver1.recordRelation(Relation(sympy.parse_expr("a + b"), 3)) # type: ignore
@@ -481,7 +481,7 @@ class AlgebraSolverTester:
 
         # TODO: more cases...
 
-    def testSolverKeepsVariablesWhenPoppingRedundancy(self):
+    def testKeepsVariablesWhenPoppingRedundancy(self):
         solver1 = AlgebraSolver()
 
         solver1.recordRelation(Relation(sympy.parse_expr("2*a"), 4)) # type: ignore
@@ -495,7 +495,7 @@ class AlgebraSolverTester:
 
         # TODO: more cases...
         
-    def testSolverForRobustness(self):
+    def testForRobustness(self):
         # a + b = 4
         # a - b = 2
         solver1 = AlgebraSolver()

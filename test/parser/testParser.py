@@ -6,7 +6,7 @@ from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 
 class CommandParserTester:
-    def testParserCommandResults(self):
+    def testCommandResults(self):
         parser = CommandParser()
 
         assert list(parser.parseCommand((
@@ -28,7 +28,7 @@ class CommandParserTester:
             "Parser did not correctly process a single float"
         
 
-    def testParserHandlesMultiEols(self):
+    def testHandlesMultiEols(self):
         parser = CommandParser()
 
         assert list(parser.parseCommand((
@@ -58,7 +58,7 @@ class CommandParserTester:
             Command.evaluateExpression(sympy.parse_expr("someVariable")),
         ], "Parser did not correctly handle multiple command lines"
         
-    def testParserHandlesArithmetic(self):
+    def testHandlesArithmetic(self):
         parser = CommandParser()
 
         assert list(parser.parseCommand((
@@ -127,7 +127,7 @@ class CommandParserTester:
         ))) == [Command.evaluateExpression(sympy.parse_expr("(1+x)*(4*-(1+a/2)+5)+(4/2)**2"))], \
             "Parser failed to parse an order of operations nightmare (can you blame it?)"
         
-    def testParserHandlesExpressionListSymbols(self):
+    def testHandlesExpressionListSymbols(self):
         parser = CommandParser()
 
         assert list(parser.parseCommand((
@@ -171,7 +171,7 @@ class CommandParserTester:
         ))) == [Command.evaluateExpression(sympy.Symbol("{1, 2, 3}"))], \
             "Parser failed to sort expression list before making it a symbol"
 
-    def testParserProcessesExpressionLists(self):
+    def testProcessesExpressionLists(self):
         parser = CommandParser()
         
         assert list(parser.parseExpressionList((
@@ -198,7 +198,7 @@ class CommandParserTester:
         ))) == [sympy.parse_expr("a+r*b"), sympy.parse_expr("(a+b)/d"), sympy.parse_expr("14-12*a")], \
             "Parser failed to parse a basic expression with a single expression list symbol"
         
-    def testParserForRobustness(self):
+    def testForRobustness(self):
         parser = CommandParser()
 
         assert list(parser.parseCommand((
@@ -393,7 +393,7 @@ class CommandParserTester:
         ))) == [Command.evaluateExpression(sympy.Symbol("while"))], \
             "Parser did not correctly evaluate symbol 'while'"
 
-    def testParserErrorCases(self):
+    def testErrorCases(self):
         parser = CommandParser()
 
         def attempt1():

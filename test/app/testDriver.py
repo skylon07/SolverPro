@@ -6,7 +6,7 @@ from src.algebrasolver.solver import Relation
 
 
 class AppDriverTester:
-    def testDriverEvaluatesExpressions(self):
+    def testEvaluatesExpressions(self):
         driver = AppDriver()
 
         results1 = tuple(driver.processCommandLines("-3 + 4"))
@@ -19,7 +19,7 @@ class AppDriverTester:
             ProcessResult(Command.EVALUATE_EXPRESSION, {40}),
         ), "Driver did not correctly evaluate complicated numeric expression"
 
-    def testDriverRecordsRelations(self):
+    def testRecordsRelations(self):
         driver = AppDriver()
 
         relationResults = tuple(driver.processCommandLines("5 = b"))
@@ -32,7 +32,7 @@ class AppDriverTester:
             ProcessResult(Command.EVALUATE_EXPRESSION, {5}),
         ), "Driver didn't correctly acquire variable value"
         
-    def testDriverSolvesRelations(self):
+    def testSolvesRelations(self):
         driver1 = AppDriver()
 
         relationResults1 = tuple(driver1.processCommandLines("1 + c = 4"))
@@ -77,7 +77,7 @@ class AppDriverTester:
             ProcessResult(Command.EVALUATE_EXPRESSION, {1}),
         ), "Driver did not correctly infer first variable in a series of solvable relations"
 
-    def testDriverDetectsUndefinedIdentifiers(self):
+    def testDetectsUndefinedIdentifiers(self):
         driver = AppDriver()
 
         tuple(driver.processCommandLines("defined = 10"))

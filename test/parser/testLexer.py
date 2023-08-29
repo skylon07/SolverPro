@@ -23,7 +23,7 @@ class CommandLexerTester:
         assert token7 != token8, \
             "LexerTokens with different match idxs were equal"
 
-    def testLexerProvidesEol(self):
+    def testProvidesEol(self):
         lexer = CommandLexer()
         
         assert list(lexer.findTokens("")) == [LexerToken("", LexerTokenTypes.EOL, 0)], \
@@ -31,7 +31,7 @@ class CommandLexerTester:
         assert list(lexer.findTokens("", withEol = False)) == [], \
             "Lexer ended string with EOL when told not to"
     
-    def testLexerDetectionForEachToken(self):
+    def testDetectionForEachToken(self):
         lexer = CommandLexer()
         
         # IDENTIFIER
@@ -207,7 +207,7 @@ class CommandLexerTester:
             )
         ], "Lexer did not correctly detect an INVALID token"
 
-    def testLexerHandlesWhitespace(self):
+    def testHandlesWhitespace(self):
         lexer = CommandLexer()
 
         # skipped whitespace
@@ -232,7 +232,7 @@ class CommandLexerTester:
             LexerToken("", LexerTokenTypes.EOL, 3)
         ], "Lexer did not correctly process EOLs with multiple newlines"
 
-    def testLexerDetectionForMultipleTokens(self):
+    def testDetectionForMultipleTokens(self):
         lexer = CommandLexer()
 
         assert list(lexer.findTokens("a b", withEol = False)) == [
@@ -250,7 +250,7 @@ class CommandLexerTester:
             LexerToken("f",     LexerTokenTypes.IDENTIFIER, 11)
         ], "Lexer did not correctly process expression with various operators/numerics"
 
-    def testOutputsForRobustness(self):
+    def testForRobustness(self):
         lexer = CommandLexer()
 
         assert list(lexer.findTokens("4=a+3=-4*=5/2^6*4", withEol = False)) == [
