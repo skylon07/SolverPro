@@ -13,39 +13,39 @@ def _lazyImportSolverProApp():
     return SolverProApp
 
 
-class TermTipListScreen(Screen):
+class DictionaryScreen(Screen):
     DEFAULT_CSS = """
-        TermTipListScreen {
+        DictionaryScreen {
             align: center middle;
         }
         
-        TermTipListScreen #mainContainer {
+        DictionaryScreen #mainContainer {
             width: 100%;
             height: 100%;
         }
 
-        TermTipListScreen #backButton {
+        DictionaryScreen #backButton {
             min-width: 8;
             width: 8%;
             height: 3;
             margin: 2 3;
             background: rgb(60, 60, 60);
         }
-        TermTipListScreen #backButton:hover {
+        DictionaryScreen #backButton:hover {
             background: rgb(60, 60, 60) 50%;
         }
 
-        TermTipListScreen Horizontal {
+        DictionaryScreen Horizontal {
             height: 8;
             align: center middle;
         }
 
-        TermTipListScreen .spacer {
+        DictionaryScreen .spacer {
             width: 1fr;
             height: 5;
         }
 
-        TermTipListScreen .termButton, TermTipListScreen .buttonBlank {
+        DictionaryScreen .termButton, DictionaryScreen .buttonBlank {
             min-width: 3;
             width: 6fr;
             max-width: 26;
@@ -54,10 +54,10 @@ class TermTipListScreen(Screen):
             text-align: center;
         }
         
-        TermTipListScreen .termButton {
+        DictionaryScreen .termButton {
             background: rgb(55, 65, 90);
         }
-        TermTipListScreen .termButton:hover {
+        DictionaryScreen .termButton:hover {
             background: rgb(55, 65, 90) 50%;
         }
     """

@@ -11,7 +11,7 @@ from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, Command
 from src.app.widgets.appHeader import AppHeader
 from src.app.widgets.termTipModal import TermTipModal
-from src.app.widgets.termTipList import TermTipListScreen
+from src.app.widgets.dictionaryScreen import DictionaryScreen
 from src.app.termTips import TermTips
 from src.app.textRenderer import TextRenderer
 
@@ -143,7 +143,7 @@ class MainScreen(Screen):
         assert type(self.app) is SolverProApp
         menuItem = str(event.button.label).lower()
         if menuItem == 'dictionary':
-            self.app.push_screen(TermTipListScreen())
+            self.app.push_screen(DictionaryScreen())
         else:
             error = ValueError(f"Invalid menu item [magenta]{menuItem}[/magenta]")
             renderer = self.app.textRenderer
