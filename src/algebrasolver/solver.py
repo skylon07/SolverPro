@@ -581,15 +581,12 @@ class _CombinationsSubstituter:
         else:
             symbolToInclude = self._exprListSymbols[numExprListsResolved]
             numExprListsResolved += 1
-        anyConditionsMet = False
         for conditionalValue in self._symbolValuesDatabase[symbolToInclude]:
             if self._testConditionsMet(conditionalValue):
-                anyConditionsMet = True
                 # overwritten to save on memory (instead of copying and creating a bunch of dicts)
                 self._currCombination[symbolToInclude] = conditionalValue.value
                 for finishedCombination in self._generateCombinations(numExprListsResolved, resolutionIdx):
                     yield finishedCombination
-        assert anyConditionsMet, "Solver failed to find a valid condition (was a bad restriction-redef case on expression lists not caught?)"
 
     def _testConditionsMet(self, conditionalValue: ConditionalValue[Any]):
         for (symbol, value) in conditionalValue.conditions.items():
