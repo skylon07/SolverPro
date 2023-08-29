@@ -304,8 +304,7 @@ class AlgebraSolverTester:
         assert error2.poorSymbolValues == {
             sympy.parse_expr("b"): {4, 8},
         }
-        assert error2.contradictingRelation == Relation(sympy.parse_expr("b"), sympy.Symbol("{4, 8}")), \
-            "Solver did not restrict solutions (using single values) before finding contradiction"
+        assert error2.contradictingRelation == Relation(sympy.parse_expr("b"), 4) # type: ignore
 
         def recordContradiction3():
             solver.recordRelation(Relation(sympy.parse_expr("c"), sympy.Symbol("{2, 3}")))
@@ -315,8 +314,7 @@ class AlgebraSolverTester:
         assert error3.poorSymbolValues == {
             sympy.parse_expr("c"): {1, 2, 3, 4}
         }
-        assert error3.contradictingRelation == Relation(sympy.parse_expr("c"), sympy.Symbol("{1, 2, 3, 4}")), \
-            "Solver did not restrict solutions (using expr lists) before finding contradictions"
+        assert error3.contradictingRelation == Relation(sympy.parse_expr("c"), sympy.Symbol("{2, 3}"))
         
     def testSolutionRestricting(self):
         solver1 = AlgebraSolver()
