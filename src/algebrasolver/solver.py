@@ -74,9 +74,9 @@ class AlgebraSolver:
         
         # TODO: use transactional data types that can be reversed more efficiently
         #       (this API also needs to be public for the driver -- there's a TODO about this)
-        oldRelations = list(self._recordedRelations)
-        oldDatabase = self._symbolValuesDatabase.copy()
-        oldInferenceTable = self._inferenceTable.copy()
+        relationsBackup = list(self._recordedRelations)
+        databaseBackup = self._symbolValuesDatabase.copy()
+        inferenceTableBackup = self._inferenceTable.copy()
         
         # if there is a contradiction, it would be with these
         contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None] = {
@@ -90,16 +90,16 @@ class AlgebraSolver:
         try:
             (isRedundant, isRedundantWithContradictions) = self._checkForRedundancies(relation)
             if isRedundantWithContradictions:
-                # a restricted redefinition case is when a relation is
-                # restricting what some variable's values are
+                # test for restricted redefinition case, which is when a
+                # relation is restricting what some variable's values are
                 # example: if `a` is already known, {-4, 2, 5}, and a new
                 # relation `a = 2` comes in, this is "redundant" (aka no new
                 # information about other variables) but also contradictory
-                # (because -4 ≠ 2 and 5 ≠ 2); this is a clear indication that
-                # the variable's values should be restricted
-                couldBeRestrictRedefCase = len(relation.asExprEqToZero.free_symbols) == 1
+                # (because -4 ≠ 2 and 5 ≠ 2)
+                nonExprSymbols = tuple(symbol for symbol in relation.asExprEqToZero.free_symbols if not isExpressionListSymbol(symbol))
+                couldBeRestrictRedefCase = len(nonExprSymbols) == 1
                 if couldBeRestrictRedefCase:
-                    symbol = first(relation.asExprEqToZero.free_symbols)
+                    symbol = first(nonExprSymbols)
                     assert type(symbol) is sympy.Symbol
                     (oldSolutions, oldRelation) = self._popInferredSolutions(symbol)
                     
@@ -114,7 +114,13 @@ class AlgebraSolver:
                         newValuesAreRestrictions = len(newSolutions) < len(oldSolutions) and \
                             all(solution.value in oldSolutionValues for solution in newSolutions)
                         if newValuesAreRestrictions:
-                            self._setInferredSolutions(symbol, newSolutions, relation)
+                            newSolutionValues = {condition.value for condition in newSolutions}
+                            newSolutionsWithCorrectConditions = {
+                                condition
+                                for condition in oldSolutions
+                                if condition.value in newSolutionValues
+                            }
+                            self._setInferredSolutions(symbol, newSolutionsWithCorrectConditions, relation)
                             isRedundant = False # since it technically did provide new information...
                             # TODO: (optimization) remove other symbol values that relied on any conditions now not present
                             #       (since other symbols might have conditions that will never be true when substituted,
@@ -127,9 +133,9 @@ class AlgebraSolver:
             return isRedundant
         
         except Exception as exception:
-            self._recordedRelations = oldRelations
-            self._symbolValuesDatabase = oldDatabase
-            self._inferenceTable = oldInferenceTable
+            self._recordedRelations = relationsBackup
+            self._symbolValuesDatabase = databaseBackup
+            self._inferenceTable = inferenceTableBackup
             raise exception
 
     def getSymbolConditionalValues(self, symbol: sympy.Symbol):

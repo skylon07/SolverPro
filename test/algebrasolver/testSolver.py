@@ -357,7 +357,8 @@ class AlgebraSolverTester:
         assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {-5, -1, 1, 5}
 
         solver3.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{1, 5}")))
-        assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {1, 5}
+        assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {1, 5}, \
+            "Solver did not restrict variable to multiple values *and* preserve its conditions"
     
     def testResetsOnBadRecord(self):
         solver = AlgebraSolver()
