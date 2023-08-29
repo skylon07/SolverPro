@@ -636,3 +636,5 @@ class AlgebraSolverTester:
         assert solver6.substituteKnownsFor(sympy.parse_expr("b")) == {7}
         assert solver6.substituteKnownsFor(sympy.parse_expr("c")) == {3}
         assert solver6.substituteKnownsFor(sympy.parse_expr("d")) == {10}
+
+    # TODO: test getting list of relations

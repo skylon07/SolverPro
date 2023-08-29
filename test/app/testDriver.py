@@ -106,4 +106,8 @@ class AppDriverTester:
         assert error3.badTokenIdxs == (0, 2, 6, 8, 12, 14, 16), \
             "Driver did not detect all indexes of all the undidentified identifier tokens"
 
+    # TODO: test getting list of relations
+
+    # TODO: test popping relations
+
     # TODO: add tests for robustness (from old project)

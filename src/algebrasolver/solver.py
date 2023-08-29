@@ -65,6 +65,8 @@ class AlgebraSolver:
     def __init__(self):
         # a list of relational expressions with an implied equality to zero
         self._recordedRelations: list[Relation] = list()
+        # TODO: should setting/popping item from symbol database and inference table
+        #       be done in a function, since they're always done together?
         self._symbolValuesDatabase = _SymbolsDatabase()
         self._inferenceTable = _RelationSymbolTable()
         self._madeContradictionCheckBySubbing = False
