@@ -381,15 +381,13 @@ class CommandParserTester:
         assert list(parser.parseCommand((
             LexerToken('-', LexerTokenTypes.DASH,       0),
             LexerToken('2', LexerTokenTypes.INTEGER,    1),
-            LexerToken('*', LexerTokenTypes.STAR,       2),
-            LexerToken('*', LexerTokenTypes.STAR,       3),
-            LexerToken('-', LexerTokenTypes.DASH,       4),
-            LexerToken('3', LexerTokenTypes.INTEGER,    5),
-            LexerToken('*', LexerTokenTypes.STAR,       6),
-            LexerToken('*', LexerTokenTypes.STAR,       7),
-            LexerToken('-', LexerTokenTypes.DASH,       8),
-            LexerToken('2', LexerTokenTypes.INTEGER,    9),
-            LexerToken('',  LexerTokenTypes.EOL,        10),
+            LexerToken('^', LexerTokenTypes.CARROT,     2),
+            LexerToken('-', LexerTokenTypes.DASH,       3),
+            LexerToken('3', LexerTokenTypes.INTEGER,    4),
+            LexerToken('^', LexerTokenTypes.CARROT,     5),
+            LexerToken('-', LexerTokenTypes.DASH,       6),
+            LexerToken('2', LexerTokenTypes.INTEGER,    7),
+            LexerToken('',  LexerTokenTypes.EOL,        8),
         ))) == [Command.evaluateExpression(sympy.parse_expr("-2**-3**-2"))]
         
         assert list(parser.parseCommand((
