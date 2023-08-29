@@ -1,7 +1,4 @@
-from typing import Collection
-
 from textual import on
-from textual.reactive import var
 from textual.screen import Screen
 from textual.containers import VerticalScroll, Horizontal
 from textual.widgets import Button, Label
