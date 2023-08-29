@@ -359,6 +359,38 @@ class CommandParserTester:
             LexerToken("c", LexerTokenTypes.IDENTIFIER, 19),
             LexerToken("",  LexerTokenTypes.EOL,        20),
         ))) == [Command.evaluateExpression(sympy.parse_expr("--a---b+-----c"))]
+
+        assert list(parser.parseCommand((
+            LexerToken('a',     LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken('^',     LexerTokenTypes.CARROT,     1),
+            LexerToken('-',     LexerTokenTypes.DASH,       2),
+            LexerToken('b',     LexerTokenTypes.IDENTIFIER, 3),
+            LexerToken('',      LexerTokenTypes.EOL,        4),
+        ))) == [Command.evaluateExpression(sympy.parse_expr("a**-b"))]
+
+        assert list(parser.parseCommand((
+            LexerToken('a',     LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken('^',     LexerTokenTypes.CARROT,     1),
+            LexerToken('-',     LexerTokenTypes.DASH,       2),
+            LexerToken('-',     LexerTokenTypes.DASH,       3),
+            LexerToken('-',     LexerTokenTypes.DASH,       4),
+            LexerToken('b',     LexerTokenTypes.IDENTIFIER, 5),
+            LexerToken('',      LexerTokenTypes.EOL,        6),
+        ))) == [Command.evaluateExpression(sympy.parse_expr("a**---b"))]
+
+        assert list(parser.parseCommand((
+            LexerToken('-', LexerTokenTypes.DASH,       0),
+            LexerToken('2', LexerTokenTypes.INTEGER,    1),
+            LexerToken('*', LexerTokenTypes.STAR,       2),
+            LexerToken('*', LexerTokenTypes.STAR,       3),
+            LexerToken('-', LexerTokenTypes.DASH,       4),
+            LexerToken('3', LexerTokenTypes.INTEGER,    5),
+            LexerToken('*', LexerTokenTypes.STAR,       6),
+            LexerToken('*', LexerTokenTypes.STAR,       7),
+            LexerToken('-', LexerTokenTypes.DASH,       8),
+            LexerToken('2', LexerTokenTypes.INTEGER,    9),
+            LexerToken('',  LexerTokenTypes.EOL,        10),
+        ))) == [Command.evaluateExpression(sympy.parse_expr("-2**-3**-2"))]
         
         assert list(parser.parseCommand((
             LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
