@@ -355,9 +355,25 @@ class AlgebraSolverTester:
         solver3.recordRelation(Relation(sympy.parse_expr("(a + b)**2"), 9)) # type: ignore
         assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {-5, -1, 1, 5}
 
-        solver3.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{-5, 1}")))
-        assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {-5, 1}, \
+        solver3.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{-1, 1, 5}")))
+        assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {-1, 1, 5}, \
             "Solver did not restrict variable to multiple values *and* preserve its conditions"
+        
+        solver4 = AlgebraSolver()
+
+        solver4.recordRelation(Relation(sympy.parse_expr("a**2"), 4)) # type: ignore
+        solver4.recordRelation(Relation(sympy.parse_expr("(a + b)**2"), 16)) # type: ignore
+        assert solver4.substituteKnownsFor(sympy.parse_expr("b")) == {-6, -2, 2, 6}
+        assert solver4.substituteKnownsFor(sympy.parse_expr("b**a")) == {
+            sympy.parse_expr("36"),     # (-6)^2
+            sympy.parse_expr("1/4"),    # (-2)^-2
+            sympy.parse_expr("4"),      # (2)^2
+            sympy.parse_expr("1/36"),   # (6)^-2
+        }
+
+        solver4.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{-6, 2}")))
+        assert solver4.substituteKnownsFor(sympy.parse_expr("b**a")) == {36, 4}, \
+            "Solver did not correctly substitute only valid combinations of variables in multi-conditional expression"
     
     def testResetsOnBadRecord(self):
         solver = AlgebraSolver()
