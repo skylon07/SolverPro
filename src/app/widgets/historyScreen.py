@@ -2,7 +2,7 @@ from typing import Iterable
 from threading import Timer
 
 from textual import on
-from textual.reactive import var, reactive
+from textual.reactive import var
 from textual.screen import Screen
 from textual.containers import VerticalScroll, Horizontal, HorizontalScroll
 from textual.widget import Widget
@@ -169,9 +169,7 @@ class RelationEditRow(Widget):
     @property
     def relationStr(self):
         assert self.relation is not None
-        # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-        #       so the line below can be reused
-        return TextRenderer()._correctSyntaxes(f"{self.relation.leftExpr} = {self.relation.rightExpr}")
+        return TextRenderer().formatRelation(self.relation)
     
     @on(Button.Pressed, '#edit')
     def enterEditMode(self):

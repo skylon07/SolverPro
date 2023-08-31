@@ -119,29 +119,29 @@ class MainScreen(Screen):
 
             elif result.type is Command.RECORD_RELATION:
                 (relation, isRedundant) = result.data
-                self.writeToLogger(commandStr, True, renderer.renderRelation(relation, isRedundant))
+                self.writeToLogger(commandStr, True, renderer.formatRelation(relation, warnRedundant = isRedundant))
 
             elif result.type is Command.EVALUATE_EXPRESSION:
                 exprs = result.data
-                self.writeToLogger(commandStr, True, renderer.renderExpressions(exprs))
+                self.writeToLogger(commandStr, True, renderer.formatExpressions(exprs))
 
             else:
                 raise NotImplementedError(f"Command result of type {result.type} not implemented")
         
         except Exception as error:
-            self.writeToLogger(commandStr, False, renderer.renderException(error))
+            self.writeToLogger(commandStr, False, renderer.formatException(error, withErrorHeader = True))
         
         self.inputTimer = Timer(0.1, lambda: input.remove_class('highlighted'))
         self.inputTimer.start()
 
-    def writeToLogger(self, commandStr: str, commandSucceeded: bool, logText: Text):
+    def writeToLogger(self, commandStr: str, commandSucceeded: bool, formattedStr: str):
         assert type(self.app) is SolverProApp
         renderer = self.app.textRenderer
 
         textLog = self.query_one(TextLog)
         if commandStr != "":
-            textLog.write(renderer.renderInputLog(commandStr, commandSucceeded))
-        textLog.write(logText)
+            textLog.write(renderer.render(renderer.formatInputLog(commandStr, commandSucceeded)))
+        textLog.write(renderer.render(formattedStr))
         self.writeSpacerToLogger()
 
     def writeSpacerToLogger(self):
@@ -171,7 +171,6 @@ class SolverProApp(App):
     def on_mount(self):
         self.push_screen(self.mainScreen)
         # DEBUG
-        # DEBUG
         first(self.driver.processCommandLines("a = 1")) # type: ignore
         first(self.driver.processCommandLines("b = 2")) # type: ignore
         first(self.driver.processCommandLines("c = 3")) # type: ignore
@@ -184,30 +183,26 @@ class SolverProApp(App):
         tip = self.termTips.lookupTerm(term)
         self.push_screen(TermTipModal(
             tip.term,
-            tip.definitionLines,
+            tuple(self.textRenderer.render(line) for line in tip.definitionLines),
         ))
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-        #       so the line below can be reused
-        modifiedRelationStr = self.textRenderer._correctSyntaxes(f"<replace [white]{oldRelation.leftExpr} = {oldRelation.rightExpr}[/white]>")
+        modifiedRelationStr = f"<replace {self.textRenderer.formatRelation(oldRelation)}>"
         try:
             result = self.driver.replaceRelation(oldRelation, newRelationCommand)
             (relation, isRedundant) = result.data
-            self.mainScreen.writeToLogger(modifiedRelationStr, True, self.textRenderer.renderRelation(relation, isRedundant, oldRelation))
+            self.mainScreen.writeToLogger(modifiedRelationStr, True, self.textRenderer.formatRelationReplaced(oldRelation, relation, warnRedundant = isRedundant))
             assert type(relation) is Relation
             return relation
         except Exception as exception:
-            self.mainScreen.writeToLogger(modifiedRelationStr, False, self.textRenderer.renderException(exception))
+            self.mainScreen.writeToLogger(modifiedRelationStr, False, self.textRenderer.formatException(exception, withErrorHeader = True))
             return None
 
     def deleteRelation(self, relation: Relation):
-        # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-        #       so the line below can be reused
-        deletedRelationStr = self.textRenderer._correctSyntaxes(f"<delete {relation.leftExpr} = {relation.rightExpr}>")
+        deletedRelationStr = f"<delete {self.textRenderer.formatRelation(relation)}>"
         try:
             self.driver.deleteRelation(relation)
-            self.mainScreen.writeToLogger(deletedRelationStr, True, self.textRenderer.renderRelation(relation, False, wasDeleted = True))
+            self.mainScreen.writeToLogger(deletedRelationStr, True, self.textRenderer.formatRelationDeleted(relation))
         except Exception as exception:
-            self.mainScreen.writeToLogger(deletedRelationStr, False, self.textRenderer.renderException(exception))
+            self.mainScreen.writeToLogger(deletedRelationStr, False, self.textRenderer.formatException(exception, withErrorHeader = True))
             return None

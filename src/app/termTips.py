@@ -7,7 +7,7 @@ from src.app.textRenderer import TextRenderer
 
 
 class TermTip:
-    def __init__(self, term: FormattedStr, definitionLines: Iterable[RenderableType]):
+    def __init__(self, term: FormattedStr, definitionLines: Iterable[FormattedStr]):
         self.term = term
         self.definitionLines = tuple(
             f"[#b0b0b0]{line}[/#b0b0b0]" if type(line) is str
@@ -98,17 +98,11 @@ class TermTips:
 
                     "Binary addition:",
 
-                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-                    #       so the line below can be reused
-
-                    self._renderer.renderInputLog("a + b", True),
+                    self._renderer.formatInputLog("a + b", True),
 
                     "Unary positivity:",
 
-                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-                    #       so the line below can be reused
-
-                    self._renderer.renderInputLog("+a", True),
+                    self._renderer.formatInputLog("+a", True),
                 )
             ),
             'dash': TermTip(
@@ -118,17 +112,11 @@ class TermTips:
 
                     "Binary subtraction:",
 
-                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-                    #       so the line below can be reused
-
-                    self._renderer.renderInputLog("a - b", True),
+                    self._renderer.formatInputLog("a - b", True),
 
                     "Unary negation:",
 
-                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-                    #       so the line below can be reused
-
-                    self._renderer.renderInputLog("-a", True),
+                    self._renderer.formatInputLog("-a", True),
                 )
             ),
             'star': TermTip(
@@ -138,10 +126,7 @@ class TermTips:
 
                     "Multiplication:",
 
-                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-                    #       so the line below can be reused
-
-                    self._renderer.renderInputLog("a*b", True),
+                    self._renderer.formatInputLog("a*b", True),
                 )
             ),
             'slash': TermTip(
@@ -154,10 +139,7 @@ class TermTips:
 
                     "Division:",
 
-                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-                    #       so the line below can be reused
-
-                    self._renderer.renderInputLog("a/b", True),
+                    self._renderer.formatInputLog("a/b", True),
                 )
             ),
             'carrot': TermTip(
@@ -170,10 +152,7 @@ class TermTips:
 
                     "Exponentiation:",
 
-                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-                    #       so the line below can be reused
-
-                    self._renderer.renderInputLog("a^b", True),
+                    self._renderer.formatInputLog("a^b", True),
                 )
             ),
             'end of line': 'eol',

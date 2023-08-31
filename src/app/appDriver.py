@@ -114,9 +114,7 @@ class NotARelationException(MultilineException):
             nonRelationStr = "(empty input)"
         super().__init__((
             "Cannot replace relation",
-            # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
-            #       so the line below can be reused
-            TextRenderer()._correctSyntaxes(f"[white]{oldRelation.leftExpr} = {oldRelation.rightExpr}[/white]"),
+            TextRenderer().formatRelation(oldRelation),
             "with non-relation",
             nonRelationStr,
         ))
