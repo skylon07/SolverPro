@@ -6,9 +6,8 @@ from textual.reactive import var
 from textual.screen import Screen
 from textual.containers import VerticalScroll, Horizontal, HorizontalScroll
 from textual.widget import Widget
-from textual.widgets import Button, Input
+from textual.widgets import Button, Input, Label
 
-from src.app.widgets.dynamicLabel import DynamicLabel
 from src.algebrasolver.solver import Relation
 from src.app.textRenderer import TextRenderer
 
@@ -90,7 +89,7 @@ class RelationEditRow(Widget):
             background: rgb(60, 60, 60);
         }
 
-        RelationEditRow DynamicLabel {
+        RelationEditRow Label {
             height: 1;
             margin: 1 3;
             content-align: left middle;
@@ -157,7 +156,7 @@ class RelationEditRow(Widget):
     def compose(self):
         with Horizontal(id = 'staticGroup'):
             with HorizontalScroll():
-                yield DynamicLabel(self.relationStr)
+                yield Label(self.relationStr)
             yield Button("Edit", id = 'edit')
             yield Button("Delete", id = 'delete')
         with Horizontal(id = 'editGroup', classes = 'hidden'):
@@ -199,12 +198,12 @@ class RelationEditRow(Widget):
         assert type(self.app) is _lazyImportSolverProApp()
         
         input = self.query_one(Input)
-        label = self.query_one(DynamicLabel)
+        label = self.query_one(Label)
         newRelation = self.app.replaceRelation(self.relation, input.value)
         noErrorsHappened = newRelation is not None
         if noErrorsHappened:
             self.relation = newRelation
-            label.data = self.relationStr
+            label.update(self.relationStr)
             self.exitEditMode()
         else:
             input.focus()
