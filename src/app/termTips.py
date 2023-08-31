@@ -98,9 +98,15 @@ class TermTips:
 
                     "Binary addition:",
 
+                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+                    #       so the line below can be reused
+
                     self._renderer.renderInputLog("a + b", True),
 
                     "Unary positivity:",
+
+                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+                    #       so the line below can be reused
 
                     self._renderer.renderInputLog("+a", True),
                 )
@@ -112,9 +118,15 @@ class TermTips:
 
                     "Binary subtraction:",
 
+                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+                    #       so the line below can be reused
+
                     self._renderer.renderInputLog("a - b", True),
 
                     "Unary negation:",
+
+                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+                    #       so the line below can be reused
 
                     self._renderer.renderInputLog("-a", True),
                 )
@@ -125,6 +137,9 @@ class TermTips:
                     "A binary operator signifying the multiplication of two values.",
 
                     "Multiplication:",
+
+                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+                    #       so the line below can be reused
 
                     self._renderer.renderInputLog("a*b", True),
                 )
@@ -139,6 +154,9 @@ class TermTips:
 
                     "Division:",
 
+                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+                    #       so the line below can be reused
+
                     self._renderer.renderInputLog("a/b", True),
                 )
             ),
@@ -151,6 +169,9 @@ class TermTips:
                     "as the exponent will yield an approximate floating point result.",
 
                     "Exponentiation:",
+
+                    # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+                    #       so the line below can be reused
 
                     self._renderer.renderInputLog("a^b", True),
                 )

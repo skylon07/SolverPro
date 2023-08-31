@@ -1,4 +1,5 @@
 from typing import Iterable
+from threading import Timer
 
 from textual import on
 from textual.reactive import var, reactive
@@ -9,6 +10,7 @@ from textual.widgets import Button, Input
 
 from src.app.widgets.dynamicLabel import DynamicLabel
 from src.algebrasolver.solver import Relation
+from src.app.textRenderer import TextRenderer
 
 
 def _lazyImportSolverProApp():
@@ -89,9 +91,8 @@ class RelationEditRow(Widget):
         }
 
         RelationEditRow DynamicLabel {
-            height: 1fr;
-            margin-top: 1;
-            margin-left: 3;
+            height: 1;
+            margin: 1 3;
             content-align: left middle;
         }
 
@@ -102,6 +103,12 @@ class RelationEditRow(Widget):
         }
         RelationEditRow Input:focus {
             background: rgb(55, 65, 90);
+        }
+
+        RelationEditRow Input.errorFlash {
+            border: tall rgb(200, 75, 85);
+            color: rgb(200, 75, 85);
+            background: rgb(100, 55, 65);
         }
 
         RelationEditRow Button {
@@ -141,6 +148,7 @@ class RelationEditRow(Widget):
     """
 
     relation: var[Relation | None] = var(None)
+    flashTimer: var[Timer | None] = var(None)
 
     def __init__(self, relation: Relation, *, name: str | None = None, id: str | None = None, classes: str | None = None):
         super().__init__(name = name, id = id, classes = classes)
@@ -161,7 +169,9 @@ class RelationEditRow(Widget):
     @property
     def relationStr(self):
         assert self.relation is not None
-        return f"{self.relation.leftExpr} = {self.relation.rightExpr}"
+        # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+        #       so the line below can be reused
+        return TextRenderer()._correctSyntaxes(f"{self.relation.leftExpr} = {self.relation.rightExpr}")
     
     @on(Button.Pressed, '#edit')
     def enterEditMode(self):
@@ -198,3 +208,22 @@ class RelationEditRow(Widget):
             self.relation = newRelation
             label.data = self.relationStr
             self.exitEditMode()
+        else:
+            input.focus()
+            self.flashError()
+
+    def flashError(self):
+        self._clearFlash()
+
+        input = self.query_one(Input)
+        input.add_class('errorFlash')
+
+        self.flashTimer = Timer(0.7, self._clearFlash)
+        self.flashTimer.start()
+    
+    def _clearFlash(self):
+        input = self.query_one(Input)
+        input.remove_class('errorFlash')
+        if self.flashTimer is not None:
+            self.flashTimer.cancel()
+            self.flashTimer = None

@@ -21,14 +21,27 @@ class TextRenderer:
             else "[red]✕[/red]"
         return self._renderLines(marker + f" {inputStr}")
 
-    def renderRelation(self, relation: Relation, warnRedundant: bool):
-        relationStr = self._correctSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
-        linesList = [relationStr]
-        if warnRedundant:
+    def renderRelation(self, relation: Relation, warnRedundant: bool, replacedRelation: Relation | None = None, wasDeleted: bool = False):
+        relationStr = self._correctSyntaxes(f"[white]{relation.leftExpr} = {relation.rightExpr}[/white]")
+        wasReplaced = replacedRelation is not None
+        if wasReplaced:
             linesList = [
-                "[yellow]Relation is redundant and provided no new inferences[/yellow]",
-                *linesList,
+                "[#b0b0b0]Info: Relation[/#b0b0b0]",
+                self._correctSyntaxes(f"[white]{replacedRelation.leftExpr} = {replacedRelation.rightExpr}[/white]"),
+                "[#b0b0b0]was replaced by[/#b0b0b0]",
+                relationStr,
             ]
+        elif wasDeleted:
+            linesList = [
+                "[#b0b0b0]Info: Relation[/#b0b0b0]",
+                relationStr,
+                "[#b0b0b0]was deleted[/#b0b0b0]",
+            ]
+        else:
+            linesList = [relationStr]
+        
+        if warnRedundant:
+            linesList.append("[yellow]Relation is redundant and provided no new inferences[/yellow]")
         joinedLines = self._prefixAndJoinLines(linesList)
         return self._renderLines(joinedLines)
 

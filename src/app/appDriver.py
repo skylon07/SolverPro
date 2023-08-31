@@ -4,8 +4,9 @@ import sympy
 
 from src.common.functions import surroundJoin, first
 from src.common.exceptions import TracebackException, MultilineException
+from src.app.textRenderer import TextRenderer
 from src.algebrasolver.solver import AlgebraSolver, Relation
-from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
+from src.parsing.lexer import CommandLexer, LexerToken
 from src.parsing.parser import CommandParser, Command, CommandType, isExpressionListSymbol
 
 
@@ -31,7 +32,6 @@ class AppDriver:
         self._solver.popRelation(relation)
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        ## TODO: this should probably also be validated as a relation command before executing
         self.validateSingleLine(newRelationCommand)
         # TODO: this would be a good use case for transactional solver stuff when that's implemented
         self._solver.popRelation(oldRelation)
@@ -40,8 +40,6 @@ class AppDriver:
             if result is None or result.type is not Command.RECORD_RELATION:
                 raise NotARelationException(oldRelation, newRelationCommand)
             else:
-                (relation, isRedundant) = result.data
-                assert type(relation) is Relation
                 return result
         except Exception as exception:
             self._solver.recordRelation(oldRelation)
@@ -116,7 +114,9 @@ class NotARelationException(MultilineException):
             nonRelationStr = "(empty input)"
         super().__init__((
             "Cannot replace relation",
-            f"{oldRelation.leftExpr} = {oldRelation.rightExpr}",
+            # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+            #       so the line below can be reused
+            TextRenderer()._correctSyntaxes(f"[white]{oldRelation.leftExpr} = {oldRelation.rightExpr}[/white]"),
             "with non-relation",
             nonRelationStr,
         ))

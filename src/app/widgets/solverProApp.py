@@ -6,6 +6,7 @@ from textual.reactive import var
 from textual.screen import Screen
 from textual.containers import Horizontal, Vertical
 from textual.widgets import TextLog, Input, Button, Label
+from rich.text import Text
 
 from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, Command
@@ -92,13 +93,6 @@ class MainScreen(Screen):
 
     def on_mount(self):
         self.app.title = f"--- Solver Pro {getVersion()} ---"
-        # DEBUG
-        first(self.app.driver.processCommandLines("a = 1")) # type: ignore
-        first(self.app.driver.processCommandLines("b = 2")) # type: ignore
-        first(self.app.driver.processCommandLines("c = 3")) # type: ignore
-        first(self.app.driver.processCommandLines("d = 4")) # type: ignore
-        first(self.app.driver.processCommandLines("e = 5")) # type: ignore
-        first(self.app.driver.processCommandLines("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff = 6")) # type: ignore
 
     @on(Input.Submitted)
     def runCommand(self, event: Input.Submitted):
@@ -108,8 +102,6 @@ class MainScreen(Screen):
         input.add_class('highlighted')
         if self.inputTimer is not None:
             self.inputTimer.cancel()
-
-        textLog = self.query_one(TextLog)
 
         assert type(self.app) is SolverProApp
         driver = self.app.driver
@@ -123,28 +115,39 @@ class MainScreen(Screen):
             result = first(driver.processCommandLines(commandStr), None)
             assert result is not None
             if result.type is Command.EMPTY:
-                pass
+                self.writeSpacerToLogger()
 
             elif result.type is Command.RECORD_RELATION:
                 (relation, isRedundant) = result.data
-                textLog.write(renderer.renderInputLog(commandStr, True))
-                textLog.write(renderer.renderRelation(relation, isRedundant))
+                self.writeToLogger(commandStr, True, renderer.renderRelation(relation, isRedundant))
 
             elif result.type is Command.EVALUATE_EXPRESSION:
                 exprs = result.data
-                textLog.write(renderer.renderInputLog(commandStr, True))
-                textLog.write(renderer.renderExpressions(exprs))
+                self.writeToLogger(commandStr, True, renderer.renderExpressions(exprs))
 
             else:
                 raise NotImplementedError(f"Command result of type {result.type} not implemented")
         
         except Exception as error:
-            textLog.write(renderer.renderInputLog(commandStr, False))
-            textLog.write(renderer.renderException(error))
+            self.writeToLogger(commandStr, False, renderer.renderException(error))
         
-        textLog.write(" ") # empty line to space for next command
         self.inputTimer = Timer(0.1, lambda: input.remove_class('highlighted'))
         self.inputTimer.start()
+
+    def writeToLogger(self, commandStr: str, commandSucceeded: bool, logText: Text):
+        assert type(self.app) is SolverProApp
+        renderer = self.app.textRenderer
+
+        textLog = self.query_one(TextLog)
+        if commandStr != "":
+            textLog.write(renderer.renderInputLog(commandStr, commandSucceeded))
+        textLog.write(logText)
+        self.writeSpacerToLogger()
+
+    def writeSpacerToLogger(self):
+        textLog = self.query_one(TextLog)
+        spaceForNextCommand = " "
+        textLog.write(spaceForNextCommand)
 
     @on(Button.Pressed, '#dictionaryButton')
     def openDictionaryScreen(self):
@@ -163,11 +166,18 @@ class SolverProApp(App):
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
     termTips: var[TermTips] = var(lambda: TermTips())
 
-    mainScreen: var[MainScreen | None] = var(None)
+    mainScreen: var[MainScreen] = var(lambda: MainScreen())
 
     def on_mount(self):
-        self.mainScreen = MainScreen()
         self.push_screen(self.mainScreen)
+        # DEBUG
+        # DEBUG
+        first(self.driver.processCommandLines("a = 1")) # type: ignore
+        first(self.driver.processCommandLines("b = 2")) # type: ignore
+        first(self.driver.processCommandLines("c = 3")) # type: ignore
+        first(self.driver.processCommandLines("d = 4")) # type: ignore
+        first(self.driver.processCommandLines("e = 5")) # type: ignore
+        first(self.driver.processCommandLines("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff = 6")) # type: ignore
 
     # defined as an action for term tip links
     def action_showTermTip(self, term: str):
@@ -178,22 +188,26 @@ class SolverProApp(App):
         ))
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
+        # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+        #       so the line below can be reused
+        modifiedRelationStr = self.textRenderer._correctSyntaxes(f"<replace [white]{oldRelation.leftExpr} = {oldRelation.rightExpr}[/white]>")
         try:
             result = self.driver.replaceRelation(oldRelation, newRelationCommand)
-
-            ## TODO: write an info message about replacement
             (relation, isRedundant) = result.data
+            self.mainScreen.writeToLogger(modifiedRelationStr, True, self.textRenderer.renderRelation(relation, isRedundant, oldRelation))
             assert type(relation) is Relation
             return relation
         except Exception as exception:
-            # TODO: write error to console as well
-            self.app.push_screen(ErrorModal(exception))
+            self.mainScreen.writeToLogger(modifiedRelationStr, False, self.textRenderer.renderException(exception))
             return None
 
     def deleteRelation(self, relation: Relation):
-        self.driver.deleteRelation(relation)
-
-        ## TODO: write an info message about deletion
-        # DEBUG
-        assert self.mainScreen is not None
-        self.mainScreen.query_one(TextLog).write("TEST -- DELETE")
+        # TODO: refactor text renderer to distinguish between "formatting" and "rendering"
+        #       so the line below can be reused
+        deletedRelationStr = self.textRenderer._correctSyntaxes(f"<delete {relation.leftExpr} = {relation.rightExpr}>")
+        try:
+            self.driver.deleteRelation(relation)
+            self.mainScreen.writeToLogger(deletedRelationStr, True, self.textRenderer.renderRelation(relation, False, wasDeleted = True))
+        except Exception as exception:
+            self.mainScreen.writeToLogger(deletedRelationStr, False, self.textRenderer.renderException(exception))
+            return None

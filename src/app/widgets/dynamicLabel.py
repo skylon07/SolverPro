@@ -1,11 +1,18 @@
 from typing import TypeVar
 
 from textual.reactive import reactive
-from textual.widget import Widget
+from textual.widgets import Label
 from rich.console import RenderableType
 
 
-class DynamicLabel(Widget):
+class DynamicLabel(Label):
+    DEFAULT_CSS = """
+        DynamicLabel {
+            width: auto;
+            height: auto;
+        }
+    """
+    
     data: reactive[RenderableType | None] = reactive(None)
 
     def __init__(self, initData: RenderableType | None, name: str | None = None, id: str | None = None, classes: str | None = None):
