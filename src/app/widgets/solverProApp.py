@@ -170,13 +170,6 @@ class SolverProApp(App):
 
     def on_mount(self):
         self.push_screen(self.mainScreen)
-        # DEBUG
-        first(self.driver.processCommandLines("a = 1")) # type: ignore
-        first(self.driver.processCommandLines("b = 2")) # type: ignore
-        first(self.driver.processCommandLines("c = 3")) # type: ignore
-        first(self.driver.processCommandLines("d = 4")) # type: ignore
-        first(self.driver.processCommandLines("e = 5")) # type: ignore
-        first(self.driver.processCommandLines("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff = 6")) # type: ignore
 
     # defined as an action for term tip links
     def action_showTermTip(self, term: str):
