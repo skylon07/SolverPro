@@ -8,14 +8,16 @@ from textual.widgets import Label, Button
 from textual.widgets import Footer
 from rich.console import RenderableType
 
+from src.app.textRenderer import TextRenderer
 
-class TermTipModal(ModalScreen):
+
+class ErrorModal(ModalScreen):
     DEFAULT_CSS = """
-        TermTipModal {
+        ErrorModal {
             align: center middle;
         }
         
-        TermTipModal #content {
+        ErrorModal #content {
             width: 60%;
             max-width: 60;
             height: 40%;
@@ -23,18 +25,18 @@ class TermTipModal(ModalScreen):
             background: $foreground 15%;
         }
         
-        TermTipModal #title {
+        ErrorModal #title {
             width: 100%;
             padding: 1 0 1 0;
             content-align: center middle;
         }
 
-        TermTipModal .bodyItem {
+        ErrorModal #body {
             width: 100%;
             padding: 0 1;
         }
 
-        TermTipModal #buttonbar {
+        ErrorModal #buttonbar {
             width: 60%;
             max-width: 60;
             height: auto;
@@ -42,12 +44,12 @@ class TermTipModal(ModalScreen):
             background: $foreground 15%;
         }
 
-        TermTipModal #close {
+        ErrorModal #close {
             color: white;
             border: none;
             background: red 15%;
         }
-        TermTipModal #close:hover {
+        ErrorModal #close:hover {
             color: white;
             background: red 30%;
         }
@@ -58,20 +60,18 @@ class TermTipModal(ModalScreen):
         ('enter', 'closeEnter', 'Close'),
     ]
 
-    title: var[str] = var("")
-    bodyItems: var[Collection[RenderableType]] = var(tuple())
+    error: var[Exception | None] = var(None)
 
-    def __init__(self, term: str = "", bodyItems: Collection[RenderableType] = tuple(), *, name: str | None = None, id: str | None = None, classes: str | None = None):
+    def __init__(self, error: Exception, *, name: str | None = None, id: str | None = None, classes: str | None = None):
         super().__init__(name = name, id = id, classes = classes)
-        self.title = f"[#b0b0b0]--=[/#b0b0b0]  {term}  [#b0b0b0]=--[/#b0b0b0]"
-        self.bodyItems = bodyItems
+        self.error = error
 
     def compose(self):
+        assert self.error is not None
+        renderedError = TextRenderer().renderException(self.error, withErrorHeader = False)
         with VerticalScroll(id = 'content'):
-            yield Label(self.title, id = 'title')
-            for bodyItem in self.bodyItems:
-                yield Label(bodyItem, classes = 'bodyItem')
-                yield Label("", classes = 'bodyItem')
+            yield Label("[red]Error![/red]", id = 'title')
+            yield Label(renderedError, id = 'body')
         with Horizontal(id = 'buttonbar'):
             yield Button("Close", id = 'close')
         yield Footer()

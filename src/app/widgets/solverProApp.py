@@ -10,6 +10,7 @@ from textual.widgets import TextLog, Input, Button, Label
 from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, Command
 from src.app.widgets.appHeader import AppHeader
+from src.app.widgets.errorModal import ErrorModal
 from src.app.widgets.termTipModal import TermTipModal
 from src.app.widgets.dictionaryScreen import DictionaryScreen
 from src.app.widgets.historyScreen import HistoryScreen
@@ -177,25 +178,17 @@ class SolverProApp(App):
         ))
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        ## TODO: wrap in try-except and do the same stuff as a regular command
-        ##       (will probably need to refactor MainScreen a bit)
-        result = self.driver.replaceRelation(oldRelation, newRelationCommand)
-        
-        # DEBUG
-        assert self.mainScreen is not None
-        self.mainScreen.query_one(TextLog).write("TEST -- REPLACE")
+        try:
+            result = self.driver.replaceRelation(oldRelation, newRelationCommand)
 
-        if result is not None:
             ## TODO: write an info message about replacement
             (relation, isRedundant) = result.data
             assert type(relation) is Relation
             return relation
-        else:
-            ## TODO: write an actually helpful error
-            # DEBUG
-            self.mainScreen.query_one(TextLog).write("ERROR")
+        except Exception as exception:
+            # TODO: write error to console as well
+            self.app.push_screen(ErrorModal(exception))
             return None
-
 
     def deleteRelation(self, relation: Relation):
         self.driver.deleteRelation(relation)

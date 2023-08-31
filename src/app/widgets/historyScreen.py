@@ -192,10 +192,9 @@ class RelationEditRow(Widget):
         
         input = self.query_one(Input)
         label = self.query_one(DynamicLabel)
-        self.relation = self.app.replaceRelation(self.relation, input.value)
-        errorProcessingRelation = self.relation is None
-        if errorProcessingRelation:
-            pass ## TODO: display an alert indicating the error?
-        else:
+        newRelation = self.app.replaceRelation(self.relation, input.value)
+        noErrorsHappened = newRelation is not None
+        if noErrorsHappened:
+            self.relation = newRelation
             label.data = self.relationStr
             self.exitEditMode()

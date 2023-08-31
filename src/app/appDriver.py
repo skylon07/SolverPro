@@ -3,7 +3,7 @@ from typing import Iterable, Collection
 import sympy
 
 from src.common.functions import surroundJoin, first
-from src.common.exceptions import TracebackException
+from src.common.exceptions import TracebackException, MultilineException
 from src.algebrasolver.solver import AlgebraSolver, Relation
 from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
 from src.parsing.parser import CommandParser, Command, CommandType, isExpressionListSymbol
@@ -35,14 +35,17 @@ class AppDriver:
         self.validateSingleLine(newRelationCommand)
         # TODO: this would be a good use case for transactional solver stuff when that's implemented
         self._solver.popRelation(oldRelation)
-        result = first(self.processCommandLines(newRelationCommand), None)
-        if result is None or result.type is not Command.RECORD_RELATION:
+        try:
+            result = first(self.processCommandLines(newRelationCommand), None)
+            if result is None or result.type is not Command.RECORD_RELATION:
+                raise NotARelationException(oldRelation, newRelationCommand)
+            else:
+                (relation, isRedundant) = result.data
+                assert type(relation) is Relation
+                return result
+        except Exception as exception:
             self._solver.recordRelation(oldRelation)
-            return None
-        else:
-            (relation, isRedundant) = result.data
-            assert type(relation) is Relation
-            return result
+            raise exception
 
     def _processCommand(self, command: Command, tokens: tuple[LexerToken, ...]):
         # the paradigm here: `command` is something that needs to happen, the `result`
@@ -105,3 +108,15 @@ class UndefinedIdentifiersException(TracebackException):
             tokens,
             badTokenIdxs
         )
+
+
+class NotARelationException(MultilineException):
+    def __init__(self, oldRelation: Relation, nonRelationStr: str | None):
+        if nonRelationStr is None or nonRelationStr == "":
+            nonRelationStr = "(empty input)"
+        super().__init__((
+            "Cannot replace relation",
+            f"{oldRelation.leftExpr} = {oldRelation.rightExpr}",
+            "with non-relation",
+            nonRelationStr,
+        ))

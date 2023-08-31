@@ -39,7 +39,7 @@ class TextRenderer:
         )
         return self._renderLines(joinedLines)
 
-    def renderException(self, exception: Exception):
+    def renderException(self, exception: Exception, withErrorHeader: bool = True):
         if isinstance(exception, TracebackException):
             assert len([
                 eolToken
@@ -57,14 +57,14 @@ class TextRenderer:
             joinedLines = self._prefixAndJoinLinesForException((
                 f"[white]{exprLine}[/white]",
                 exception.message,
-            ), exception)
+            ), exception, withErrorHeader)
             return self._renderLines(f"[#b0b0b0]{joinedLines}[/#b0b0b0]")
         
         elif isinstance(exception, MultilineException):
             joinedLines = self._prefixAndJoinLinesForException((
                 self._correctSyntaxes(line)
                 for line in exception.messageLines
-            ), exception)
+            ), exception, withErrorHeader)
             return self._renderLines(f"[#b0b0b0]{joinedLines}[/#b0b0b0]")
         
         elif isinstance(exception, HandledException):
@@ -74,22 +74,22 @@ class TextRenderer:
                 "[magenta]This error is missing a rendering rule, and the message above was generated automatically.",
                 "If you see this, please submit an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
                 "with an explanation of how you got this message to show up.[/magenta]",
-            ), exception)
+            ), exception, withErrorHeader)
             return self._renderLines(f"[#b0b0b0]{joinedLines}[/#b0b0b0]")
         
         else:
             joinedLines = self._prefixAndJoinLinesForException((
                 f"[bold red]{type(exception).__name__}:[/bold red] [red]{str(exception)}[/red]",
-            ), exception)
+            ), exception, withErrorHeader)
             return self._renderLines(joinedLines)
 
-    def _prefixAndJoinLinesForException(self, lines: Iterable[FormattedStr], exception: Exception):
+    def _prefixAndJoinLinesForException(self, lines: Iterable[FormattedStr], exception: Exception, renderErrorHeader: bool):
         isHandledException = isinstance(exception, HandledException)
         if isHandledException:
-            return self._prefixAndJoinLines((
-                "[red]Error![/red]",
-                *lines,
-            ))
+            lines = list(lines)
+            if renderErrorHeader:
+                lines.insert(0, "[red]Error![/red]")
+            return self._prefixAndJoinLines(lines)
         else:
             return self._prefixAndJoinLines((
                 "[magenta]An unexpected error occurred![/magenta]",
