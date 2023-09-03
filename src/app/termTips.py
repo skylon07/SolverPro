@@ -27,14 +27,17 @@ class TermTips:
                     "A word or other group of letters/numbers acting as a label to some value.",
                     
                     # TODO: edit this when aliasing is implemented
-                    "While numbers are allowed in identifier names, the identifier must start with a " \
-                    "non-number character. The only \"identifiers\" currently implemented by " \
-                    "Solver Pro are the variables contained in expressions and relations.",
+                    "The only \"identifiers\" currently implemented by " \
+                    "Solver Pro are the variables contained in expressions and relations." \
+                    "Identifiers consist of letters and numbers (but no spaces -- " \
+                    "use underscores), with at least one letter present. Unlike most " \
+                    "other programs, Solver Pro permits a number to start an identifier " \
+                    "name, as long as at least one letter appears in the name later.",
 
                     # TODO: when colors are implemented, make sure to change these to the right ones
-                    "Identifiers: [white]a  my_var  train2Car3[/white]",
+                    "Identifiers: [white]a  my_var  train2Car3  3rdBox[/white]",
 
-                    "Not Identifiers: [white]1.5  3rdBox  +  ()[/white]",
+                    "Not Identifiers: [white]345  1.5  +  ()[/white]",
                 )
             ),
             'integer': TermTip(
