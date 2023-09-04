@@ -6,7 +6,7 @@ from textual.app import App
 from textual.reactive import var
 from textual.screen import Screen
 from textual.containers import Horizontal, Vertical
-from textual.widgets import TextLog, Button, Label
+from textual.widgets import RichLog, Button, Label
 
 from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, Command
@@ -25,7 +25,7 @@ class MainScreen(Screen):
     DEFAULT_CSS = f"""
         MainScreen Input {{
             border: tall {Colors.borderPlain.hex};
-            background: {Colors.fillPlain.hex};
+
         }}
         MainScreen Input:focus {{
             border: tall {Colors.borderFocus.hex};
@@ -75,7 +75,7 @@ class MainScreen(Screen):
         yield AppHeader()
         with Horizontal(id = 'sectionsContainer'):
             with Vertical(id = 'leftSection'):
-                yield TextLog()
+                yield RichLog()
                 yield MainInput(placeholder = " < Command >")
             with Vertical(id = 'rightSection'):
                 yield Label(classes = 'spacer')
@@ -142,22 +142,22 @@ class MainScreen(Screen):
         assert type(self.app) is SolverProApp
         renderer = self.app.textRenderer
 
-        textLog = self.query_one(TextLog)
+        richLog = self.query_one(RichLog)
         if commandStr != "":
-            textLog.write(renderer.render(
+            richLog.write(renderer.render(
                 renderer.formatInputLog(
                     commandStr,
                     commandSucceeded,
                     highlightSyntax = highlightSyntax,
                 ),
             ))
-        textLog.write(renderer.render(formattedStr, indent = True))
+        richLog.write(renderer.render(formattedStr, indent = True))
         self.writeSpacerToLogger()
 
     def writeSpacerToLogger(self):
-        textLog = self.query_one(TextLog)
+        richLog = self.query_one(RichLog)
         spaceForNextCommand = " "
-        textLog.write(spaceForNextCommand)
+        richLog.write(spaceForNextCommand)
 
     @on(Button.Pressed, '#dictionaryButton')
     def openDictionaryScreen(self):
