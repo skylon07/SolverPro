@@ -6,6 +6,7 @@ import sympy
 from src.common.functions import first, surroundJoin
 from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
+from src.app.widgets.colors import Colors
 from src.parsing.lexer import CommandLexer
 from src.parsing.parser import CommandParser, isExpressionListSymbol, isNonSymbolicValue
 
@@ -613,11 +614,11 @@ class BadRelationException(MultilineException, ABC):
         rightExprFormatted = self.substitutePoorSymbols(contradictingRelation.rightExpr, poorSymbolValues)
         super().__init__((
             message,
-            f"[red]{leftExprFormatted} = {rightExprFormatted}[/red]",
+            f"[{Colors.textRed.hex}]{leftExprFormatted} = {rightExprFormatted}[/]",
             *[
-                f"[yellow]({poorSymbol} = {first(valueSet)})[/yellow]" if valueSet is not None and len(valueSet) == 1
-                    else f"[yellow]({poorSymbol} = {valueSet})[/yellow]" if valueSet is not None
-                    else f"[yellow]({poorSymbol}: unsolved)[/yellow]"
+                f"[{Colors.textYellow.hex}]({poorSymbol} = {first(valueSet)})[/]" if valueSet is not None and len(valueSet) == 1
+                    else f"[{Colors.textYellow.hex}]({poorSymbol} = {valueSet})[/]" if valueSet is not None
+                    else f"[{Colors.textYellow.hex}]({poorSymbol}: unsolved)[/]"
                 for (poorSymbol, valueSet) in poorSymbolValues.items()
             ]
         ))
@@ -625,14 +626,14 @@ class BadRelationException(MultilineException, ABC):
     def formatPoorSymbols(self, poorSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]):
         return surroundJoin(
             (str(symbol) for symbol in poorSymbolValues.keys()),
-            "[yellow]",
-            "[/yellow]",
+            f"[{Colors.textYellow.hex}]",
+            f"[/{Colors.textYellow.hex}]",
             ", "
         )
     
     def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> sympy.Basic:
         return expr.subs({
-            poorSymbol: sympy.Symbol(f"[yellow]{poorSymbol}[/yellow]")
+            poorSymbol: sympy.Symbol(f"[{Colors.textYellow.hex}]{poorSymbol}[/]")
             for poorSymbol in poorSymbolValues.keys()
         })
 

@@ -9,50 +9,51 @@ from textual.widgets import Footer
 from rich.console import RenderableType
 
 from src.app.textRenderer import TextRenderer
+from src.app.widgets.colors import Colors
 
 
 class ErrorModal(ModalScreen):
-    DEFAULT_CSS = """
-        ErrorModal {
+    DEFAULT_CSS = f"""
+        ErrorModal {{
             align: center middle;
-        }
+        }}
         
-        ErrorModal #content {
+        ErrorModal #content {{
             width: 60%;
             max-width: 60;
             height: 40%;
             max-height: 14;
-            background: $foreground 15%;
-        }
+            background: {Colors.fillPlain.hex};
+        }}
         
-        ErrorModal #title {
+        ErrorModal #title {{
             width: 100%;
             padding: 1 0 1 0;
             content-align: center middle;
-        }
+        }}
 
-        ErrorModal #body {
+        ErrorModal #body {{
             width: 100%;
             padding: 0 1;
-        }
+        }}
 
-        ErrorModal #buttonbar {
+        ErrorModal #buttonbar {{
             width: 60%;
             max-width: 60;
             height: auto;
             align: right bottom;
-            background: $foreground 15%;
-        }
+            background: {Colors.fillPlain.hex};
+        }}
 
-        ErrorModal #close {
-            color: white;
+        ErrorModal #close {{
+            color: {Colors.textPlain.hex};
             border: none;
-            background: red 15%;
-        }
-        ErrorModal #close:hover {
-            color: white;
-            background: red 30%;
-        }
+            background: {Colors.fillRed.hex};
+        }}
+        ErrorModal #close:hover {{
+            color: {Colors.textPlain.hex};
+            background: {Colors.textRed.hex};
+        }}
     """
 
     BINDINGS = [
@@ -70,7 +71,7 @@ class ErrorModal(ModalScreen):
         assert self.error is not None
         renderedError = TextRenderer().renderException(self.error, withErrorHeader = False)
         with VerticalScroll(id = 'content'):
-            yield Label("[red]Error![/red]", id = 'title')
+            yield Label(f"[{Colors.textRed.hex}]Error![/]", id = 'title')
             yield Label(renderedError, id = 'body')
         with Horizontal(id = 'buttonbar'):
             yield Button("Close", id = 'close')

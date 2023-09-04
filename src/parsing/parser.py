@@ -2,6 +2,7 @@ import sympy
 
 from src.common.types import Enum, EnumString
 from src.common.exceptions import TracebackException
+from src.app.widgets.colors import Colors
 from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 
@@ -363,7 +364,7 @@ class _CommandParserSequencer:
     
 
 class CommandType(EnumString):
-    pass
+    pass # intentionally left blank
 
 
 class Command(Enum):
@@ -398,13 +399,13 @@ class ParseException(TracebackException):
     def __init__(self, expectedTypes: tuple[LexerTokenType, ...], tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
         unexpectedToken = tokens[unexpectedTokenIdx]
 
-        expectedTypesStr = " or ".join(f"[green]__{tokenType}__[/green]".lower() for tokenType in expectedTypes)
+        expectedTypesStr = " or ".join(f"[{Colors.textGreen.hex}][@termtip]{tokenType}[/@termtip][/]".lower() for tokenType in expectedTypes)
         firstLetterIsVowel = str(expectedTypes[0])[0].lower() in "aeiou"
         gramaticalN = "n" if firstLetterIsVowel else ""
-        fullMessage = f"Unexpected [red]{unexpectedToken.match}[/red]; expected a{gramaticalN} {expectedTypesStr}"
+        fullMessage = f"Unexpected [{Colors.textRed.hex}]{unexpectedToken.match}[/]; expected a{gramaticalN} {expectedTypesStr}"
         super().__init__(fullMessage, tokens, [unexpectedTokenIdx], True)
 
 
 class EolException(TracebackException):
     def __init__(self, tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
-        super().__init__("Unexpected [red]{end of line}[/red]", tokens, [unexpectedTokenIdx], True)
+        super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [unexpectedTokenIdx], True)

@@ -4,13 +4,14 @@ from rich.console import RenderableType
 
 from src.common.types import FormattedStr
 from src.app.textRenderer import TextRenderer
+from src.app.widgets.colors import Colors
 
 
 class TermTip:
     def __init__(self, term: FormattedStr, definitionLines: Iterable[FormattedStr]):
         self.term = term
         self.definitionLines = tuple(
-            f"[#b0b0b0]{line}[/#b0b0b0]" if type(line) is str
+            f"[{Colors.textMuted.hex}]{line}[/]" if type(line) is str
                 else line
             for line in definitionLines
         )
@@ -27,14 +28,16 @@ class TermTips:
                     "A word or other group of letters/numbers acting as a label to some value.",
                     
                     # TODO: edit this when aliasing is implemented
-                    "While numbers are allowed in identifier names, the identifier must start with a " \
-                    "non-number character. The only \"identifiers\" currently implemented by " \
-                    "Solver Pro are the variables contained in expressions and relations.",
+                    "The only identifiers currently implemented by Solver Pro are " \
+                    "the variables contained in expressions and relations. Identifiers " \
+                    "consist of letters and numbers (but no spaces -- use underscores " \
+                    "instead), with at least one letter present. Unlike most " \
+                    "other programs, Solver Pro permits a number to start an identifier " \
+                    "name, as long as at least one letter appears in the name later.",
 
-                    # TODO: when colors are implemented, make sure to change these to the right ones
-                    "Identifiers: [white]a  my_var  train2Car3[/white]",
+                    "Identifier:     " + self._renderer.formatLexerSyntax("a  my_var  train2Car3  3rdBox"),
 
-                    "Not Identifiers: [white]1.5  3rdBox  +  ()[/white]",
+                    "Non-identifier: " + self._renderer.formatLexerSyntax("345  1.5  +  ()"),
                 )
             ),
             'integer': TermTip(
@@ -42,8 +45,12 @@ class TermTips:
                 (
                     "A whole number without a decimal or exponent part.",
 
-                    "Of all the kinds of numbers Solver Pro supports, integers are the most" \
-                    "precise. Use them as much as possible.",
+                    "Of all the kinds of numbers Solver Pro supports, integers are the " \
+                    "most precise. Use them over other kinds of numbers if possible.",
+
+                    "Integer:     " + self._renderer.formatLexerSyntax("4  15  500_000_000"),
+
+                    "Non-integer: " + self._renderer.formatLexerSyntax("4.5  2/5  6.21e-5"),
                 )
             ),
             'float': TermTip(
@@ -53,8 +60,14 @@ class TermTips:
 
                     "Floats are inherently inaccurate according to their precision. " \
                     "While they are handy for expressing very small/large values, they can " \
-                    "theoretically lead to inaccurate calculations. Integers and integer-rationals " \
-                    "should be preferred if at all possible.",
+                    "theoretically lead to inaccurate calculations. Integers and " \
+                    "integer-rationals should be preferred if at all possible.",
+
+                    "Decimal notation:    " + self._renderer.formatLexerSyntax("1.5  4.  16.0  .8"),
+
+                    "Scientific notation: " + self._renderer.formatLexerSyntax("3e4  .2e-3  81.7E+2"),
+
+                    "Non-floating-point:  " + self._renderer.formatLexerSyntax("56  14/4")
                 )
             ),
             'rational': TermTip(
@@ -63,24 +76,62 @@ class TermTips:
                     "Two numbers forming a ratio, one divided by another.",
 
                     "Integer-rationals (ratios formed by two integers) are the most robust " \
-                    "and will provide the highest accuracy over many calculations. Prefer integer-rationals " \
-                    "over alternatives if possible.",
+                    "and will provide the highest accuracy over many calculations. Prefer " \
+                    "integer-rationals over alternatives if possible.",
+
+                    "Integer ratio (precise): " + self._renderer.formatLexerSyntax("1/4  12/6"),
+
+                    "Float value (imprecise): " + self._renderer.formatLexerSyntax("0.25  2.0"),
                 ),
             ),
-            'paren_open': TermTip(
-                "Parenthesis (Opening)",
+            'end of line': 'eol',
+            'eol': TermTip(
+                "End of Line",
                 (
-                    "The opening parenthesis \"(\" of a pair of parentheses.",
+                    "An invisible delimiter that indicates the end of a line of input.",
 
+                    "If an end of line is \"unexpected\", that indicates an incomplete command " \
+                    "was entered."
+                )
+            ),
+            'paren_open': 'parentheses',
+            'paren_close': 'parentheses',
+            'parentheses': TermTip(
+                "Punctuation: Parentheses",
+                (
+                    "Round braces paired together to denote a higher-precedence expression.",
+
+                    "Parentheses must always come in pairs, with an expression enclosed " \
+                    "between them. For example:",
+                    
+                    self._renderer.formatLexerSyntax("a*(b + c)/d"),
+                    
+                    "In the expression above, the sub-expression " + \
+                    self._renderer.formatLexerSyntax("b + c") + " " + \
+                    "would be evaluated first, since it is given priority over both " + \
+                    self._renderer.formatLexerSyntax("a*...") + " " + \
+                    "and " + \
+                    self._renderer.formatLexerSyntax(".../d"),
                     # TODO: distinguish from brackets and braces when they are implemented
                 )
             ),
-            'paren_close': TermTip(
-                "Parenthesis (Closing)",
+            'brace_open': 'braces',
+            'brace_close': 'braces',
+            'braces': TermTip(
+                "Punctuation: Braces",
                 (
-                    "The closing parenthesis \")\" of a pair of parentheses.",
+                    "Curly braces paired together to denote a set of expressions/relations.",
 
-                    # TODO: distinguish from brackets and braces when they are implemented
+                    # TODO: edit this when objects are implemented
+                    "Currently, braces are only used when evaluating multiple values " \
+                    "in-place inside the same expression/relation. This is primarily " \
+                    "useful when a variable should be related to several values. At " \
+                    "the moment, only numerics (that is integers, floats, and rationals) " \
+                    "are permitted inside of a set of expressions."
+
+                    "Expression set (valid):   " + self._renderer.formatLexerSyntax("a = {-3, 3}   1 + {-5, 5}*2"),
+
+                    "Expression set (invalid): " + self._renderer.formatLexerSyntax("a = {4, b + 3}   1 + {x, y}^2"),
                 )
             ),
             'equals': TermTip(
@@ -96,13 +147,9 @@ class TermTips:
                 (
                     "A binary/unary operator signifying either the addition of two values or single positive values.",
 
-                    "Binary addition:",
+                    "Binary addition:  " + self._renderer.formatLexerSyntax("a + b"),
 
-                    self._renderer.formatInputLog("a + b", True),
-
-                    "Unary positivity:",
-
-                    self._renderer.formatInputLog("+a", True),
+                    "Unary positivity: " + self._renderer.formatLexerSyntax("+a"),
                 )
             ),
             'dash': TermTip(
@@ -110,13 +157,9 @@ class TermTips:
                 (
                     "A binary/unary operator signifying either the subtraction of two values or single negative values.",
 
-                    "Binary subtraction:",
+                    "Binary subtraction: " + self._renderer.formatLexerSyntax("a - b"),
 
-                    self._renderer.formatInputLog("a - b", True),
-
-                    "Unary negation:",
-
-                    self._renderer.formatInputLog("-a", True),
+                    "Unary negation:     " + self._renderer.formatLexerSyntax("-a"),
                 )
             ),
             'star': TermTip(
@@ -124,9 +167,7 @@ class TermTips:
                 (
                     "A binary operator signifying the multiplication of two values.",
 
-                    "Multiplication:",
-
-                    self._renderer.formatInputLog("a*b", True),
+                    "Multiplication: " + self._renderer.formatLexerSyntax("a*b"),
                 )
             ),
             'slash': TermTip(
@@ -137,9 +178,7 @@ class TermTips:
                     "Dividing integers will be treated as a true ratio. Dividing floats will " \
                     "calculate a new (possibly slightly inaccurate) floating point value.",
 
-                    "Division:",
-
-                    self._renderer.formatInputLog("a/b", True),
+                    "Division: " + self._renderer.formatLexerSyntax("a/b"),
                 )
             ),
             'carrot': TermTip(
@@ -150,19 +189,7 @@ class TermTips:
                     "Prefer integer-ratios when performing roots. Using floating point values " \
                     "as the exponent will yield an approximate floating point result.",
 
-                    "Exponentiation:",
-
-                    self._renderer.formatInputLog("a^b", True),
-                )
-            ),
-            'end of line': 'eol',
-            'eol': TermTip(
-                "End of Line",
-                (
-                    "An invisible delimiter that indicates the end of a line of input.",
-
-                    "If an end of line is \"unexpected\", that indicates an incomplete command " \
-                    "was entered."
+                    "Exponentiation: " + self._renderer.formatInputLog("a^b", True),
                 )
             ),
         }
@@ -175,8 +202,8 @@ class TermTips:
                 TermTip(
                     "Unknown Term",
                     (
-                        f"The requested term [red]{term}[/red] is unavailable.",
-                        f"Please report this as an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
+                        f"The requested term [{Colors.textRed.hex}]{term}[/] is unavailable.",
+                        f"Please report this as an issue at [{Colors.textBlue.hex} underline]https://github.com/skylon07/SolverPro/issues/new[/]",
                     )
                 )
             )

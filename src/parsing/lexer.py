@@ -4,7 +4,7 @@ from src.common.types import Enum, EnumString
 
 
 class LexerTokenType(EnumString):
-    pass
+    pass # intentionally left blank
 
 
 class LexerTokenTypes(Enum):
@@ -101,13 +101,13 @@ class CommandLexer:
 
             # lower priority recognizers
             LexerRecognizer(
-                r"[_a-zA-Z][_a-zA-Z0-9]*",
-                LexerTokenTypes.IDENTIFIER
-            ), # yields to other keywords
-            LexerRecognizer(
-                r"(?!_)[0-9_]*(?<!_)[.]?(?!_)[0-9_]*(?<!_)([eE][+-]?(?!_)[0-9_]+(?<!_))?",
+                r"([0-9][0-9_]*(?<!_)[.]?(?!_)[0-9_]*|[0-9_]*(?<!_)[.]?(?!_)[0-9][0-9_]*)(?<!_)([eE][+-]?(?!_)[0-9_]+(?<!_))?",
                 LexerTokenTypes.FLOAT
             ), # yields to INTEGER or PERIOD
+            LexerRecognizer(
+                r"[_a-zA-Z0-9]+",
+                LexerTokenTypes.IDENTIFIER
+            ), # yields to other keywords and INTEGER/FLOAT
         )
 
     def findTokens(self, data: str, withEol = True):
