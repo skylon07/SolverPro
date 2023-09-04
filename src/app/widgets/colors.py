@@ -9,7 +9,7 @@ class Colors:
     fillRed     = Color.parse("#55323c")
     fillBright  = Color.parse("#a0a0a0")
 
-    textPlain   = Color.parse("#e0e0e0")
+    textPlain   = Color.parse("#e6e6e6")
     textMuted   = Color.parse("#b0b0b0")
     textGreen   = Color.parse("#4db071")
     textRed     = Color.parse("#db6671")
