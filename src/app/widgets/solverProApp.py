@@ -1,6 +1,7 @@
 from threading import Timer
 
 from textual import on
+from textual.events import Key
 from textual.app import App
 from textual.reactive import var
 from textual.screen import Screen
@@ -75,7 +76,7 @@ class MainScreen(Screen):
         with Horizontal(id = 'sectionsContainer'):
             with Vertical(id = 'leftSection'):
                 yield TextLog()
-                yield ColoredInput(placeholder = " < Command >")
+                yield MainInput(placeholder = " < Command >")
             with Vertical(id = 'rightSection'):
                 yield Label(classes = 'spacer')
                 yield Button("Dictionary", id = 'dictionaryButton', classes = 'managerButton')
@@ -107,7 +108,7 @@ class MainScreen(Screen):
             # and the driver does not behave transactionally (an error on the
             # third of four lines still actually executes the first two)
             driver.validateSingleLine(commandStr)
-            result = first(driver.processCommandLines(commandStr), None)
+            result = first(tuple(driver.processCommandLines(commandStr)), None)
             assert result is not None
             if result.type is Command.EMPTY:
                 self.writeSpacerToLogger()
@@ -245,3 +246,42 @@ class SolverProApp(App):
                 highlightSyntax = False,
             )
             return None
+        
+
+class MainInput(ColoredInput):
+    isLoadingHistory: var[bool] = var(False)
+
+    def handle_key(self, event: Key):
+        if event.key == "up":
+            self.loadPreviousHistory()
+        elif event.key == "down":
+            self.loadNextHistory()
+        return super().handle_key(event)
+    
+    @on(ColoredInput.Changed)
+    def recordHistorySearchTerm(self):
+        if not self.isLoadingHistory:
+            assert type(self.app) is SolverProApp
+            self.app.driver.recordHistorySearchTerm(self.value)
+        else:
+            self.isLoadingHistory = False
+    
+    def loadPreviousHistory(self):
+        assert type(self.app) is SolverProApp
+        prevHistory = self.app.driver.loadPreviousHistory()
+        if prevHistory is not None:
+            self.isLoadingHistory = True
+            self.value = prevHistory
+            self.cursor_position = len(prevHistory)
+
+    def loadNextHistory(self):
+        assert type(self.app) is SolverProApp
+        nextHistory = self.app.driver.loadNextHistory()
+        if nextHistory is not None:
+            self.isLoadingHistory = True
+            self.value = nextHistory
+            self.cursor_position = len(nextHistory)
+
+    def getInputHistory(self):
+        assert type(self.app) is SolverProApp
+        return self.app.driver.getInputHistory()
