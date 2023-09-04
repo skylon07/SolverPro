@@ -1,6 +1,6 @@
 # Solver Pro
 
-A simple calculator/CAS application to help you with organizing and solving your algebraic equations. Easy (hopefully) to install and use out-of-the-box. You don't need to be a math pro to do it with Solver Pro!
+A simple calculator/CAS application to help you with organizing and solving your algebraic equations, with a feel inspired by `ipython`. Easy to install and use out-of-the-box. You don't need to be a computer pro to do it with Solver Pro!
 
 
 ## Installation
