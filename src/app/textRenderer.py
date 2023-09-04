@@ -3,6 +3,7 @@ from typing import Iterable
 
 import sympy
 from rich.markup import render as renderMarkup
+from rich.text import Text
 
 from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
@@ -23,7 +24,6 @@ class TextRenderer:
         return self._formatLines([marker + f" [{Colors.textPlain.hex}]{inputStr}[/]"])
     
     def formatLexerSyntax(self, text: str):
-        text = self._sanitizeInput(text)
         tokenFormats = {
             LexerTokenTypes.IDENTIFIER:     Colors.identifier,
             LexerTokenTypes.INTEGER:        Colors.number,
@@ -47,7 +47,7 @@ class TextRenderer:
             for (tokenIdx, token) in enumerate(tokens)
             if token.type in tokenFormats
         }
-        return f"[{Colors.textPlain.hex}]{self._formatTokens(tokens, replacements)}[/]"
+        return self._sanitizeInput(f"[{Colors.textPlain.hex}]{self._formatTokens(tokens, replacements)}[/]")
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False):
         relationStr = self._correctExprSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
@@ -143,7 +143,17 @@ class TextRenderer:
             indentSpaces = "    "
             formattedStr = indentSpaces + re.compile("\n").sub(f"\n{indentSpaces}", formattedStr)
         finalizedStr = self._injectTermLinks(formattedStr)
-        return renderMarkup(finalizedStr)
+        rendering = renderMarkup(finalizedStr)
+        return Text(
+            self._restoreSanitizedChars(str(rendering)),
+            style       = rendering.style,
+            justify     = rendering.justify,
+            overflow    = rendering.overflow,
+            no_wrap     = rendering.no_wrap,
+            end         = rendering.end,
+            tab_size    = rendering.tab_size,
+            spans       = rendering.spans
+        )
         
     def _formatLines(self, lines: Iterable[FormattedStr]):
         return "\n".join(lines)
@@ -154,7 +164,7 @@ class TextRenderer:
                 f"[bold {Colors.textRed.hex}]Error![/]",
                 *lines,
             ]
-        return self._formatLines(lines)
+        return self._sanitizeInput(self._formatLines(lines))
     
     def _formatTokens(self, tokens: Iterable[LexerToken], formattingMap: dict[int, str]):
         formattedStr = ""
@@ -182,7 +192,10 @@ class TextRenderer:
         return exprStr
     
     def _sanitizeInput(self, linesStr: FormattedStr) -> FormattedStr:
-        return linesStr.replace("\\", "�")
+        return linesStr.replace("\\", "◊")
+    
+    def _restoreSanitizedChars(self, linesStr: FormattedStr):
+        return linesStr.replace("◊", "\\")
     
     def _injectTermLinks(self, text: FormattedStr) -> FormattedStr:
         # done in reverse to avoid keeping track of index offsets after replacement
