@@ -171,9 +171,10 @@ class NotARelationException(MultilineException):
     def __init__(self, oldRelation: Relation, nonRelationStr: str | None):
         if nonRelationStr is None or nonRelationStr == "":
             nonRelationStr = "(empty input)"
+        renderer = TextRenderer()
         super().__init__((
             "Cannot replace relation",
-            TextRenderer().formatRelation(oldRelation),
+            renderer.formatRelation(oldRelation, highlightSyntax = True),
             "with non-relation",
-            nonRelationStr,
+            renderer.formatLexerSyntax(nonRelationStr),
         ))

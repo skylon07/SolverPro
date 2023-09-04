@@ -118,9 +118,7 @@ class MainScreen(Screen):
                 self.writeToLogger(
                     commandStr,
                     True,
-                    renderer.formatLexerSyntax(
-                        renderer.formatRelation(relation, warnRedundant = isRedundant)
-                    ),
+                    renderer.formatRelation(relation, warnRedundant = isRedundant, highlightSyntax = True)
                 )
 
             elif result.type is Command.EVALUATE_EXPRESSION:
@@ -128,9 +126,7 @@ class MainScreen(Screen):
                 self.writeToLogger(
                     commandStr,
                     True,
-                    renderer.formatLexerSyntax(
-                        renderer.formatExpressions(exprs)
-                    ),
+                    renderer.formatExpressions(exprs, highlightSyntax = True)
                 )
 
             else:
@@ -207,16 +203,16 @@ class SolverProApp(App):
         ))
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        modifiedRelationStr = f"<replace {self.textRenderer.formatLexerSyntax(self.textRenderer.formatRelation(oldRelation))}>"
+        modifiedRelationStr = f"<replace {self.textRenderer.formatRelation(oldRelation, highlightSyntax = True)}>"
         try:
             result = self.driver.replaceRelation(oldRelation, newRelationCommand)
             (relation, isRedundant) = result.data
             self.mainScreen.writeToLogger(
                 modifiedRelationStr,
                 True,
-                self.textRenderer.formatRelationReplaced(oldRelation, relation, warnRedundant = isRedundant),
+                self.textRenderer.formatRelationReplaced(oldRelation, relation, warnRedundant = isRedundant, highlightSyntax = True),
                 highlightSyntax = False,
-                )
+            )
             assert type(relation) is Relation
             return relation
         except Exception as exception:

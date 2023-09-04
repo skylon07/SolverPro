@@ -49,32 +49,36 @@ class TextRenderer:
         }
         return self._sanitizeInput(f"[{Colors.textPlain.hex}]{self._formatTokens(tokens, replacements)}[/]")
 
-    def formatRelation(self, relation: Relation, *, warnRedundant: bool = False):
+    def formatRelation(self, relation: Relation, *, warnRedundant: bool = False, highlightSyntax: bool = False):
         relationStr = self._correctExprSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
+        if highlightSyntax:
+            relationStr = self.formatLexerSyntax(relationStr)
         linesList = [relationStr]
         if warnRedundant:
             linesList.append(f"[{Colors.textYellow.hex}]Relation is redundant and provided no new inferences[/]")
         return self._formatLines(linesList)
     
-    def formatRelationReplaced(self, oldRelation: Relation, newRelation: Relation, *, warnRedundant: bool):
+    def formatRelationReplaced(self, oldRelation: Relation, newRelation: Relation, *, warnRedundant: bool, highlightSyntax: bool = False):
         return self._formatLines([
             f"[{Colors.textMuted.hex}]Info: Relation[/]",
-            self.formatRelation(oldRelation, warnRedundant = False),
+            self.formatRelation(oldRelation, warnRedundant = False, highlightSyntax = highlightSyntax),
             f"[{Colors.textMuted.hex}]was replaced by[/]",
-            self.formatRelation(newRelation, warnRedundant = warnRedundant),
+            self.formatRelation(newRelation, warnRedundant = warnRedundant, highlightSyntax = highlightSyntax),
         ])
     
-    def formatRelationDeleted(self, relation: Relation):
+    def formatRelationDeleted(self, relation: Relation, *, highlightSyntax: bool = False):
         return self._formatLines([
             f"[{Colors.textMuted.hex}]Info: Relation[/]",
-            self.formatRelation(relation, warnRedundant = False),
+            self.formatRelation(relation, warnRedundant = False, highlightSyntax = highlightSyntax),
             f"[{Colors.textMuted.hex}]was deleted[/]",
         ])
     
-    def formatExpressions(self, exprs: Iterable[sympy.Expr]):
+    def formatExpressions(self, exprs: Iterable[sympy.Expr], *, highlightSyntax: bool = False):
         return self._formatLines([
-            self._correctExprSyntaxes(str(expr))
+            self.formatLexerSyntax(exprStr) if highlightSyntax
+                else exprStr
             for expr in exprs
+            for exprStr in [self._correctExprSyntaxes(str(expr))]
         ])
     
     def formatException(self, exception: Exception, *, withErrorHeader: bool):
