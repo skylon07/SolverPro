@@ -180,7 +180,7 @@ class TextRenderer:
         return exprStr
     
     def _sanitizeInput(self, linesStr: FormattedStr) -> FormattedStr:
-        return linesStr.replace("\\", "�").replace("[", r"\[")
+        return linesStr.replace("\\", "�")
     
     def _injectTermLinks(self, text: FormattedStr) -> FormattedStr:
         # done in reverse to avoid keeping track of index offsets after replacement
