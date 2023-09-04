@@ -143,7 +143,7 @@ class RelationEditRow(Widget):
 
         with Horizontal(id = 'staticGroup'):
             with HorizontalScroll():
-                yield Label(renderer.formatLexerSyntax(self.relationStr))
+                yield Label(self.relationStr(True))
             yield Button("Edit", id = 'edit')
             yield Button("Delete", id = 'delete')
         with Horizontal(id = 'editGroup', classes = 'hidden'):
@@ -152,19 +152,18 @@ class RelationEditRow(Widget):
             yield Button("Cancel", id = 'cancel')
             yield Button("Save", id = 'save')
 
-    @property
-    def relationStr(self):
+    def relationStr(self, highlightSyntax: bool):
         assert self.relation is not None
         assert type(self.app) is lazyImportSolverProApp()
         renderer = self.app.textRenderer
-        return renderer.formatRelation(self.relation)
+        return renderer.formatRelation(self.relation, highlightSyntax = highlightSyntax)
     
     @on(Button.Pressed, '#edit')
     def enterEditMode(self):
         self.query_one('#staticGroup').add_class('hidden')
         self.query_one('#editGroup').remove_class('hidden')
         input = self.query_one(ColoredInput)
-        input.value = self.relationStr
+        input.value = self.relationStr(False)
         input.focus()
 
     @on(Button.Pressed, '#delete')
@@ -192,7 +191,7 @@ class RelationEditRow(Widget):
         noErrorsHappened = newRelation is not None
         if noErrorsHappened:
             self.relation = newRelation
-            label.update(self.relationStr)
+            label.update(self.relationStr(True))
             self.exitEditMode()
         else:
             input.focus()
