@@ -15,10 +15,11 @@ class TextRenderer:
     def __init__(self):
         self._lexer = CommandLexer()
     
-    def formatInputLog(self, inputStr: str, succeeded: bool):
+    def formatInputLog(self, inputStr: str, succeeded: bool, *, highlightSyntax: bool = True):
         marker = f"[{Colors.textGreen.hex}]✓[/]" if succeeded \
             else f"[{Colors.textRed.hex}]✕[/]"
-        inputStr = self.formatInputSyntax(inputStr)
+        if highlightSyntax:
+            inputStr = self.formatInputSyntax(inputStr)
         return self._formatLines([marker + f" [{Colors.textPlain.hex}]{inputStr}[/]"])
     
     def formatInputSyntax(self, inputStr: str):

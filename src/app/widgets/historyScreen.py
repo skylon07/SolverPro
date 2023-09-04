@@ -6,11 +6,12 @@ from textual.reactive import var
 from textual.screen import Screen
 from textual.containers import VerticalScroll, Horizontal, HorizontalScroll
 from textual.widget import Widget
-from textual.widgets import Button, Input, Label
+from textual.widgets import Button, Label
 
 from src.algebrasolver.solver import Relation
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
+from src.app.widgets.coloredInput import ColoredInput
 from src.common.functions import lazyImportSolverProApp
 
 
@@ -144,7 +145,7 @@ class RelationEditRow(Widget):
             yield Button("Delete", id = 'delete')
         with Horizontal(id = 'editGroup', classes = 'hidden'):
             with HorizontalScroll():
-                yield Input()
+                yield ColoredInput()
             yield Button("Cancel", id = 'cancel')
             yield Button("Save", id = 'save')
 
@@ -157,7 +158,7 @@ class RelationEditRow(Widget):
     def enterEditMode(self):
         self.query_one('#staticGroup').add_class('hidden')
         self.query_one('#editGroup').remove_class('hidden')
-        input = self.query_one(Input)
+        input = self.query_one(ColoredInput)
         input.value = self.relationStr
         input.focus()
 
@@ -174,13 +175,13 @@ class RelationEditRow(Widget):
         self.query_one('#staticGroup').remove_class('hidden')
         self.query_one('#editGroup').add_class('hidden')
 
-    @on(Input.Submitted)
+    @on(ColoredInput.Submitted)
     @on(Button.Pressed, '#save')
     def saveChanges(self):
         assert self.relation is not None
         assert type(self.app) is lazyImportSolverProApp()
         
-        input = self.query_one(Input)
+        input = self.query_one(ColoredInput)
         label = self.query_one(Label)
         newRelation = self.app.replaceRelation(self.relation, input.value)
         noErrorsHappened = newRelation is not None
@@ -195,14 +196,14 @@ class RelationEditRow(Widget):
     def flashError(self):
         self._clearFlash()
 
-        input = self.query_one(Input)
+        input = self.query_one(ColoredInput)
         input.add_class('errorFlash')
 
         self.flashTimer = Timer(0.7, self._clearFlash)
         self.flashTimer.start()
     
     def _clearFlash(self):
-        input = self.query_one(Input)
+        input = self.query_one(ColoredInput)
         input.remove_class('errorFlash')
         if self.flashTimer is not None:
             self.flashTimer.cancel()

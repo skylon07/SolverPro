@@ -129,13 +129,17 @@ class MainScreen(Screen):
         self.inputTimer = Timer(0.1, lambda: input.remove_class('highlighted'))
         self.inputTimer.start()
 
-    def writeToLogger(self, commandStr: str, commandSucceeded: bool, formattedStr: str):
+    def writeToLogger(self, commandStr: str, commandSucceeded: bool, formattedStr: str, *, highlightSyntax: bool = True):
         assert type(self.app) is SolverProApp
         renderer = self.app.textRenderer
 
         textLog = self.query_one(TextLog)
         if commandStr != "":
-            textLog.write(renderer.render(renderer.formatInputLog(commandStr, commandSucceeded)))
+            textLog.write(renderer.render(renderer.formatInputLog(
+                commandStr,
+                commandSucceeded,
+                highlightSyntax = highlightSyntax,
+            )))
         textLog.write(renderer.render(formattedStr, indent = True))
         self.writeSpacerToLogger()
 
@@ -188,22 +192,42 @@ class SolverProApp(App):
         ))
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        modifiedRelationStr = f"<replace {self.textRenderer.formatRelation(oldRelation)}>"
+        modifiedRelationStr = f"<replace {self.textRenderer.formatInputSyntax(self.textRenderer.formatRelation(oldRelation))}>"
         try:
             result = self.driver.replaceRelation(oldRelation, newRelationCommand)
             (relation, isRedundant) = result.data
-            self.mainScreen.writeToLogger(modifiedRelationStr, True, self.textRenderer.formatRelationReplaced(oldRelation, relation, warnRedundant = isRedundant))
+            self.mainScreen.writeToLogger(
+                modifiedRelationStr,
+                True,
+                self.textRenderer.formatRelationReplaced(oldRelation, relation, warnRedundant = isRedundant),
+                highlightSyntax = False,
+                )
             assert type(relation) is Relation
             return relation
         except Exception as exception:
-            self.mainScreen.writeToLogger(modifiedRelationStr, False, self.textRenderer.formatException(exception, withErrorHeader = True))
+            self.mainScreen.writeToLogger(
+                modifiedRelationStr,
+                False,
+                self.textRenderer.formatException(exception, withErrorHeader = True),
+                highlightSyntax = False,
+            )
             return None
 
     def deleteRelation(self, relation: Relation):
-        deletedRelationStr = f"<delete {self.textRenderer.formatRelation(relation)}>"
+        deletedRelationStr = f"<delete {self.textRenderer.formatInputSyntax(self.textRenderer.formatRelation(relation))}>"
         try:
             self.driver.deleteRelation(relation)
-            self.mainScreen.writeToLogger(deletedRelationStr, True, self.textRenderer.formatRelationDeleted(relation))
+            self.mainScreen.writeToLogger(
+                deletedRelationStr, 
+                True, 
+                self.textRenderer.formatRelationDeleted(relation),
+                highlightSyntax = False,
+            )
         except Exception as exception:
-            self.mainScreen.writeToLogger(deletedRelationStr, False, self.textRenderer.formatException(exception, withErrorHeader = True))
+            self.mainScreen.writeToLogger(
+                deletedRelationStr,
+                False,
+                self.textRenderer.formatException(exception, withErrorHeader = True),
+                highlightSyntax = False,
+            )
             return None
