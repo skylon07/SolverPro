@@ -408,4 +408,6 @@ class ParseException(TracebackException):
 
 class EolException(TracebackException):
     def __init__(self, tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
+        eolToken = tokens[-1]
+        tokens = tokens[:-1] + (LexerToken(f" ...", eolToken.type, eolToken.matchIdx),)
         super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [unexpectedTokenIdx], True)
