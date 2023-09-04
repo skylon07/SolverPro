@@ -22,7 +22,7 @@ from src.algebrasolver.solver import Relation
 
 
 class MainScreen(Screen):
-    CSS = f"""
+    DEFAULT_CSS = f"""
         MainScreen Input {{
             border: tall {Colors.borderPlain.hex};
             background: {Colors.fillPlain.hex};
@@ -172,7 +172,7 @@ class MainScreen(Screen):
 
 
 class SolverProApp(App):
-    CSS = f"""
+    DEFAULT_CSS = f"""
         SolverProApp * {{
             color: {Colors.textPlain.hex};
             link-hover-style: underline;
