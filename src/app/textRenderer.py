@@ -39,7 +39,7 @@ class TextRenderer:
             LexerTokenTypes.STAR:           Colors.operator,
             LexerTokenTypes.SLASH:          Colors.operator,
             LexerTokenTypes.CARROT:         Colors.operator,
-            LexerTokenTypes.INVALID:        Colors.textYellow,
+            LexerTokenTypes.INVALID:        Colors.textRed,
         }
         tokens = tuple(self._lexer.findTokens(text))
         replacements = {
