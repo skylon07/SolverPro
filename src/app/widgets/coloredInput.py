@@ -23,7 +23,7 @@ class _ColoredInputRenderable:
             inputText = items[0].text
             items = [
                 *self.renderer.render(
-                    self.renderer.formatInputSyntax(inputText)
+                    self.renderer.formatLexerSyntax(inputText)
                 ).render(console),
                 *items[1:]
             ]

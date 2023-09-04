@@ -143,7 +143,7 @@ class RelationEditRow(Widget):
 
         with Horizontal(id = 'staticGroup'):
             with HorizontalScroll():
-                yield Label(renderer.formatInputSyntax(self.relationStr))
+                yield Label(renderer.formatLexerSyntax(self.relationStr))
             yield Button("Edit", id = 'edit')
             yield Button("Delete", id = 'delete')
         with Horizontal(id = 'editGroup', classes = 'hidden'):

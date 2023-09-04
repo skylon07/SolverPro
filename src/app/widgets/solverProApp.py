@@ -117,7 +117,7 @@ class MainScreen(Screen):
                 self.writeToLogger(
                     commandStr,
                     True,
-                    renderer.formatInputSyntax(
+                    renderer.formatLexerSyntax(
                         renderer.formatRelation(relation, warnRedundant = isRedundant)
                     ),
                 )
@@ -127,7 +127,7 @@ class MainScreen(Screen):
                 self.writeToLogger(
                     commandStr,
                     True,
-                    renderer.formatInputSyntax(
+                    renderer.formatLexerSyntax(
                         renderer.formatExpressions(exprs)
                     ),
                 )
@@ -206,7 +206,7 @@ class SolverProApp(App):
         ))
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        modifiedRelationStr = f"<replace {self.textRenderer.formatInputSyntax(self.textRenderer.formatRelation(oldRelation))}>"
+        modifiedRelationStr = f"<replace {self.textRenderer.formatLexerSyntax(self.textRenderer.formatRelation(oldRelation))}>"
         try:
             result = self.driver.replaceRelation(oldRelation, newRelationCommand)
             (relation, isRedundant) = result.data
@@ -228,7 +228,7 @@ class SolverProApp(App):
             return None
 
     def deleteRelation(self, relation: Relation):
-        deletedRelationStr = f"<delete {self.textRenderer.formatInputSyntax(self.textRenderer.formatRelation(relation))}>"
+        deletedRelationStr = f"<delete {self.textRenderer.formatLexerSyntax(self.textRenderer.formatRelation(relation))}>"
         try:
             self.driver.deleteRelation(relation)
             self.mainScreen.writeToLogger(

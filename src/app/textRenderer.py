@@ -19,11 +19,11 @@ class TextRenderer:
         marker = f"[{Colors.textGreen.hex}]✓[/]" if succeeded \
             else f"[{Colors.textRed.hex}]✕[/]"
         if highlightSyntax:
-            inputStr = self.formatInputSyntax(inputStr)
+            inputStr = self.formatLexerSyntax(inputStr)
         return self._formatLines([marker + f" [{Colors.textPlain.hex}]{inputStr}[/]"])
     
-    def formatInputSyntax(self, inputStr: str):
-        inputStr = self._sanitizeInput(inputStr)
+    def formatLexerSyntax(self, text: str):
+        text = self._sanitizeInput(text)
         tokenFormats = {
             LexerTokenTypes.IDENTIFIER:     Colors.identifier,
             LexerTokenTypes.INTEGER:        Colors.number,
@@ -41,7 +41,7 @@ class TextRenderer:
             LexerTokenTypes.CARROT:         Colors.operator,
             LexerTokenTypes.INVALID:        Colors.textYellow,
         }
-        tokens = tuple(self._lexer.findTokens(inputStr))
+        tokens = tuple(self._lexer.findTokens(text))
         replacements = {
             tokenIdx: tokenFormats[token.type].hex
             for (tokenIdx, token) in enumerate(tokens)

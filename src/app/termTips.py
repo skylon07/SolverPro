@@ -35,9 +35,9 @@ class TermTips:
                     "other programs, Solver Pro permits a number to start an identifier " \
                     "name, as long as at least one letter appears in the name later.",
 
-                    "Identifier:     " + self._renderer.formatInputSyntax("a  my_var  train2Car3  3rdBox"),
+                    "Identifier:     " + self._renderer.formatLexerSyntax("a  my_var  train2Car3  3rdBox"),
 
-                    "Non-identifier: " + self._renderer.formatInputSyntax("345  1.5  +  ()"),
+                    "Non-identifier: " + self._renderer.formatLexerSyntax("345  1.5  +  ()"),
                 )
             ),
             'integer': TermTip(
@@ -48,9 +48,9 @@ class TermTips:
                     "Of all the kinds of numbers Solver Pro supports, integers are the " \
                     "most precise. Use them over other kinds of numbers if possible.",
 
-                    "Integer:     " + self._renderer.formatInputSyntax("4  15  500_000_000"),
+                    "Integer:     " + self._renderer.formatLexerSyntax("4  15  500_000_000"),
 
-                    "Non-integer: " + self._renderer.formatInputSyntax("4.5  2/5  6.21e-5"),
+                    "Non-integer: " + self._renderer.formatLexerSyntax("4.5  2/5  6.21e-5"),
                 )
             ),
             'float': TermTip(
@@ -63,11 +63,11 @@ class TermTips:
                     "theoretically lead to inaccurate calculations. Integers and " \
                     "integer-rationals should be preferred if at all possible.",
 
-                    "Decimal notation:    " + self._renderer.formatInputSyntax("1.5  4.  16.0  .8"),
+                    "Decimal notation:    " + self._renderer.formatLexerSyntax("1.5  4.  16.0  .8"),
 
-                    "Scientific notation: " + self._renderer.formatInputSyntax("3e4  .2e-3  81.7E+2"),
+                    "Scientific notation: " + self._renderer.formatLexerSyntax("3e4  .2e-3  81.7E+2"),
 
-                    "Non-floating-point:  " + self._renderer.formatInputSyntax("56  14/4")
+                    "Non-floating-point:  " + self._renderer.formatLexerSyntax("56  14/4")
                 )
             ),
             'rational': TermTip(
@@ -79,9 +79,9 @@ class TermTips:
                     "and will provide the highest accuracy over many calculations. Prefer " \
                     "integer-rationals over alternatives if possible.",
 
-                    "Integer ratio (precise): " + self._renderer.formatInputSyntax("1/4  12/6"),
+                    "Integer ratio (precise): " + self._renderer.formatLexerSyntax("1/4  12/6"),
 
-                    "Float value (imprecise): " + self._renderer.formatInputSyntax("0.25  2.0"),
+                    "Float value (imprecise): " + self._renderer.formatLexerSyntax("0.25  2.0"),
                 ),
             ),
             'end of line': 'eol',
@@ -104,14 +104,14 @@ class TermTips:
                     "Parentheses must always come in pairs, with an expression enclosed " \
                     "between them. For example:",
                     
-                    self._renderer.formatInputSyntax("a*(b + c)/d"),
+                    self._renderer.formatLexerSyntax("a*(b + c)/d"),
                     
                     "In the expression above, the sub-expression " + \
-                    self._renderer.formatInputSyntax("b + c") + " " + \
+                    self._renderer.formatLexerSyntax("b + c") + " " + \
                     "would be evaluated first, since it is given priority over both " + \
-                    self._renderer.formatInputSyntax("a*...") + " " + \
+                    self._renderer.formatLexerSyntax("a*...") + " " + \
                     "and " + \
-                    self._renderer.formatInputSyntax(".../d"),
+                    self._renderer.formatLexerSyntax(".../d"),
                     # TODO: distinguish from brackets and braces when they are implemented
                 )
             ),
@@ -129,9 +129,9 @@ class TermTips:
                     "the moment, only numerics (that is integers, floats, and rationals) " \
                     "are permitted inside of a set of expressions."
 
-                    "Expression set (valid):   " + self._renderer.formatInputSyntax("a = {-3, 3}   1 + {-5, 5}*2"),
+                    "Expression set (valid):   " + self._renderer.formatLexerSyntax("a = {-3, 3}   1 + {-5, 5}*2"),
 
-                    "Expression set (invalid): " + self._renderer.formatInputSyntax("a = {4, b + 3}   1 + {x, y}^2"),
+                    "Expression set (invalid): " + self._renderer.formatLexerSyntax("a = {4, b + 3}   1 + {x, y}^2"),
                 )
             ),
             'equals': TermTip(
@@ -147,9 +147,9 @@ class TermTips:
                 (
                     "A binary/unary operator signifying either the addition of two values or single positive values.",
 
-                    "Binary addition:  " + self._renderer.formatInputSyntax("a + b"),
+                    "Binary addition:  " + self._renderer.formatLexerSyntax("a + b"),
 
-                    "Unary positivity: " + self._renderer.formatInputSyntax("+a"),
+                    "Unary positivity: " + self._renderer.formatLexerSyntax("+a"),
                 )
             ),
             'dash': TermTip(
@@ -157,9 +157,9 @@ class TermTips:
                 (
                     "A binary/unary operator signifying either the subtraction of two values or single negative values.",
 
-                    "Binary subtraction: " + self._renderer.formatInputSyntax("a - b"),
+                    "Binary subtraction: " + self._renderer.formatLexerSyntax("a - b"),
 
-                    "Unary negation:     " + self._renderer.formatInputSyntax("-a"),
+                    "Unary negation:     " + self._renderer.formatLexerSyntax("-a"),
                 )
             ),
             'star': TermTip(
@@ -167,7 +167,7 @@ class TermTips:
                 (
                     "A binary operator signifying the multiplication of two values.",
 
-                    "Multiplication: " + self._renderer.formatInputSyntax("a*b"),
+                    "Multiplication: " + self._renderer.formatLexerSyntax("a*b"),
                 )
             ),
             'slash': TermTip(
@@ -178,7 +178,7 @@ class TermTips:
                     "Dividing integers will be treated as a true ratio. Dividing floats will " \
                     "calculate a new (possibly slightly inaccurate) floating point value.",
 
-                    "Division: " + self._renderer.formatInputSyntax("a/b"),
+                    "Division: " + self._renderer.formatLexerSyntax("a/b"),
                 )
             ),
             'carrot': TermTip(
