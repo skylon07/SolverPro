@@ -1,4 +1,4 @@
-# How to Build (and Release)!
+# How to Build (and Release)
 
 1. Update `getVersion()` string (in `src/common/functions.py`)
 2. Start `pipenv shell`
