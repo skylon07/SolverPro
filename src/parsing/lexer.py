@@ -4,7 +4,7 @@ from src.common.types import Enum, EnumString
 
 
 class LexerTokenType(EnumString):
-    pass
+    pass # intentionally left blank
 
 
 class LexerTokenTypes(Enum):

@@ -363,7 +363,7 @@ class _CommandParserSequencer:
     
 
 class CommandType(EnumString):
-    pass
+    pass # intentionally left blank
 
 
 class Command(Enum):
