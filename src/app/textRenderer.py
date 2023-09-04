@@ -7,15 +7,46 @@ from rich.markup import render as renderMarkup
 from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.app.widgets.colors import Colors
-from src.parsing.lexer import LexerToken, LexerTokenTypes
+from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer
 from src.algebrasolver.solver import Relation
 
 
 class TextRenderer:
+    def __init__(self):
+        self._lexer = CommandLexer()
+    
     def formatInputLog(self, inputStr: str, succeeded: bool):
         marker = f"[{Colors.textGreen.hex}]✓[/]" if succeeded \
             else f"[{Colors.textRed.hex}]✕[/]"
+        inputStr = self.formatInputSyntax(inputStr)
         return self._formatLines([marker + f" [{Colors.textPlain.hex}]{inputStr}[/]"])
+    
+    def formatInputSyntax(self, inputStr: str):
+        inputStr = self._sanitizeInput(inputStr)
+        tokenFormats = {
+            LexerTokenTypes.IDENTIFIER:     Colors.identifier,
+            LexerTokenTypes.INTEGER:        Colors.number,
+            LexerTokenTypes.FLOAT:          Colors.number,
+            LexerTokenTypes.PAREN_OPEN:     Colors.punctuation,
+            LexerTokenTypes.PAREN_CLOSE:    Colors.punctuation,
+            LexerTokenTypes.BRACE_OPEN:     Colors.punctuation,
+            LexerTokenTypes.BRACE_CLOSE:    Colors.punctuation,
+            LexerTokenTypes.COMMA:          Colors.punctuation,
+            LexerTokenTypes.EQUALS:         Colors.operator,
+            LexerTokenTypes.PLUS:           Colors.operator,
+            LexerTokenTypes.DASH:           Colors.operator,
+            LexerTokenTypes.STAR:           Colors.operator,
+            LexerTokenTypes.SLASH:          Colors.operator,
+            LexerTokenTypes.CARROT:         Colors.operator,
+            LexerTokenTypes.INVALID:        Colors.textYellow,
+        }
+        tokens = tuple(self._lexer.findTokens(inputStr))
+        replacements = {
+            tokenIdx: tokenFormats[token.type].hex
+            for (tokenIdx, token) in enumerate(tokens)
+            if token.type in tokenFormats
+        }
+        return f"[{Colors.textPlain.hex}]{self._formatTokens(tokens, replacements)}[/]"
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False):
         relationStr = self._correctExprSyntaxes(f"[{Colors.textPlain.hex}]{relation.leftExpr} = {relation.rightExpr}[/]")
@@ -109,8 +140,8 @@ class TextRenderer:
     def render(self, formattedStr: FormattedStr, *, indent: bool = False):
         if indent:
             indentSpaces = "    "
-            formattedStr = re.compile("\n").sub(f"\n{indentSpaces}", formattedStr)
-        finalizedStr = self._sanitize(self._injectTermLinks(formattedStr))
+            formattedStr = indentSpaces + re.compile("\n").sub(f"\n{indentSpaces}", formattedStr)
+        finalizedStr = self._injectTermLinks(formattedStr)
         return renderMarkup(finalizedStr)
         
     def _formatLines(self, lines: Iterable[FormattedStr]):
@@ -147,8 +178,8 @@ class TextRenderer:
         exprStr = re.compile(r"\*\*").sub("^", exprStr)
         return exprStr
     
-    def _sanitize(self, linesStr: FormattedStr) -> FormattedStr:
-        return linesStr.replace("\\", "�")
+    def _sanitizeInput(self, linesStr: FormattedStr) -> FormattedStr:
+        return linesStr.replace("\\", "�").replace("[", r"\[")
     
     def _injectTermLinks(self, text: FormattedStr) -> FormattedStr:
         # done in reverse to avoid keeping track of index offsets after replacement
