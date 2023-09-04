@@ -163,7 +163,9 @@ class TextRenderer:
             if lastToken is not None:
                 idxDiff = token.matchIdx - lastToken.matchIdx
                 numSpaces = idxDiff - len(lastToken.match)
-                formattedStr += " " * numSpaces
+            else:
+                numSpaces = token.matchIdx
+            formattedStr += " " * numSpaces
             
             if tokenIdx in formattingMap:
                 format = formattingMap[tokenIdx]

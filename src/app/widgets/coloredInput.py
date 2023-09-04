@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from textual.widgets import Input
 from rich.console import Console, ConsoleOptions, RenderableType
 from rich.segment import Segment
@@ -17,19 +19,20 @@ class _ColoredInputRenderable:
         if self.passThru:
             yield from items
         
-        items = list(items)
-        try:
-            assert type(items[0]) is Segment
-            inputText = items[0].text
-            items = [
-                *self.renderer.render(
-                    self.renderer.formatLexerSyntax(inputText)
-                ).render(console),
-                *items[1:]
-            ]
-            yield from items
-        except AssertionError:
-            yield from items
+        yield from self._formatSegments(tuple(items), console)
+
+    def _formatSegments(self, renderItems: Iterable, console: Console):
+        for renderItem in renderItems:
+            if type(renderItem) is Segment and not self._isCursorSegment(renderItem):
+                formattedText = self.renderer.render(
+                    self.renderer.formatLexerSyntax(renderItem.text)
+                )
+                yield from formattedText.render(console)
+            else:
+                yield renderItem
+
+    def _isCursorSegment(self, segment: Segment):
+        return segment.style is not None and segment.style.bgcolor is not None
 
 
 class ColoredInput(Input):
