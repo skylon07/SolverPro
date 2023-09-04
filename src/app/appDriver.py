@@ -5,6 +5,7 @@ import sympy
 from src.common.functions import surroundJoin, first
 from src.common.exceptions import TracebackException, MultilineException
 from src.app.textRenderer import TextRenderer
+from src.app.widgets.colors import Colors
 from src.algebrasolver.solver import AlgebraSolver, Relation
 from src.parsing.lexer import CommandLexer, LexerToken
 from src.parsing.parser import CommandParser, Command, CommandType, isExpressionListSymbol
@@ -100,7 +101,7 @@ class UndefinedIdentifiersException(TracebackException):
             if token.match in badIdentifiers
         )
         plural = "s" if len(badIdentifiers) > 1 else ""
-        badIdentifiersStr = surroundJoin(badIdentifiers, "[red]", "[/red]", ", ")
+        badIdentifiersStr = surroundJoin(badIdentifiers, f"[{Colors.textRed.hex}]", f"[/{Colors.textRed.hex}]", ", ")
         super().__init__(
             f"Undefined __identifier{plural}__ {badIdentifiersStr}",
             tokens,

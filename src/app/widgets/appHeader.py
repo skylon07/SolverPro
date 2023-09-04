@@ -1,6 +1,8 @@
 from textual.reactive import reactive
 from textual.widget import Widget
 
+from src.app.widgets.colors import Colors
+
 
 class _AppHeaderTitle(Widget):
     DEFAULT_CSS = """
@@ -22,14 +24,14 @@ class _AppHeaderTitle(Widget):
 
 
 class AppHeader(Widget):
-    DEFAULT_CSS = """
-        AppHeader {
+    DEFAULT_CSS = f"""
+        AppHeader {{
             dock: top;
             width: 100%;
             height: 3;
-            background: $foreground 5%;
-            color: $text;
-        }
+            background: {Colors.fillPlain.hex};
+            color: {Colors.textPlain.hex};
+        }}
     """
 
     def compose(self):

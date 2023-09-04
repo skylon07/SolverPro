@@ -5,38 +5,38 @@ import sympy
 from rich.markup import render as renderMarkup
 
 from src.common.types import FormattedStr
-from src.common.functions import surroundJoin
 from src.common.exceptions import TracebackException, HandledException, MultilineException
+from src.app.widgets.colors import Colors
 from src.parsing.lexer import LexerToken, LexerTokenTypes
 from src.algebrasolver.solver import Relation
 
 
 class TextRenderer:
     def formatInputLog(self, inputStr: str, succeeded: bool):
-        marker = "[green]✓[/green]" if succeeded \
-            else "[red]✕[/red]"
-        return self._formatLines([marker + f" [white]{inputStr}[/white]"])
+        marker = f"[{Colors.textGreen.hex}]✓[/]" if succeeded \
+            else f"[{Colors.textRed.hex}]✕[/]"
+        return self._formatLines([marker + f" [{Colors.textPlain.hex}]{inputStr}[/]"])
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False):
-        relationStr = self._correctExprSyntaxes(f"[white]{relation.leftExpr} = {relation.rightExpr}[/white]")
+        relationStr = self._correctExprSyntaxes(f"[{Colors.textPlain.hex}]{relation.leftExpr} = {relation.rightExpr}[/]")
         linesList = [relationStr]
         if warnRedundant:
-            linesList.append("[yellow]Relation is redundant and provided no new inferences[/yellow]")
+            linesList.append(f"[{Colors.textYellow.hex}]Relation is redundant and provided no new inferences[/]")
         return self._formatLines(linesList)
     
     def formatRelationReplaced(self, oldRelation: Relation, newRelation: Relation, *, warnRedundant: bool):
         return self._formatLines([
-            "[#b0b0b0]Info: Relation[/#b0b0b0]",
+            f"[{Colors.textMuted.hex}]Info: Relation[/]",
             self.formatRelation(oldRelation, warnRedundant = False),
-            "[#b0b0b0]was replaced by[/#b0b0b0]",
+            f"[{Colors.textMuted.hex}]was replaced by[/]",
             self.formatRelation(newRelation, warnRedundant = warnRedundant),
         ])
     
     def formatRelationDeleted(self, relation: Relation):
         return self._formatLines([
-            "[#b0b0b0]Info: Relation[/#b0b0b0]",
+            f"[{Colors.textMuted.hex}]Info: Relation[/]",
             self.formatRelation(relation, warnRedundant = False),
-            "[#b0b0b0]was deleted[/#b0b0b0]",
+            f"[{Colors.textMuted.hex}]was deleted[/]",
         ])
     
     def formatExpressions(self, exprs: Iterable[sympy.Expr]):
@@ -53,16 +53,16 @@ class TextRenderer:
                 if eolToken.type is LexerTokenTypes.EOL
             ]) <= 1, "Exception rendering cannot yet handle multiple input lines"
             
-            formattingMap = {tokenIdx: "red" for tokenIdx in exception.badTokenIdxs}
+            formattingMap = {tokenIdx: Colors.textRed.hex for tokenIdx in exception.badTokenIdxs}
             if exception.grayOutAfterBadTokens:
                 formattingMap.update({
-                    tokenIdx: "#b0b0b0"
+                    tokenIdx: Colors.textMuted.hex
                     for tokenIdx in range(max(exception.badTokenIdxs) + 1, len(exception.tokens))
                 })
             exprLine = self._formatTokens(exception.tokens, formattingMap)
             return self._formatLinesForException(
                 (
-                    f"[white]{exprLine}[/white]",
+                    f"[{Colors.textPlain.hex}]{exprLine}[/]",
                     exception.message,
                 ), 
                 exception,
@@ -84,9 +84,9 @@ class TextRenderer:
                 (
                     str(exception),
                     "",
-                    "[magenta]This error is missing a rendering rule, and the message above was generated automatically.",
-                    "If you see this, please submit an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
-                    "with an explanation of how you got this message to show up.[/magenta]",
+                    f"[{Colors.textPurple.hex}]This error is missing a rendering rule, and the message above was generated automatically.",
+                    f"If you see this, please submit an issue at [{Colors.textBlue.hex} underline]https://github.com/skylon07/SolverPro/issues/new[/]",
+                    f"with an explanation of how you got this message to show up.[/{Colors.textPurple.hex}]",
                 ),
                 exception,
                 withErrorHeader = withErrorHeader,
@@ -95,7 +95,12 @@ class TextRenderer:
         else:
             return self._formatLinesForException(
                 (
-                    f"[bold red]{type(exception).__name__}:[/bold red] [red]{str(exception)}[/red]",
+                    f"[{Colors.textPurple.hex}]An unexpected error occurred![/]",
+                    f"[bold {Colors.textRed.hex}]{type(exception).__name__}:[/] [{Colors.textRed.hex}]{str(exception)}[/]",
+                    "",
+                    f"[{Colors.textPurple.hex}]This is probably an issue with Solver Pro internally.",
+                    f"If you see this, please submit an issue at [{Colors.textBlue.hex} underline]https://github.com/skylon07/SolverPro/issues/new[/]",
+                    f"with an explanation of how you got this message to show up.[/{Colors.textPurple.hex}]",
                 ),
                 exception,
                 withErrorHeader = withErrorHeader,
@@ -112,20 +117,11 @@ class TextRenderer:
         return "\n".join(lines)
     
     def _formatLinesForException(self, lines: Iterable[FormattedStr], exception: Exception, *, withErrorHeader: bool):
-        isHandledException = isinstance(exception, HandledException)
-        if isHandledException:
-            lines = list(lines)
-        else:
-            lines = [
-                "[magenta]An unexpected error occurred![/magenta]",
-                *lines,
-                "",
-                "[magenta]This is probably an issue with Solver Pro internally.",
-                "If you see this, please submit an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
-                "with an explanation of how you got this message to show up.[/magenta]",
-            ]
         if withErrorHeader:
-            lines.insert(0, "[red]Error![/red]")
+            lines = [
+                f"[bold {Colors.textRed.hex}]Error![/]",
+                *lines,
+            ]
         return self._formatLines(lines)
     
     def _formatTokens(self, tokens: Iterable[LexerToken], formattingMap: dict[int, str]):

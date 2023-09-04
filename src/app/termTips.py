@@ -4,13 +4,14 @@ from rich.console import RenderableType
 
 from src.common.types import FormattedStr
 from src.app.textRenderer import TextRenderer
+from src.app.widgets.colors import Colors
 
 
 class TermTip:
     def __init__(self, term: FormattedStr, definitionLines: Iterable[FormattedStr]):
         self.term = term
         self.definitionLines = tuple(
-            f"[#b0b0b0]{line}[/#b0b0b0]" if type(line) is str
+            f"[{Colors.textMuted.hex}]{line}[/]" if type(line) is str
                 else line
             for line in definitionLines
         )
@@ -35,9 +36,9 @@ class TermTips:
                     "name, as long as at least one letter appears in the name later.",
 
                     # TODO: when colors are implemented, make sure to change these to the right ones
-                    "Identifiers: [white]a  my_var  train2Car3  3rdBox[/white]",
+                    f"Identifiers: [{Colors.textPlain.hex}]a  my_var  train2Car3  3rdBox[/]",
 
-                    "Not Identifiers: [white]345  1.5  +  ()[/white]",
+                    f"Not Identifiers: [{Colors.textPlain.hex}]345  1.5  +  ()[/]",
                 )
             ),
             'integer': TermTip(
@@ -70,6 +71,7 @@ class TermTips:
                     "over alternatives if possible.",
                 ),
             ),
+            # TODO: can probably consolidate these into one entry (then point to it from paren_open/paren_close)
             'paren_open': TermTip(
                 "Parenthesis (Opening)",
                 (
@@ -86,6 +88,7 @@ class TermTips:
                     # TODO: distinguish from brackets and braces when they are implemented
                 )
             ),
+            # TODO: entries on braces (and add a TODO for when objects are implemented)
             'equals': TermTip(
                 "Operator: Equate",
                 (
@@ -178,8 +181,8 @@ class TermTips:
                 TermTip(
                     "Unknown Term",
                     (
-                        f"The requested term [red]{term}[/red] is unavailable.",
-                        f"Please report this as an issue at [blue underline]https://github.com/skylon07/SolverPro/issues/new[/blue underline]",
+                        f"The requested term [{Colors.textRed.hex}]{term}[/] is unavailable.",
+                        f"Please report this as an issue at [{Colors.textBlue.hex} underline]https://github.com/skylon07/SolverPro/issues/new[/]",
                     )
                 )
             )

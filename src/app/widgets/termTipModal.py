@@ -8,49 +8,51 @@ from textual.widgets import Label, Button
 from textual.widgets import Footer
 from rich.console import RenderableType
 
+from src.app.widgets.colors import Colors
+
 
 class TermTipModal(ModalScreen):
-    DEFAULT_CSS = """
-        TermTipModal {
+    DEFAULT_CSS = f"""
+        TermTipModal {{
             align: center middle;
-        }
+        }}
         
-        TermTipModal #content {
+        TermTipModal #content {{
             width: 60%;
             max-width: 60;
             height: 40%;
             max-height: 14;
-            background: $foreground 15%;
-        }
+            background: {Colors.fillPlain.hex};
+        }}
         
-        TermTipModal #title {
+        TermTipModal #title {{
             width: 100%;
             padding: 1 0 1 0;
             content-align: center middle;
-        }
+        }}
 
-        TermTipModal .bodyItem {
+        TermTipModal .bodyItem {{
             width: 100%;
             padding: 0 1;
-        }
+        }}
 
-        TermTipModal #buttonbar {
+        TermTipModal #buttonbar {{
             width: 60%;
             max-width: 60;
             height: auto;
             align: right bottom;
-            background: $foreground 15%;
-        }
+            background: {Colors.fillPlain.hex};
+        }}
 
-        TermTipModal #close {
-            color: white;
+        TermTipModal #close {{
+            color: {Colors.textPlain.hex};
             border: none;
-            background: red 15%;
-        }
-        TermTipModal #close:hover {
-            color: white;
-            background: red 30%;
-        }
+            background: {Colors.fillRed.hex};
+        }}
+        TermTipModal #close:hover {{
+            color: {Colors.textPlain.hex};
+            background: {Colors.textRed.hex};
+        }}
     """
 
     BINDINGS = [
@@ -63,7 +65,7 @@ class TermTipModal(ModalScreen):
 
     def __init__(self, term: str = "", bodyItems: Collection[RenderableType] = tuple(), *, name: str | None = None, id: str | None = None, classes: str | None = None):
         super().__init__(name = name, id = id, classes = classes)
-        self.title = f"[#b0b0b0]--=[/#b0b0b0]  {term}  [#b0b0b0]=--[/#b0b0b0]"
+        self.title = f"[{Colors.textMuted.hex}]--=[/]  {term}  [{Colors.textMuted.hex}]=--[/]"
         self.bodyItems = bodyItems
 
     def compose(self):

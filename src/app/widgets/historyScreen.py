@@ -10,6 +10,7 @@ from textual.widgets import Button, Input, Label
 
 from src.algebrasolver.solver import Relation
 from src.app.textRenderer import TextRenderer
+from src.app.widgets.colors import Colors
 
 
 def _lazyImportSolverProApp():
@@ -18,36 +19,33 @@ def _lazyImportSolverProApp():
 
 
 class HistoryScreen(Screen):
-    DEFAULT_CSS = """
-        HistoryScreen {
+    DEFAULT_CSS = f"""
+        HistoryScreen {{
             align: center middle;
-        }
+        }}
         
-        HistoryScreen #mainContainer {
+        HistoryScreen #mainContainer {{
             width: 100%;
             height: 100%;
             align: center top;
-        }
+        }}
 
-        HistoryScreen #backButton {
+        HistoryScreen #backButton {{
             min-width: 8;
             width: 8%;
             height: 3;
             margin: 2 3;
-            background: rgb(60, 60, 60);
-        }
-        HistoryScreen #backButton:hover {
-            background: rgb(60, 60, 60) 50%;
-        }
+            background: {Colors.fillPlain.hex};
+        }}
 
-        HistoryScreen RelationEditRow {
+        HistoryScreen RelationEditRow {{
             margin: 3;
-        }
+        }}
 
-        HistoryScreen .spacer {
+        HistoryScreen .spacer {{
             width: 1fr;
             height: 5;
-        }
+        }}
     """
 
     relations: var[tuple[Relation] | None] = var(None)
@@ -60,6 +58,7 @@ class HistoryScreen(Screen):
         assert self.relations is not None
         with VerticalScroll(id = 'mainContainer'):
             yield Button("← Back", id = 'backButton')
+            # TODO: empty state?
             for relation in self.relations:
                 yield RelationEditRow(relation)
 
@@ -70,80 +69,68 @@ class HistoryScreen(Screen):
 
 
 class RelationEditRow(Widget):
-    DEFAULT_CSS = """
-        RelationEditRow {
+    DEFAULT_CSS = f"""
+        RelationEditRow {{
             width: 100%;
             height: 3;
-        }
+        }}
 
-        RelationEditRow.hidden, RelationEditRow .hidden {
+        RelationEditRow.hidden, RelationEditRow .hidden {{
             display: none;
-        }
+        }}
 
-        RelationEditRow HorizontalScroll {
+        RelationEditRow HorizontalScroll {{
             width: 1fr;
             height: 100%;
-        }
+        }}
 
-        RelationEditRow #staticGroup HorizontalScroll {
-            background: rgb(60, 60, 60);
-        }
+        RelationEditRow #staticGroup HorizontalScroll {{
+            background: {Colors.fillPlain.hex};
+        }}
 
-        RelationEditRow Label {
+        RelationEditRow Label {{
             height: 1;
             margin: 1 3;
             content-align: left middle;
-        }
+        }}
 
-        RelationEditRow Input {
+        RelationEditRow Input {{
             width: 100%;
             height: 1fr;
-            background: rgb(40, 50, 75);
-        }
-        RelationEditRow Input:focus {
-            background: rgb(55, 65, 90);
-        }
+            background: {Colors.fillBlue.hex} 50%;
+        }}
+        RelationEditRow Input:focus {{
+            background: {Colors.fillBlue.hex} 50%;
+        }}
 
-        RelationEditRow Input.errorFlash {
-            border: tall rgb(200, 75, 85);
-            color: rgb(200, 75, 85);
-            background: rgb(100, 55, 65);
-        }
+        RelationEditRow Input.errorFlash {{
+            border: tall {Colors.textRed.hex};
+            color: {Colors.textRed.hex};
+            background: {Colors.fillRed.hex};
+        }}
 
-        RelationEditRow Button {
+        RelationEditRow Button {{
             width: 10;
             height: 100%;
             content-align: center middle;
             margin: 0 3;
-        }
+        }}
 
-        RelationEditRow #edit {
-            background: rgb(55, 65, 90);
-        }
-        RelationEditRow #edit:hover {
-            background: rgb(55, 65, 90) 50%;
-        }
+        RelationEditRow #edit {{
+            background: {Colors.fillBlue.hex};
+        }}
 
-        RelationEditRow #delete {
-            background: rgb(100, 55, 65);
-        }
-        RelationEditRow #delete:hover {
-            background: rgb(100, 55, 65) 50%;
-        }
+        RelationEditRow #delete {{
+            background: {Colors.fillRed.hex};
+        }}
 
-        RelationEditRow #cancel {
-            background: rgb(50, 50, 50);
-        }
-        RelationEditRow #cancel:hover {
-            background: rgb(50, 50, 50) 50%;
-        }
+        RelationEditRow #cancel {{
+            background: {Colors.fillPlain.hex};
+        }}
 
-        RelationEditRow #save {
-            background: rgb(55, 90, 65);
-        }
-        RelationEditRow #save:hover {
-            background: rgb(55, 90, 65) 50%;
-        }
+        RelationEditRow #save {{
+            background: {Colors.fillGreen.hex};
+        }}
     """
 
     relation: var[Relation | None] = var(None)

@@ -15,62 +15,58 @@ from src.app.widgets.errorModal import ErrorModal
 from src.app.widgets.termTipModal import TermTipModal
 from src.app.widgets.dictionaryScreen import DictionaryScreen
 from src.app.widgets.historyScreen import HistoryScreen
+from src.app.widgets.colors import Colors
 from src.app.termTips import TermTips
 from src.app.textRenderer import TextRenderer
 from src.algebrasolver.solver import Relation
 
 
 class MainScreen(Screen):
-    CSS = """
-        MainScreen TextLog {
-            link-hover-style: underline;
-            link-hover-color: #0a1eff;
-            link-hover-background: #3250f0 40%;
-        }
-        
-        Input.highlighted .input--placeholder {
-            background: #a0a0a0;
-        }
+    CSS = f"""
+        MainScreen Input {{
+            border: tall {Colors.borderPlain.hex};
+            background: {Colors.fillPlain.hex};
+        }}
+        MainScreen Input:focus {{
+            border: tall {Colors.borderFocus.hex};
+        }}
+        MainScreen Input .input--placeholder {{
+            color: {Colors.textPlain.hex} 50%;
+        }}
+        MainScreen Input.highlighted .input--placeholder {{
+            background: {Colors.fillBright.hex};
+        }}
 
-        MainScreen #rightSection {
+        MainScreen #rightSection {{
             min-width: 16;
             width: 20%;
             max-width: 32;
             height: 100%;
             padding: 0 5;
             align: center middle;
-        }
+        }}
 
-        MainScreen .managerButton {
+        MainScreen .managerButton {{
             width: 100%;
             height: 5;
-        }
+        }}
 
-        MainScreen #dictionaryButton {
-            background: rgb(55, 65, 90);
-        }
-        MainScreen #dictionaryButton:hover {
-            background: rgb(55, 65, 90) 50%;
-        }
+        MainScreen #dictionaryButton {{
+            background: {Colors.fillBlue.hex};
+        }}
 
-        MainScreen #historyButton {
-            background: rgb(55, 75, 50);
-        }
-        MainScreen #historyButton:hover {
-            background: rgb(55, 75, 50) 50%;
-        }
+        MainScreen #historyButton {{
+            background: {Colors.fillGreen.hex};
+        }}
 
-        MainScreen #tutorialButton {
-            background: rgb(85, 50, 60);
-        }
-        MainScreen #tutorialButton:hover {
-            background: rgb(85, 50, 60) 50%;
-        }
+        MainScreen #tutorialButton {{
+            background: {Colors.fillRed.hex};
+        }}
 
-        MainScreen .spacer {
+        MainScreen .spacer {{
             width: 100%;
             height: 1fr;
-        }
+        }}
     """
 
     inputTimer: var[Timer | None] = var(None)
@@ -162,6 +158,19 @@ class MainScreen(Screen):
 
 
 class SolverProApp(App):
+    CSS = f"""
+        SolverProApp * {{
+            color: {Colors.textPlain.hex};
+            link-hover-style: underline;
+            link-hover-color: {Colors.textBlue.hex};
+            link-hover-background: {Colors.fillBlue.hex} 70%;
+        }}
+        
+        SolverProApp Button:hover {{
+            opacity: 80%;
+        }}
+    """
+
     driver: var[AppDriver] = var(lambda: AppDriver())
     textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
     termTips: var[TermTips] = var(lambda: TermTips())

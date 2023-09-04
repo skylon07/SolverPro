@@ -7,6 +7,7 @@ from textual.containers import VerticalScroll, Horizontal
 from textual.widgets import Button, Label
 
 from src.app.termTips import TermTip
+from src.app.widgets.colors import Colors
 
 
 def _lazyImportSolverProApp():
@@ -15,52 +16,46 @@ def _lazyImportSolverProApp():
 
 
 class DictionaryScreen(Screen):
-    DEFAULT_CSS = """
-        DictionaryScreen {
+    DEFAULT_CSS = f"""
+        DictionaryScreen {{
             align: center middle;
-        }
+        }}
         
-        DictionaryScreen #mainContainer {
+        DictionaryScreen #mainContainer {{
             width: 100%;
             height: 100%;
-        }
+        }}
 
-        DictionaryScreen #backButton {
+        DictionaryScreen #backButton {{
             min-width: 8;
             width: 8%;
             height: 3;
             margin: 2 3;
-            background: rgb(60, 60, 60);
-        }
-        DictionaryScreen #backButton:hover {
-            background: rgb(60, 60, 60) 50%;
-        }
+            background: {Colors.fillPlain.hex};
+        }}
 
-        DictionaryScreen Horizontal {
+        DictionaryScreen Horizontal {{
             height: 8;
             align: center middle;
-        }
+        }}
 
-        DictionaryScreen .spacer {
+        DictionaryScreen .spacer {{
             width: 1fr;
             height: 5;
-        }
+        }}
 
-        DictionaryScreen .termButton, DictionaryScreen .buttonBlank {
+        DictionaryScreen .termButton, DictionaryScreen .buttonBlank {{
             min-width: 3;
             width: 6fr;
             max-width: 26;
             height: 7;
             padding: 1 2;
             text-align: center;
-        }
+        }}
         
-        DictionaryScreen .termButton {
-            background: rgb(55, 65, 90);
-        }
-        DictionaryScreen .termButton:hover {
-            background: rgb(55, 65, 90) 50%;
-        }
+        DictionaryScreen .termButton {{
+            background: {Colors.fillBlue.hex};
+        }}
     """
 
     termTips: var[list[tuple[str, TermTip]] | None] = var(None)
