@@ -205,6 +205,7 @@ class RelationEditRow(Widget):
 
         input = self.query_one(ColoredInput)
         input.add_class('errorFlash')
+        input.highlightSyntax = False
 
         self.flashTimer = Timer(0.7, self._clearFlash)
         self.flashTimer.start()
@@ -212,6 +213,7 @@ class RelationEditRow(Widget):
     def _clearFlash(self):
         input = self.query_one(ColoredInput)
         input.remove_class('errorFlash')
+        input.highlightSyntax = True
         if self.flashTimer is not None:
             self.flashTimer.cancel()
             self.flashTimer = None

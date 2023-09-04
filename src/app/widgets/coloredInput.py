@@ -1,6 +1,7 @@
 from typing import Iterable
 
 from textual.widgets import Input
+from textual.reactive import reactive
 from rich.console import Console, ConsoleOptions, RenderableType
 from rich.segment import Segment
 
@@ -36,13 +37,15 @@ class _ColoredInputRenderable:
 
 
 class ColoredInput(Input):
+    highlightSyntax: reactive[bool] = reactive(True)
+
     def render(self):
         # ie not placeholder or something else
         isActualText = self.value != ""
         assert type(self.app) is lazyImportSolverProApp()
         return _ColoredInputRenderable(
             super().render(),
-            not isActualText,
+            not isActualText or self.highlightSyntax is False,
             self.app.textRenderer
         )
 
