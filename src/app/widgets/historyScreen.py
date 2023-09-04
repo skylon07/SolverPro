@@ -138,9 +138,12 @@ class RelationEditRow(Widget):
         self.relation = relation
 
     def compose(self):
+        assert type(self.app) is lazyImportSolverProApp()
+        renderer = self.app.textRenderer
+
         with Horizontal(id = 'staticGroup'):
             with HorizontalScroll():
-                yield Label(self.relationStr)
+                yield Label(renderer.formatInputSyntax(self.relationStr))
             yield Button("Edit", id = 'edit')
             yield Button("Delete", id = 'delete')
         with Horizontal(id = 'editGroup', classes = 'hidden'):
@@ -152,7 +155,9 @@ class RelationEditRow(Widget):
     @property
     def relationStr(self):
         assert self.relation is not None
-        return TextRenderer().formatRelation(self.relation)
+        assert type(self.app) is lazyImportSolverProApp()
+        renderer = self.app.textRenderer
+        return renderer.formatRelation(self.relation)
     
     @on(Button.Pressed, '#edit')
     def enterEditMode(self):
