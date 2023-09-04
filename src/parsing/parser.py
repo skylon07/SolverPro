@@ -399,7 +399,7 @@ class ParseException(TracebackException):
     def __init__(self, expectedTypes: tuple[LexerTokenType, ...], tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
         unexpectedToken = tokens[unexpectedTokenIdx]
 
-        expectedTypesStr = " or ".join(f"[{Colors.textGreen.hex}]__{tokenType}__[/]".lower() for tokenType in expectedTypes)
+        expectedTypesStr = " or ".join(f"[{Colors.textGreen.hex}][@termtip]{tokenType}[/@termtip][/]".lower() for tokenType in expectedTypes)
         firstLetterIsVowel = str(expectedTypes[0])[0].lower() in "aeiou"
         gramaticalN = "n" if firstLetterIsVowel else ""
         fullMessage = f"Unexpected [{Colors.textRed.hex}]{unexpectedToken.match}[/]; expected a{gramaticalN} {expectedTypesStr}"
@@ -408,4 +408,4 @@ class ParseException(TracebackException):
 
 class EolException(TracebackException):
     def __init__(self, tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
-        super().__init__(f"Unexpected [{Colors.textRed.hex}]__end of line__[/]", tokens, [unexpectedTokenIdx], True)
+        super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [unexpectedTokenIdx], True)
