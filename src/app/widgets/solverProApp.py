@@ -5,13 +5,12 @@ from textual.app import App
 from textual.reactive import var
 from textual.screen import Screen
 from textual.containers import Horizontal, Vertical
-from textual.widgets import TextLog, Input, Button, Label
-from rich.text import Text
+from textual.widgets import TextLog, Button, Label
 
 from src.common.functions import first, getVersion
 from src.app.appDriver import AppDriver, Command
 from src.app.widgets.appHeader import AppHeader
-from src.app.widgets.errorModal import ErrorModal
+from src.app.widgets.coloredInput import ColoredInput
 from src.app.widgets.termTipModal import TermTipModal
 from src.app.widgets.dictionaryScreen import DictionaryScreen
 from src.app.widgets.historyScreen import HistoryScreen
@@ -76,7 +75,7 @@ class MainScreen(Screen):
         with Horizontal(id = 'sectionsContainer'):
             with Vertical(id = 'leftSection'):
                 yield TextLog()
-                yield Input(placeholder = " < Command >")
+                yield ColoredInput(placeholder = " < Command >")
             with Vertical(id = 'rightSection'):
                 yield Label(classes = 'spacer')
                 yield Button("Dictionary", id = 'dictionaryButton', classes = 'managerButton')
@@ -90,8 +89,8 @@ class MainScreen(Screen):
     def on_mount(self):
         self.app.title = f"--- Solver Pro {getVersion()} ---"
 
-    @on(Input.Submitted)
-    def runCommand(self, event: Input.Submitted):
+    @on(ColoredInput.Submitted)
+    def runCommand(self, event: ColoredInput.Submitted):
         input = event.input
         commandStr = input.value
         input.value = ""
@@ -137,7 +136,7 @@ class MainScreen(Screen):
         textLog = self.query_one(TextLog)
         if commandStr != "":
             textLog.write(renderer.render(renderer.formatInputLog(commandStr, commandSucceeded)))
-        textLog.write(renderer.render(formattedStr))
+        textLog.write(renderer.render(formattedStr, indent = True))
         self.writeSpacerToLogger()
 
     def writeSpacerToLogger(self):
