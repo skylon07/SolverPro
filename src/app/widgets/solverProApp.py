@@ -92,7 +92,7 @@ class MainScreen(Screen):
     @on(ColoredInput.Submitted)
     def runCommand(self, event: ColoredInput.Submitted):
         input = event.input
-        commandStr = input.value
+        commandStr = input.value.strip()
         input.value = ""
         input.add_class('highlighted')
         if self.inputTimer is not None:
