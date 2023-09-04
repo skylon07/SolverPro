@@ -50,7 +50,7 @@ class TextRenderer:
         return f"[{Colors.textPlain.hex}]{self._formatTokens(tokens, replacements)}[/]"
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False):
-        relationStr = self._correctExprSyntaxes(f"[{Colors.textPlain.hex}]{relation.leftExpr} = {relation.rightExpr}[/]")
+        relationStr = self._correctExprSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
         linesList = [relationStr]
         if warnRedundant:
             linesList.append(f"[{Colors.textYellow.hex}]Relation is redundant and provided no new inferences[/]")
