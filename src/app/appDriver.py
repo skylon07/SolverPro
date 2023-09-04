@@ -17,10 +17,21 @@ class AppDriver:
         self._lexer = CommandLexer()
         self._parser = CommandParser()
 
+        self._inputHistory: list[str] = list()
+        self._historySearchTerm: str = ""
+        self._currHistoryIdx: int = -1
+
     def processCommandLines(self, commandsStr: str):
         tokens = tuple(self._lexer.findTokens(commandsStr))
+        anyNonEmptyCommands = False
         for command in self._parser.parseCommand(tokens):
+            if command.type is not Command.EMPTY:
+                anyNonEmptyCommands = True
             yield self._processCommand(command, tokens)
+        
+        if anyNonEmptyCommands:
+            self._inputHistory.insert(0, commandsStr)
+        self.resetHistoryState()
 
     def validateSingleLine(self, commandStr: str):
         if "\n" in commandStr:
@@ -45,6 +56,53 @@ class AppDriver:
         except Exception as exception:
             self._solver.recordRelation(oldRelation)
             raise exception
+        
+    def getInputHistory(self):
+        return tuple(self._inputHistory)
+    
+    def resetHistoryState(self):
+        self._historySearchTerm = ""
+        self._currHistoryIdx = -1
+    
+    def recordHistorySearchTerm(self, searchTerm: str):
+        self._historySearchTerm = searchTerm
+
+    def loadPreviousHistory(self):
+        lastValidHistoryIdx = self._currHistoryIdx
+        historyChanged = False
+        while self._currHistoryIdx < len(self._inputHistory):
+            if historyChanged:
+                currHistory = self._inputHistory[self._currHistoryIdx]
+                if self._historySearchTerm in currHistory and historyChanged:
+                    break
+            self._currHistoryIdx += 1
+            historyChanged = True
+        
+        if self._currHistoryIdx < len(self._inputHistory):
+            return self._inputHistory[self._currHistoryIdx]
+        else:
+            self._currHistoryIdx = lastValidHistoryIdx
+            return None
+        
+    def loadNextHistory(self):
+        if self._currHistoryIdx == -1:
+            return None
+        
+        lastValidHistoryIdx = self._currHistoryIdx
+        historyChanged = False
+        while self._currHistoryIdx >= 0:
+            if historyChanged:
+                currHistory = self._inputHistory[self._currHistoryIdx]
+                if self._historySearchTerm in currHistory and historyChanged:
+                    break
+            self._currHistoryIdx -= 1
+            historyChanged = True
+        
+        if self._currHistoryIdx >= 0:
+            return self._inputHistory[self._currHistoryIdx]
+        else:
+            self._currHistoryIdx = lastValidHistoryIdx
+            return None
 
     def _processCommand(self, command: Command, tokens: tuple[LexerToken, ...]):
         # the paradigm here: `command` is something that needs to happen, the `result`
