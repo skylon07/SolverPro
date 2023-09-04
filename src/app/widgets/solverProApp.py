@@ -114,11 +114,23 @@ class MainScreen(Screen):
 
             elif result.type is Command.RECORD_RELATION:
                 (relation, isRedundant) = result.data
-                self.writeToLogger(commandStr, True, renderer.formatRelation(relation, warnRedundant = isRedundant))
+                self.writeToLogger(
+                    commandStr,
+                    True,
+                    renderer.formatInputSyntax(
+                        renderer.formatRelation(relation, warnRedundant = isRedundant)
+                    ),
+                )
 
             elif result.type is Command.EVALUATE_EXPRESSION:
                 exprs = result.data
-                self.writeToLogger(commandStr, True, renderer.formatExpressions(exprs))
+                self.writeToLogger(
+                    commandStr,
+                    True,
+                    renderer.formatInputSyntax(
+                        renderer.formatExpressions(exprs)
+                    ),
+                )
 
             else:
                 raise NotImplementedError(f"Command result of type {result.type} not implemented")
@@ -135,11 +147,13 @@ class MainScreen(Screen):
 
         textLog = self.query_one(TextLog)
         if commandStr != "":
-            textLog.write(renderer.render(renderer.formatInputLog(
-                commandStr,
-                commandSucceeded,
-                highlightSyntax = highlightSyntax,
-            )))
+            textLog.write(renderer.render(
+                renderer.formatInputLog(
+                    commandStr,
+                    commandSucceeded,
+                    highlightSyntax = highlightSyntax,
+                ),
+            ))
         textLog.write(renderer.render(formattedStr, indent = True))
         self.writeSpacerToLogger()
 
