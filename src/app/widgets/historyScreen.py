@@ -35,13 +35,13 @@ class HistoryScreen(Screen):
             background: {Colors.fillPlain.hex};
         }}
 
-        HistoryScreen RelationEditRow {{
-            margin: 3;
+        HistoryScreen .emptyState {{
+            color: {Colors.textMuted.hex};
+            height: 9;
         }}
 
-        HistoryScreen .spacer {{
-            width: 1fr;
-            height: 5;
+        HistoryScreen RelationEditRow {{
+            margin: 3;
         }}
     """
 
@@ -55,9 +55,12 @@ class HistoryScreen(Screen):
         assert self.relations is not None
         with VerticalScroll(id = 'mainContainer'):
             yield Button("← Back", id = 'backButton')
-            # TODO: empty state?
+            anyRelations = False
             for relation in self.relations:
+                anyRelations = True
                 yield RelationEditRow(relation)
+            if not anyRelations:
+                yield Label("(No relations recorded)", classes = 'emptyState')
 
 
     @on(Button.Pressed, '#backButton')
