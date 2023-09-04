@@ -11,11 +11,7 @@ from textual.widgets import Button, Input, Label
 from src.algebrasolver.solver import Relation
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
-
-
-def _lazyImportSolverProApp():
-    from src.app.widgets.solverProApp import SolverProApp
-    return SolverProApp
+from src.common.functions import lazyImportSolverProApp
 
 
 class HistoryScreen(Screen):
@@ -168,7 +164,7 @@ class RelationEditRow(Widget):
     @on(Button.Pressed, '#delete')
     def deleteOwnRelation(self):
         assert self.relation is not None
-        assert type(self.app) is _lazyImportSolverProApp()
+        assert type(self.app) is lazyImportSolverProApp()
         
         self.app.deleteRelation(self.relation)
         self.add_class('hidden')
@@ -182,7 +178,7 @@ class RelationEditRow(Widget):
     @on(Button.Pressed, '#save')
     def saveChanges(self):
         assert self.relation is not None
-        assert type(self.app) is _lazyImportSolverProApp()
+        assert type(self.app) is lazyImportSolverProApp()
         
         input = self.query_one(Input)
         label = self.query_one(Label)

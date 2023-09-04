@@ -29,6 +29,14 @@ def surroundJoin(items: Iterable, prefix: str, suffix: str, separator: str):
     fullSeparator = suffix + separator + prefix
     return prefix + fullSeparator.join(items) + suffix
 
+def lazyImportSolverProApp():
+    # prevents the "circular import" exception stuff;
+    # this function is really only ever needed to assert types,
+    # so when building the program in optimized mode,
+    # these should be cut out from assert statements anyway
+    from src.app.widgets.solverProApp import SolverProApp
+    return SolverProApp
+
 # mostly for testing
 def runForError(fn: Callable[[], Any]):
     try:

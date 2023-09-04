@@ -3,11 +3,7 @@ from rich.console import Console, ConsoleOptions, RenderableType
 from rich.segment import Segment
 
 from src.app.textRenderer import TextRenderer
-
-
-def _lazyImportSolverProApp():
-    from src.app.widgets.solverProApp import SolverProApp
-    return SolverProApp
+from src.common.functions import lazyImportSolverProApp
 
 
 class _ColoredInputRenderable:
@@ -40,7 +36,7 @@ class ColoredInput(Input):
     def render(self):
         # ie not placeholder or something else
         isActualText = self.value != ""
-        assert type(self.app) is _lazyImportSolverProApp()
+        assert type(self.app) is lazyImportSolverProApp()
         return _ColoredInputRenderable(
             super().render(),
             not isActualText,

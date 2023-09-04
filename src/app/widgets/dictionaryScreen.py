@@ -6,13 +6,9 @@ from textual.screen import Screen
 from textual.containers import VerticalScroll, Horizontal
 from textual.widgets import Button, Label
 
+from src.common.functions import lazyImportSolverProApp
 from src.app.termTips import TermTip
 from src.app.widgets.colors import Colors
-
-
-def _lazyImportSolverProApp():
-    from src.app.widgets.solverProApp import SolverProApp
-    return SolverProApp
 
 
 class DictionaryScreen(Screen):
@@ -90,7 +86,7 @@ class DictionaryScreen(Screen):
     def displayTerm(self, event: Button.Pressed):
         term = event.button.id
         assert term is not None
-        assert type(self.app) is _lazyImportSolverProApp()
+        assert type(self.app) is lazyImportSolverProApp()
         self.app.action_showTermTip(term)
 
     def _termTipSorter(self, termTipData: tuple[str, TermTip]):
