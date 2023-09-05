@@ -422,6 +422,21 @@ class CommandParserTester:
             LexerToken("",      LexerTokenTypes.EOL,        5),
         ))) == [Command.evaluateExpression(sympy.Symbol("while"))], \
             "Parser did not correctly evaluate symbol 'while'"
+        
+    def testEolExceptionsMakeEolVisible(self):
+        parser = CommandParser()
+        
+        def attempt():
+            return list(parser.parseCommand((
+                LexerToken("(", LexerTokenTypes.PAREN_OPEN, 0),
+                LexerToken("",  LexerTokenTypes.EOL,        1),
+            )))
+        error = runForError(attempt)
+        assert type(error) is EolException
+        assert error.tokens == (
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN, 0),
+            LexerToken(" ...",  LexerTokenTypes.EOL,        1),
+        )
 
     def testErrorCases(self):
         parser = CommandParser()
@@ -505,7 +520,7 @@ class CommandParserTester:
         assert error5.tokens == (
             LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
             LexerToken("=", LexerTokenTypes.EQUALS,     2),
-            LexerToken("",  LexerTokenTypes.EOL,        4),
+            LexerToken(" ...",  LexerTokenTypes.EOL,        4),
         )
         assert error5.badTokenIdxs == [2]
 
@@ -520,7 +535,7 @@ class CommandParserTester:
         assert error6.tokens == (
             LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
             LexerToken("+", LexerTokenTypes.PLUS,       2),
-            LexerToken("",  LexerTokenTypes.EOL,        4),
+            LexerToken(" ...",  LexerTokenTypes.EOL,        4),
         )
         assert error6.badTokenIdxs == [2]
 
@@ -535,7 +550,7 @@ class CommandParserTester:
         assert error7.tokens == (
             LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
             LexerToken("/", LexerTokenTypes.SLASH,      2),
-            LexerToken("",  LexerTokenTypes.EOL,        4),
+            LexerToken(" ...",  LexerTokenTypes.EOL,        4),
         )
         assert error7.badTokenIdxs == [2]
 
@@ -550,7 +565,7 @@ class CommandParserTester:
         assert error8.tokens == (
             LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
             LexerToken("^", LexerTokenTypes.CARROT,     2),
-            LexerToken("",  LexerTokenTypes.EOL,        4),
+            LexerToken(" ...",  LexerTokenTypes.EOL,        4),
         )
         assert error8.badTokenIdxs == [2]
 
@@ -596,7 +611,7 @@ class CommandParserTester:
             LexerToken("+", LexerTokenTypes.PLUS,           4),
             LexerToken("b", LexerTokenTypes.IDENTIFIER,     6),
             LexerToken(")", LexerTokenTypes.PAREN_CLOSE,    7),
-            LexerToken("",  LexerTokenTypes.EOL,            8),
+            LexerToken(" ...",  LexerTokenTypes.EOL,            8),
         )
         assert error10.badTokenIdxs == [6]
 
