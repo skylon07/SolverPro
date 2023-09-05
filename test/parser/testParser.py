@@ -131,43 +131,43 @@ class CommandParserTester:
         parser = CommandParser()
 
         assert list(parser.parseCommand((
-            LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     0),
-            LexerToken('6',     LexerTokenTypes.INTEGER,        1),
-            LexerToken(',',     LexerTokenTypes.COMMA,          2),
-            LexerToken('22',    LexerTokenTypes.INTEGER,        4),
-            LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    6),
-            LexerToken('',      LexerTokenTypes.EOL,            7),
+            LexerToken("{",     LexerTokenTypes.BRACE_OPEN,     0),
+            LexerToken("6",     LexerTokenTypes.INTEGER,        1),
+            LexerToken(",",     LexerTokenTypes.COMMA,          2),
+            LexerToken("22",    LexerTokenTypes.INTEGER,        4),
+            LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    6),
+            LexerToken("",      LexerTokenTypes.EOL,            7),
         ))) == [Command.evaluateExpression(sympy.Symbol("{6, 22}"))], \
             "Parser failed to parse an expression with two expression list symbols"
         
         assert list(parser.parseCommand((
-            LexerToken('4',     LexerTokenTypes.INTEGER,        0),
-            LexerToken('+',     LexerTokenTypes.PLUS,           2),
-            LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     4),
-            LexerToken('10',    LexerTokenTypes.INTEGER,        5),
-            LexerToken('+',     LexerTokenTypes.PLUS,           8),
-            LexerToken('2',     LexerTokenTypes.INTEGER,        10),
-            LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    11),
-            LexerToken('/',     LexerTokenTypes.SLASH,          13),
-            LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     15),
-            LexerToken('4',     LexerTokenTypes.INTEGER,        16),
-            LexerToken(',',     LexerTokenTypes.COMMA,          17),
-            LexerToken('5',     LexerTokenTypes.INTEGER,        18),
-            LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    19),
-            LexerToken('',      LexerTokenTypes.EOL,            20),
+            LexerToken("4",     LexerTokenTypes.INTEGER,        0),
+            LexerToken("+",     LexerTokenTypes.PLUS,           2),
+            LexerToken("{",     LexerTokenTypes.BRACE_OPEN,     4),
+            LexerToken("10",    LexerTokenTypes.INTEGER,        5),
+            LexerToken("+",     LexerTokenTypes.PLUS,           8),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        10),
+            LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    11),
+            LexerToken("/",     LexerTokenTypes.SLASH,          13),
+            LexerToken("{",     LexerTokenTypes.BRACE_OPEN,     15),
+            LexerToken("4",     LexerTokenTypes.INTEGER,        16),
+            LexerToken(",",     LexerTokenTypes.COMMA,          17),
+            LexerToken("5",     LexerTokenTypes.INTEGER,        18),
+            LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    19),
+            LexerToken("",      LexerTokenTypes.EOL,            20),
         ))) == [Command.evaluateExpression(
             4 + sympy.Symbol("{12}") / sympy.Symbol("{4, 5}") # type: ignore
         )], "Parser failed to parse an expression with two expression list symbols"
 
         assert list(parser.parseCommand((
-            LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     0),
-            LexerToken('3',     LexerTokenTypes.INTEGER,        1),
-            LexerToken(',',     LexerTokenTypes.COMMA,          2),
-            LexerToken('2',    LexerTokenTypes.INTEGER,         4),
-            LexerToken(',',     LexerTokenTypes.COMMA,          5),
-            LexerToken('1',    LexerTokenTypes.INTEGER,         7),
-            LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    8),
-            LexerToken('',      LexerTokenTypes.EOL,            9),
+            LexerToken("{",     LexerTokenTypes.BRACE_OPEN,     0),
+            LexerToken("3",     LexerTokenTypes.INTEGER,        1),
+            LexerToken(",",     LexerTokenTypes.COMMA,          2),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        4),
+            LexerToken(",",     LexerTokenTypes.COMMA,          5),
+            LexerToken("1",     LexerTokenTypes.INTEGER,        7),
+            LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    8),
+            LexerToken("",      LexerTokenTypes.EOL,            9),
         ))) == [Command.evaluateExpression(sympy.Symbol("{1, 2, 3}"))], \
             "Parser failed to sort expression list before making it a symbol"
 
@@ -175,26 +175,26 @@ class CommandParserTester:
         parser = CommandParser()
         
         assert list(parser.parseExpressionList((
-            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     1),
-            LexerToken('+',     LexerTokenTypes.PLUS,           2),
-            LexerToken('r',     LexerTokenTypes.IDENTIFIER,     3),
-            LexerToken('*',     LexerTokenTypes.STAR,           4),
-            LexerToken('b',     LexerTokenTypes.IDENTIFIER,     5),
-            LexerToken(',',     LexerTokenTypes.COMMA,          6),
-            LexerToken('(',     LexerTokenTypes.PAREN_OPEN,     8),
-            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     9),
-            LexerToken('+',     LexerTokenTypes.PLUS,           10),
-            LexerToken('b',     LexerTokenTypes.IDENTIFIER,     11),
-            LexerToken(')',     LexerTokenTypes.PAREN_CLOSE,    12),
-            LexerToken('/',     LexerTokenTypes.SLASH,          13),
-            LexerToken('d',     LexerTokenTypes.IDENTIFIER,     14),
-            LexerToken(',',     LexerTokenTypes.COMMA,          15),
-            LexerToken('14',    LexerTokenTypes.INTEGER,        17),
-            LexerToken('-',     LexerTokenTypes.DASH,           19),
-            LexerToken('12',    LexerTokenTypes.INTEGER,        20),
-            LexerToken('*',     LexerTokenTypes.STAR,           22),
-            LexerToken('a',     LexerTokenTypes.IDENTIFIER,     23),
-            LexerToken('',      LexerTokenTypes.EOL,            25),
+            LexerToken("a",     LexerTokenTypes.IDENTIFIER,     1),
+            LexerToken("+",     LexerTokenTypes.PLUS,           2),
+            LexerToken("r",     LexerTokenTypes.IDENTIFIER,     3),
+            LexerToken("*",     LexerTokenTypes.STAR,           4),
+            LexerToken("b",     LexerTokenTypes.IDENTIFIER,     5),
+            LexerToken(",",     LexerTokenTypes.COMMA,          6),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     8),
+            LexerToken("a",     LexerTokenTypes.IDENTIFIER,     9),
+            LexerToken("+",     LexerTokenTypes.PLUS,           10),
+            LexerToken("b",     LexerTokenTypes.IDENTIFIER,     11),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    12),
+            LexerToken("/",     LexerTokenTypes.SLASH,          13),
+            LexerToken("d",     LexerTokenTypes.IDENTIFIER,     14),
+            LexerToken(",",     LexerTokenTypes.COMMA,          15),
+            LexerToken("14",    LexerTokenTypes.INTEGER,        17),
+            LexerToken("-",     LexerTokenTypes.DASH,           19),
+            LexerToken("12",    LexerTokenTypes.INTEGER,        20),
+            LexerToken("*",     LexerTokenTypes.STAR,           22),
+            LexerToken("a",     LexerTokenTypes.IDENTIFIER,     23),
+            LexerToken("",      LexerTokenTypes.EOL,            25),
         ))) == [sympy.parse_expr("a+r*b"), sympy.parse_expr("(a+b)/d"), sympy.parse_expr("14-12*a")], \
             "Parser failed to parse a basic expression with a single expression list symbol"
         
@@ -361,33 +361,33 @@ class CommandParserTester:
         ))) == [Command.evaluateExpression(sympy.parse_expr("--a---b+-----c"))]
 
         assert list(parser.parseCommand((
-            LexerToken('a',     LexerTokenTypes.IDENTIFIER, 0),
-            LexerToken('^',     LexerTokenTypes.CARROT,     1),
-            LexerToken('-',     LexerTokenTypes.DASH,       2),
-            LexerToken('b',     LexerTokenTypes.IDENTIFIER, 3),
-            LexerToken('',      LexerTokenTypes.EOL,        4),
+            LexerToken("a",     LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken("^",     LexerTokenTypes.CARROT,     1),
+            LexerToken("-",     LexerTokenTypes.DASH,       2),
+            LexerToken("b",     LexerTokenTypes.IDENTIFIER, 3),
+            LexerToken("",      LexerTokenTypes.EOL,        4),
         ))) == [Command.evaluateExpression(sympy.parse_expr("a**-b"))]
 
         assert list(parser.parseCommand((
-            LexerToken('a',     LexerTokenTypes.IDENTIFIER, 0),
-            LexerToken('^',     LexerTokenTypes.CARROT,     1),
-            LexerToken('-',     LexerTokenTypes.DASH,       2),
-            LexerToken('-',     LexerTokenTypes.DASH,       3),
-            LexerToken('-',     LexerTokenTypes.DASH,       4),
-            LexerToken('b',     LexerTokenTypes.IDENTIFIER, 5),
-            LexerToken('',      LexerTokenTypes.EOL,        6),
+            LexerToken("a",     LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken("^",     LexerTokenTypes.CARROT,     1),
+            LexerToken("-",     LexerTokenTypes.DASH,       2),
+            LexerToken("-",     LexerTokenTypes.DASH,       3),
+            LexerToken("-",     LexerTokenTypes.DASH,       4),
+            LexerToken("b",     LexerTokenTypes.IDENTIFIER, 5),
+            LexerToken("",      LexerTokenTypes.EOL,        6),
         ))) == [Command.evaluateExpression(sympy.parse_expr("a**---b"))]
 
         assert list(parser.parseCommand((
-            LexerToken('-', LexerTokenTypes.DASH,       0),
-            LexerToken('2', LexerTokenTypes.INTEGER,    1),
-            LexerToken('^', LexerTokenTypes.CARROT,     2),
-            LexerToken('-', LexerTokenTypes.DASH,       3),
-            LexerToken('3', LexerTokenTypes.INTEGER,    4),
-            LexerToken('^', LexerTokenTypes.CARROT,     5),
-            LexerToken('-', LexerTokenTypes.DASH,       6),
-            LexerToken('2', LexerTokenTypes.INTEGER,    7),
-            LexerToken('',  LexerTokenTypes.EOL,        8),
+            LexerToken("-", LexerTokenTypes.DASH,       0),
+            LexerToken("2", LexerTokenTypes.INTEGER,    1),
+            LexerToken("^", LexerTokenTypes.CARROT,     2),
+            LexerToken("-", LexerTokenTypes.DASH,       3),
+            LexerToken("3", LexerTokenTypes.INTEGER,    4),
+            LexerToken("^", LexerTokenTypes.CARROT,     5),
+            LexerToken("-", LexerTokenTypes.DASH,       6),
+            LexerToken("2", LexerTokenTypes.INTEGER,    7),
+            LexerToken("",  LexerTokenTypes.EOL,        8),
         ))) == [Command.evaluateExpression(sympy.parse_expr("-2**-3**-2"))]
         
         assert list(parser.parseCommand((
