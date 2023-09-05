@@ -164,7 +164,7 @@ class _CommandParserSequencer:
     def sequenceCommand(self):
         # branch: EOL
         if self._currToken.type is LexerTokenTypes.EOL:
-            self._consumeCurrToken(self._currToken.type)
+            self._consumeCurrToken(LexerTokenTypes.EOL)
             return Command.empty()
         
         # distinguish branches: relation, expression
@@ -207,7 +207,7 @@ class _CommandParserSequencer:
 
         # distinguish branches: expression, expression COMMA expression, ...
         while self._currToken.type is LexerTokenTypes.COMMA:
-            self._consumeCurrToken(self._currToken.type)
+            self._consumeCurrToken(LexerTokenTypes.COMMA)
             expressions.append(self.sequenceExpression())
 
         # default branch: expression
@@ -315,14 +315,14 @@ class _CommandParserSequencer:
     def sequenceEvaluation(self) -> sympy.Expr | tuple[LexerTokenType, str]:
         # branch: PAREN_OPEN expression PAREN_CLOSE
         if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
-            self._consumeCurrToken(self._currToken.type)
+            self._consumeCurrToken(LexerTokenTypes.PAREN_OPEN)
             expression = self.sequenceExpression()
             self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
             return expression
         
         # branch: BRACE_OPEN expressionList BRACE_CLOSE
         elif self._currToken.type is LexerTokenTypes.BRACE_OPEN and self._allowExpressionList:
-            self._consumeCurrToken(self._currToken.type)
+            self._consumeCurrToken(LexerTokenTypes.BRACE_OPEN)
             self._allowExpressionList = False
             self._allowIdentifierValues = False
             expressions = self.sequenceExpressionList()
