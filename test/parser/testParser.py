@@ -201,6 +201,74 @@ class CommandParserTester:
         ))) == [sympy.parse_expr("a+r*b"), sympy.parse_expr("(a+b)/d"), sympy.parse_expr("14-12*a")], \
             "Parser failed to parse a basic expression with a single expression list symbol"
         
+    def testEvaluatesAliases(self):
+        parser = CommandParser()
+        aliases = {
+            "alias0": lambda: "ALIAS0",
+            "alias1": lambda a: f"ALIAS1-{a}",
+            "alias2": lambda a, b: f"ALIAS2-{a}-{b}",
+            "alias3": lambda a, b, c: f"ALIAS3-{a}-{b}-{c}",
+        }
+
+        assert parser.preprocessAliases((
+            LexerToken("alias0",    LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("",          LexerTokenTypes.EOL,            29),
+        ), aliases) == "ALIAS0"
+
+        assert parser.preprocessAliases((
+            LexerToken("alias0",    LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     5),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    28),
+            LexerToken("",          LexerTokenTypes.EOL,            29),
+        ), aliases) == "ALIAS0"
+
+        assert parser.preprocessAliases((
+            LexerToken("alias1",    LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     5),
+            LexerToken("param1",    LexerTokenTypes.IDENTIFIER,     6),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    28),
+            LexerToken("",          LexerTokenTypes.EOL,            29),
+        ), aliases) == "ALIAS1-param1"
+
+        assert parser.preprocessAliases((
+            LexerToken("alias2",    LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     5),
+            LexerToken("param1",    LexerTokenTypes.IDENTIFIER,     6),
+            LexerToken(",",         LexerTokenTypes.COMMA,          12),
+            LexerToken("param2",    LexerTokenTypes.IDENTIFIER,     14),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    28),
+            LexerToken("",          LexerTokenTypes.EOL,            29),
+        ), aliases) == "ALIAS2-param1-param2"
+
+        assert parser.preprocessAliases((
+            LexerToken("alias3",    LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     5),
+            LexerToken("param1",    LexerTokenTypes.IDENTIFIER,     6),
+            LexerToken(",",         LexerTokenTypes.COMMA,          12),
+            LexerToken("param2",    LexerTokenTypes.IDENTIFIER,     14),
+            LexerToken(",",         LexerTokenTypes.COMMA,          20),
+            LexerToken("param3",    LexerTokenTypes.IDENTIFIER,     22),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    28),
+            LexerToken("",          LexerTokenTypes.EOL,            29),
+        ), aliases) == "ALIAS3-param1-param2-param3"
+
+    def testRecordingAliasCommand(self):
+        parser = CommandParser()
+
+        assert list(parser.parseCommand((
+            LexerToken("add",       LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     3),
+            LexerToken("param1",    LexerTokenTypes.IDENTIFIER,     4),
+            LexerToken(",",         LexerTokenTypes.COMMA,          10),
+            LexerToken("param2",    LexerTokenTypes.IDENTIFIER,     12),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    18),
+            LexerToken(":=",        LexerTokenTypes.COLON_EQUALS,   20),
+            LexerToken("param1",    LexerTokenTypes.IDENTIFIER,     23),
+            LexerToken("+",         LexerTokenTypes.PLUS,           30),
+            LexerToken("param2",    LexerTokenTypes.IDENTIFIER,     32),
+            LexerToken("",          LexerTokenTypes.EOL,            38),
+        ))) == [Command.recordAlias(("add", ("param1", "param2"), "param1 + param2"))]
+        
     def testForRobustness(self):
         parser = CommandParser()
 
@@ -425,6 +493,12 @@ class CommandParserTester:
             LexerToken("",      LexerTokenTypes.EOL,        5),
         ))) == [Command.evaluateExpression(createSymbol("while"))], \
             "Parser did not correctly evaluate symbol 'while'"
+        
+        # TODO: multiple recursive alias calls
+        # TODO: alias calls with mixed parameter types
+        # TODO: alias calls with expressions with parenthesis
+        # TODO: alias calls with expression lists (in parenthesis and backticks)
+        # TODO: more alias recording tests
         
     def testEolExceptionsMakeEolVisible(self):
         parser = CommandParser()
@@ -720,3 +794,6 @@ class CommandParserTester:
         error12 = runForError(attempt12)
         assert type(error12) is ParseException
         assert error12.badTokenIdxs == [1]
+
+        # TODO: alias call with missing arguments
+        # TODO: alias call with extra arguments
