@@ -500,40 +500,41 @@ class _CommandAliasSequencer(_Sequencer):
         return exprStr
     
     def sequenceAliasCall(self):
+        from src.app.appDriver import AliasTemplate
+
         # (all branches)
         aliasName = self._currToken.match
+        aliasTemplate = self._aliases[aliasName]
         self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
 
         # distinguish branches: IDENTIFIER, IDENTIFIER aliasArgs
         aliasArgs: tuple[str, ...]
         if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
-            aliasArgs = self.sequenceAliasCallArgs()
+            assert isinstance(aliasTemplate, AliasTemplate)
+            aliasArgs = self.sequenceAliasCallArgs(aliasTemplate.numArgs)
         else:
             aliasArgs = tuple()
 
         # default branch: IDENTIFIER
         # branch: IDENTIFIER aliasArgs
-        # TODO: check function argument length
-        aliasValue = self._aliases[aliasName](*aliasArgs)
+        aliasValue = aliasTemplate(*aliasArgs)
         return aliasValue
     
-    def sequenceAliasCallArgs(self):
+    def sequenceAliasCallArgs(self, expectedNumArgs: int):
         # (all branches)
         self._consumeCurrToken(LexerTokenTypes.PAREN_OPEN)
 
         # distinguish branches: PAREN_OPEN PAREN_CLOSE, PAREN_OPEN expression PAREN_CLOSE, ...
-        aliasArgs: list[str]
-        if self._currToken.type is not LexerTokenTypes.PAREN_CLOSE:
-            prevAllowBacktickExpressions = self._allowBacktickExpressions
-            self._allowBacktickExpressions = True
-            # distinguish branches: expression, expression COMMA expression, ...
-            aliasArgs = [self.sequenceExpression(isPrimary = False).strip()]
-            while self._currToken.type is LexerTokenTypes.COMMA:
+        prevAllowBacktickExpressions = self._allowBacktickExpressions
+        self._allowBacktickExpressions = True
+        aliasArgs: list[str] = list()
+        for argIdx in range(expectedNumArgs):
+            if len(aliasArgs) > 0:
                 self._consumeCurrToken(LexerTokenTypes.COMMA)
-                aliasArgs.append(self.sequenceExpression(isPrimary = False).strip())
-            self._allowBacktickExpressions = prevAllowBacktickExpressions
-        else:
-            aliasArgs = list()
+            aliasArgs.append(self.sequenceExpression(isPrimary = False).strip())
+        self._allowBacktickExpressions = prevAllowBacktickExpressions
+
+        # (all branches)
         self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
 
         # default branch: PAREN_OPEN PAREN_CLOSE
