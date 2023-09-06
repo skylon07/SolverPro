@@ -2,7 +2,7 @@ import sympy
 
 from src.common.functions import runForError
 from src.parsing.parser import CommandParser, Command, ParseException, EolException
-from src.parsing.lexer import LexerToken, LexerTokenTypes
+from src.parsing.lexer import LexerToken, LexerTokenTypes, AliasTemplate
 
 
 # so the linter doesn't take FOREVER...
@@ -204,10 +204,46 @@ class CommandParserTester:
     def testEvaluatesAliases(self):
         parser = CommandParser()
         aliases = {
-            "alias0": lambda: "ALIAS0",
-            "alias1": lambda a: f"ALIAS1-{a}",
-            "alias2": lambda a, b: f"ALIAS2-{a}-{b}",
-            "alias3": lambda a, b, c: f"ALIAS3-{a}-{b}-{c}",
+            "alias0": AliasTemplate(
+                "alias0",
+                tuple(),
+                (
+                    LexerToken("ALIAS0", LexerTokenTypes.IDENTIFIER, 0),
+                ),
+            ),
+            "alias1": AliasTemplate(
+                "alias1",
+                tuple(["a"]),
+                (
+                    LexerToken("ALIAS1",    LexerTokenTypes.IDENTIFIER, 0),
+                    LexerToken("-",         LexerTokenTypes.DASH,       6),
+                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 7),
+                ),
+            ),
+            "alias2": AliasTemplate(
+                "alias2",
+                tuple(["a", "b"]),
+                (
+                    LexerToken("ALIAS2",    LexerTokenTypes.IDENTIFIER, 0),
+                    LexerToken("-",         LexerTokenTypes.DASH,       6),
+                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 7),
+                    LexerToken("-",         LexerTokenTypes.DASH,       8),
+                    LexerToken("b",         LexerTokenTypes.IDENTIFIER, 9),
+                ),
+            ),
+            "alias3": AliasTemplate(
+                "alias3",
+                tuple(["a", "b", "c"]),
+                (
+                    LexerToken("ALIAS3",    LexerTokenTypes.IDENTIFIER, 0),
+                    LexerToken("-",         LexerTokenTypes.DASH,       6),
+                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 7),
+                    LexerToken("-",         LexerTokenTypes.DASH,       8),
+                    LexerToken("b",         LexerTokenTypes.IDENTIFIER, 9),
+                    LexerToken("-",         LexerTokenTypes.DASH,       10),
+                    LexerToken("c",         LexerTokenTypes.IDENTIFIER, 11),
+                ),
+            ),
         }
 
         assert parser.preprocessAliases((
