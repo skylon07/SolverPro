@@ -192,6 +192,7 @@ class SolverProApp(App):
     mainScreen: var[MainScreen] = var(lambda: MainScreen())
 
     def on_mount(self):
+        self.textRenderer.useAliasProvider(self.driver)
         self.push_screen(self.mainScreen)
 
     # defined as an action for term tip links

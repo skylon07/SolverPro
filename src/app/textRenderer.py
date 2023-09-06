@@ -1,7 +1,8 @@
 import re
-from typing import Iterable
+from typing import Iterable, Callable
 
 import sympy
+from textual.color import Color
 from rich.markup import render as renderMarkup
 from rich.text import Text
 
@@ -12,9 +13,19 @@ from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer
 from src.algebrasolver.solver import Relation
 
 
+TokenFormatFn = Callable[[tuple[LexerToken, ...], int], Color]
+
+
 class TextRenderer:
-    def __init__(self):
+    def __init__(self, aliasProvider = None):
+        if aliasProvider is not None:
+            self.useAliasProvider(aliasProvider)
         self._lexer = CommandLexer()
+
+    def useAliasProvider(self, aliasProvider):
+        from src.app.appDriver import AppDriver
+        assert aliasProvider is None or type(aliasProvider) is AppDriver
+        self._driver = aliasProvider
     
     def formatInputLog(self, inputStr: str, succeeded: bool, *, highlightSyntax: bool = True):
         marker = f"[{Colors.textGreen.hex}]✓[/]" if succeeded \
@@ -25,7 +36,7 @@ class TextRenderer:
     
     def formatLexerSyntax(self, text: str):
         tokenFormats = {
-            LexerTokenTypes.IDENTIFIER:     Colors.identifier,
+            LexerTokenTypes.IDENTIFIER:     self._identifierFormat,
             LexerTokenTypes.INTEGER:        Colors.number,
             LexerTokenTypes.FLOAT:          Colors.number,
             LexerTokenTypes.PAREN_OPEN:     Colors.punctuation,
@@ -43,11 +54,20 @@ class TextRenderer:
         }
         tokens = tuple(self._lexer.findTokens(text))
         replacements = {
-            tokenIdx: tokenFormats[token.type].hex
+            tokenIdx: tokenFormats[token.type]
             for (tokenIdx, token) in enumerate(tokens)
             if token.type in tokenFormats
         }
         return self._sanitizeInput(f"[{Colors.textPlain.hex}]{self._formatTokens(tokens, replacements)}[/]")
+    
+    def _identifierFormat(self, tokens: tuple[LexerToken, ...], tokenIdx: int):
+        if self._driver is not None:
+            ... # TODO
+        if tokenIdx + 1 < len(tokens):
+            nextToken = tokens[tokenIdx + 1]
+            if nextToken.type in (LexerTokenTypes.PAREN_OPEN, LexerTokenTypes.COLON_EQUALS):
+                return Colors.alias
+        return Colors.identifier
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False, highlightSyntax: bool = False):
         relationStr = self._correctExprSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
@@ -89,13 +109,13 @@ class TextRenderer:
                 if eolToken.type is LexerTokenTypes.EOL
             ]) <= 1, "Exception rendering cannot yet handle multiple input lines"
             
-            formattingMap = {tokenIdx: Colors.textRed.hex for tokenIdx in exception.badTokenIdxs}
+            formattingMap: dict[int, Color | TokenFormatFn] = {tokenIdx: Colors.textRed for tokenIdx in exception.badTokenIdxs}
             if exception.grayOutAfterBadTokens:
                 formattingMap.update({
-                    tokenIdx: Colors.textMuted.hex
+                    tokenIdx: Colors.textMuted
                     for tokenIdx in range(max(exception.badTokenIdxs) + 1, len(exception.tokens))
                 })
-            exprLine = self._formatTokens(exception.tokens, formattingMap)
+            exprLine = self._formatTokens(tuple(exception.tokens), formattingMap)
             return self._formatLinesForException(
                 (
                     f"[{Colors.textPlain.hex}]{exprLine}[/]",
@@ -170,7 +190,7 @@ class TextRenderer:
             ]
         return self._sanitizeInput(self._formatLines(lines))
     
-    def _formatTokens(self, tokens: Iterable[LexerToken], formattingMap: dict[int, str]):
+    def _formatTokens(self, tokens: tuple[LexerToken], formattingMap: dict[int, Color | TokenFormatFn]):
         formattedStr = ""
         lastToken = None
         for (tokenIdx, token) in enumerate(tokens):
@@ -182,12 +202,16 @@ class TextRenderer:
             formattedStr += " " * numSpaces
             
             if tokenIdx in formattingMap:
-                format = formattingMap[tokenIdx]
+                formatRule = formattingMap[tokenIdx]
+                if isinstance(formatRule, Color):
+                    format = formatRule.hex
+                else:
+                    format = formatRule(tokens, tokenIdx).hex
                 formattedStr += f"[{format}]"
-            formattedStr += token.match
-            if tokenIdx in formattingMap:
-                format = formattingMap[tokenIdx]
+                formattedStr += token.match
                 formattedStr += f"[/{format}]"
+            else:
+                formattedStr += token.match
             lastToken = token
         return formattedStr
     
