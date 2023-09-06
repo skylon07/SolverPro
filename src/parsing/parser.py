@@ -77,11 +77,9 @@ class _Sequencer:
     def _generateSpacesBeforeCurrToken(self):
         if self.numTokensParsed > 0:
             lastToken = self._tokens[self.numTokensParsed - 1]
-            positionDiff = self._currToken.matchIdx - lastToken.matchIdx
-            numSpaces = positionDiff - len(lastToken.match)
         else:
-            numSpaces = self._currToken.matchIdx
-        return " " * numSpaces
+            lastToken = None
+        return self._currToken.makeWhitespaceTo(lastToken)
 
     def _throwUnexpectedToken(self, expectedTypes: tuple[LexerTokenType, ...]):
         if self._currToken.type is LexerTokenTypes.EOL:

@@ -45,6 +45,16 @@ class LexerToken:
             self.match == other.match and \
             self.type == other.type and \
             self.matchIdx == other.matchIdx
+    
+    def makeWhitespaceTo(self, otherToken: "LexerToken" | None):
+        if otherToken is not None:
+            firstToken = self if self.matchIdx < otherToken.matchIdx else otherToken
+            secondToken = otherToken if firstToken is self else self
+            positionDiff = secondToken.matchIdx - firstToken.matchIdx
+            numSpaces = positionDiff - len(firstToken.match)
+        else:
+            numSpaces = self.matchIdx
+        return " " * numSpaces
 
 
 class CommandLexer:
