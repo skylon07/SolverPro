@@ -24,20 +24,27 @@ class AppDriver:
         self._aliases: dict[str, AliasTemplate] = dict()
 
     def processCommandLines(self, commandsStr: str):
-        tokensWithAliases = tuple(self._lexer.findTokens(commandsStr))
+        try:
+            tokensWithAliases = tuple(self._lexer.findTokens(commandsStr))
 
-        processedCommandsStr = self._parser.preprocessAliases(tokensWithAliases, self._aliases)
-        processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+            processedCommandsStr = self._parser.preprocessAliases(tokensWithAliases, self._aliases)
+            processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
 
-        anyNonEmptyCommands = False
-        for command in self._parser.parseCommand(processedTokens):
-            if command.type is not Command.EMPTY:
-                anyNonEmptyCommands = True
-            yield self._processCommand(command, processedTokens)
+            anyNonEmptyCommands = False
+            for command in self._parser.parseCommand(processedTokens):
+                if command.type is not Command.EMPTY:
+                    anyNonEmptyCommands = True
+                yield self._processCommand(command, processedTokens)
+            
+            if anyNonEmptyCommands:
+                self._inputHistory.insert(0, commandsStr)
         
-        if anyNonEmptyCommands:
+        except Exception as exception:
             self._inputHistory.insert(0, commandsStr)
-        self.resetHistoryState()
+            raise exception
+
+        finally:
+            self.resetHistoryState()
 
     def validateSingleLine(self, commandStr: str):
         if "\n" in commandStr:
