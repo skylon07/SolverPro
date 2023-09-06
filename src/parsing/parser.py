@@ -6,6 +6,10 @@ from src.app.widgets.colors import Colors
 from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 
+# so the dang linter doesn't take FOREVER...
+createSymbol = eval("sympy.Symbol")
+
+
 def isNonSymbolicValue(value: sympy.Basic):
     if isinstance(value, sympy.Number):
         return True
@@ -131,7 +135,7 @@ class _CommandParserSequencer:
             if type(valuePair) is tuple:
                 (valueType, valueStr) = valuePair
                 if valueType is LexerTokenTypes.IDENTIFIER:
-                    value = sympy.Symbol(valueStr)
+                    value = createSymbol(valueStr)
                 else:
                     value = sympy.parse_expr(valueStr)
                 highPrecExprList[idx] = value
@@ -331,7 +335,7 @@ class _CommandParserSequencer:
             self._allowExpressionList = True
             self._consumeCurrToken(LexerTokenTypes.BRACE_CLOSE)
             expressionsStr = ", ".join(str(expr) for expr in expressions)
-            return sympy.Symbol(f"{{{expressionsStr}}}")
+            return createSymbol(f"{{{expressionsStr}}}")
 
         # # default branch: value/number
         if self._allowIdentifierValues:

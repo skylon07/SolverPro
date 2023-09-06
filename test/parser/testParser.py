@@ -5,6 +5,10 @@ from src.parsing.parser import CommandParser, Command, ParseException, EolExcept
 from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 
+# so the linter doesn't take FOREVER...
+createSymbol = eval("sympy.Symbol")
+
+
 class CommandParserTester:
     def testCommandResults(self):
         parser = CommandParser()
@@ -27,7 +31,6 @@ class CommandParserTester:
         ))) == [Command.evaluateExpression(sympy.parse_expr("15.56e+3"))], \
             "Parser did not correctly process a single float"
         
-
     def testHandlesMultiEols(self):
         parser = CommandParser()
 
@@ -137,7 +140,7 @@ class CommandParserTester:
             LexerToken("22",    LexerTokenTypes.INTEGER,        4),
             LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    6),
             LexerToken("",      LexerTokenTypes.EOL,            7),
-        ))) == [Command.evaluateExpression(sympy.Symbol("{6, 22}"))], \
+        ))) == [Command.evaluateExpression(createSymbol("{6, 22}"))], \
             "Parser failed to parse an expression with two expression list symbols"
         
         assert list(parser.parseCommand((
@@ -156,7 +159,7 @@ class CommandParserTester:
             LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    19),
             LexerToken("",      LexerTokenTypes.EOL,            20),
         ))) == [Command.evaluateExpression(
-            4 + sympy.Symbol("{12}") / sympy.Symbol("{4, 5}") # type: ignore
+            4 + createSymbol("{12}") / createSymbol("{4, 5}") # type: ignore
         )], "Parser failed to parse an expression with two expression list symbols"
 
         assert list(parser.parseCommand((
@@ -168,7 +171,7 @@ class CommandParserTester:
             LexerToken("1",     LexerTokenTypes.INTEGER,        7),
             LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    8),
             LexerToken("",      LexerTokenTypes.EOL,            9),
-        ))) == [Command.evaluateExpression(sympy.Symbol("{1, 2, 3}"))], \
+        ))) == [Command.evaluateExpression(createSymbol("{1, 2, 3}"))], \
             "Parser failed to sort expression list before making it a symbol"
 
     def testProcessesExpressionLists(self):
@@ -410,17 +413,17 @@ class CommandParserTester:
         assert list(parser.parseCommand((
             LexerToken("as",    LexerTokenTypes.IDENTIFIER, 0),
             LexerToken("",      LexerTokenTypes.EOL,        2),
-        ))) == [Command.evaluateExpression(sympy.Symbol("as"))], \
+        ))) == [Command.evaluateExpression(createSymbol("as"))], \
             "Parser did not correctly evaluate symbol 'as'"
         assert list(parser.parseCommand((
             LexerToken("if",    LexerTokenTypes.IDENTIFIER, 0),
             LexerToken("",      LexerTokenTypes.EOL,        2),
-        ))) == [Command.evaluateExpression(sympy.Symbol("if"))], \
+        ))) == [Command.evaluateExpression(createSymbol("if"))], \
             "Parser did not correctly evaluate symbol 'if'"
         assert list(parser.parseCommand((
             LexerToken("while", LexerTokenTypes.IDENTIFIER, 0),
             LexerToken("",      LexerTokenTypes.EOL,        5),
-        ))) == [Command.evaluateExpression(sympy.Symbol("while"))], \
+        ))) == [Command.evaluateExpression(createSymbol("while"))], \
             "Parser did not correctly evaluate symbol 'while'"
         
     def testEolExceptionsMakeEolVisible(self):
