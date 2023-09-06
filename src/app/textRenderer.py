@@ -17,10 +17,17 @@ TokenFormatFn = Callable[[tuple[LexerToken, ...], int], Color]
 
 
 class TextRenderer:
-    def __init__(self, aliasProvider = None):
-        if aliasProvider is not None:
-            self.useAliasProvider(aliasProvider)
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.__init__()
+        return cls._instance
+
+    def __init__(self):
         self._lexer = CommandLexer()
+        self._driver = None
 
     def useAliasProvider(self, aliasProvider):
         from src.app.appDriver import AppDriver
