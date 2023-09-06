@@ -8,22 +8,24 @@ class LexerTokenType(EnumString):
 
 
 class LexerTokenTypes(Enum):
-    IDENTIFIER  = LexerTokenType("IDENTIFIER")
-    INTEGER     = LexerTokenType("INTEGER")
-    FLOAT       = LexerTokenType("FLOAT")
-    PAREN_OPEN  = LexerTokenType("PAREN_OPEN")
-    PAREN_CLOSE = LexerTokenType("PAREN_CLOSE")
-    BRACE_OPEN  = LexerTokenType("BRACE_OPEN")
-    BRACE_CLOSE = LexerTokenType("BRACE_CLOSE")
-    COMMA       = LexerTokenType("COMMA")
-    EQUALS      = LexerTokenType("EQUALS")
-    PLUS        = LexerTokenType("PLUS")
-    DASH        = LexerTokenType("DASH")
-    STAR        = LexerTokenType("STAR")
-    SLASH       = LexerTokenType("SLASH")
-    CARROT      = LexerTokenType("CARROT") # TODO: ~~CARROT~~ --> CARET
-    EOL         = LexerTokenType("EOL")
-    INVALID     = LexerTokenType("INVALID")
+    IDENTIFIER      = LexerTokenType("IDENTIFIER")
+    INTEGER         = LexerTokenType("INTEGER")
+    FLOAT           = LexerTokenType("FLOAT")
+    PAREN_OPEN      = LexerTokenType("PAREN_OPEN")
+    PAREN_CLOSE     = LexerTokenType("PAREN_CLOSE")
+    BRACE_OPEN      = LexerTokenType("BRACE_OPEN")
+    BRACE_CLOSE     = LexerTokenType("BRACE_CLOSE")
+    BACKTICK        = LexerTokenType("BACKTICK")
+    COMMA           = LexerTokenType("COMMA")
+    EQUALS          = LexerTokenType("EQUALS")
+    COLON_EQUALS    = LexerTokenType("COLON_EQUALS")
+    PLUS            = LexerTokenType("PLUS")
+    DASH            = LexerTokenType("DASH")
+    STAR            = LexerTokenType("STAR")
+    SLASH           = LexerTokenType("SLASH")
+    CARROT          = LexerTokenType("CARROT") # TODO: ~~CARROT~~ --> CARET
+    EOL             = LexerTokenType("EOL")
+    INVALID         = LexerTokenType("INVALID")
 
 
 class LexerToken:
@@ -71,12 +73,20 @@ class CommandLexer:
                 LexerTokenTypes.BRACE_CLOSE
             ),
             LexerRecognizer(
+                r"`",
+                LexerTokenTypes.BACKTICK
+            ),
+            LexerRecognizer(
                 r",",
                 LexerTokenTypes.COMMA
             ),
             LexerRecognizer(
                 r"=",
                 LexerTokenTypes.EQUALS
+            ),
+            LexerRecognizer(
+                r":=",
+                LexerTokenTypes.COLON_EQUALS
             ),
             LexerRecognizer(
                 r"\+",

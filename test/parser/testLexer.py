@@ -197,6 +197,22 @@ class CommandLexerTester:
                 0
             )
         ], "Lexer did not find a CARROT"
+
+        # COLON_EQUALS/BACKTICKS
+        assert list(lexer.findTokens(":=", withEol = False)) == [
+            LexerToken(
+                ":=",
+                LexerTokenTypes.COLON_EQUALS,
+                0
+            )
+        ], "Lexer did not find a COLON_EQUALS"
+        assert list(lexer.findTokens("`", withEol = False)) == [
+            LexerToken(
+                "`",
+                LexerTokenTypes.BACKTICK,
+                0
+            )
+        ], "Lexer did not find a BACKTICK"
         
         # INVALID
         assert list(lexer.findTokens("‡", withEol = False)) == [
