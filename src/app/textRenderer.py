@@ -9,7 +9,7 @@ from rich.text import Text
 from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.app.widgets.colors import Colors
-from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer
+from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer, AliasTemplate
 from src.algebrasolver.solver import Relation
 
 
@@ -50,8 +50,10 @@ class TextRenderer:
             LexerTokenTypes.PAREN_CLOSE:    Colors.punctuation,
             LexerTokenTypes.BRACE_OPEN:     Colors.punctuation,
             LexerTokenTypes.BRACE_CLOSE:    Colors.punctuation,
+            LexerTokenTypes.BACKTICK:       Colors.punctuation,
             LexerTokenTypes.COMMA:          Colors.punctuation,
             LexerTokenTypes.EQUALS:         Colors.operator,
+            LexerTokenTypes.COLON_EQUALS:   Colors.operator,
             LexerTokenTypes.PLUS:           Colors.operator,
             LexerTokenTypes.DASH:           Colors.operator,
             LexerTokenTypes.STAR:           Colors.operator,
@@ -107,6 +109,16 @@ class TextRenderer:
             for expr in exprs
             for exprStr in [self._correctExprSyntaxes(str(expr))]
         ])
+    
+    def formatAliasTemplate(self, aliasTemplate: AliasTemplate, *, highlightSyntax: bool = False):
+        aliasStr = aliasTemplate.name
+        if aliasTemplate.numArgs > 0:
+            aliasStr += "(" + ", ".join(aliasTemplate.argNames) + ")"
+        aliasStr += " := " + self._formatTokens(aliasTemplate.templateTokens, dict())
+        return self._sanitizeInput(self._formatLines([
+            self.formatLexerSyntax(aliasStr) if highlightSyntax
+                else aliasStr
+        ]))
     
     def formatException(self, exception: Exception, *, withErrorHeader: bool):
         if isinstance(exception, TracebackException):
@@ -197,16 +209,11 @@ class TextRenderer:
             ]
         return self._sanitizeInput(self._formatLines(lines))
     
-    def _formatTokens(self, tokens: tuple[LexerToken], formattingMap: dict[int, Color | TokenFormatFn]):
+    def _formatTokens(self, tokens: tuple[LexerToken, ...], formattingMap: dict[int, Color | TokenFormatFn]):
         formattedStr = ""
         lastToken = None
         for (tokenIdx, token) in enumerate(tokens):
-            if lastToken is not None:
-                idxDiff = token.matchIdx - lastToken.matchIdx
-                numSpaces = idxDiff - len(lastToken.match)
-            else:
-                numSpaces = token.matchIdx
-            formattedStr += " " * numSpaces
+            formattedStr += token.makeWhitespaceTo(lastToken)
             
             if tokenIdx in formattingMap:
                 formatRule = formattingMap[tokenIdx]
