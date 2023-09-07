@@ -7,7 +7,7 @@ from src.common.exceptions import TracebackException, MultilineException
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
 from src.algebrasolver.solver import AlgebraSolver, Relation
-from src.parsing.lexer import CommandLexer, LexerToken, AliasTemplate
+from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes, AliasTemplate
 from src.parsing.parser import CommandParser, Command, CommandType, isExpressionListSymbol
 
 
@@ -27,8 +27,12 @@ class AppDriver:
         try:
             tokensWithAliases = tuple(self._lexer.findTokens(commandsStr))
 
-            processedCommandsStr = self._parser.preprocessAliases(tokensWithAliases, self._aliases)
-            processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+            shouldParseAliases = not any(token.type is LexerTokenTypes.COLON_EQUALS for token in tokensWithAliases)
+            if shouldParseAliases:
+                processedCommandsStr = self._parser.preprocessAliases(tokensWithAliases, self._aliases)
+                processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+            else:
+                processedTokens = tokensWithAliases
 
             anyNonEmptyCommands = False
             for command in self._parser.parseCommand(processedTokens):
