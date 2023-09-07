@@ -70,6 +70,9 @@ class AppDriver:
             self._solver.recordRelation(oldRelation)
             raise exception
         
+    def getAliases(self):
+        return dict(self._aliases)
+        
     def getInputHistory(self):
         return tuple(self._inputHistory)
     

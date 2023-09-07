@@ -26,6 +26,11 @@ class TextRenderer:
         return cls._instance
 
     def __init__(self):
+        isAlreadyInitialized = getattr(self, "_initialized", False)
+        if isAlreadyInitialized:
+            return
+        
+        self._initialized = True
         self._lexer = CommandLexer()
         self._driver = None
 
@@ -70,8 +75,10 @@ class TextRenderer:
         return self._sanitizeInput(f"[{Colors.textPlain.hex}]{self._formatTokens(tokens, replacements)}[/]")
     
     def _identifierFormat(self, tokens: tuple[LexerToken, ...], tokenIdx: int):
+        token = tokens[tokenIdx]
         if self._driver is not None:
-            ... # TODO
+            if token.match in self._driver.getAliases():
+                return Colors.alias
         if tokenIdx + 1 < len(tokens):
             nextToken = tokens[tokenIdx + 1]
             if nextToken.type in (LexerTokenTypes.PAREN_OPEN, LexerTokenTypes.COLON_EQUALS):
