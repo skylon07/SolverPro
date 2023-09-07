@@ -1,11 +1,11 @@
-from typing import Callable
+from typing import Iterable
 
 import sympy
 
 from src.common.types import Enum, EnumString
 from src.common.exceptions import TracebackException
 from src.app.widgets.colors import Colors
-from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
+from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken, AliasTemplate
 
 
 # so the dang linter doesn't take FOREVER...
@@ -46,7 +46,7 @@ class CommandParser:
         expressions = sequencer.sequenceExpressionList()
         return expressions
 
-    def preprocessAliases(self, tokens: tuple[LexerToken, ...], aliases: dict[str, Callable[..., str]]):
+    def preprocessAliases(self, tokens: tuple[LexerToken, ...], aliases: dict[str, AliasTemplate]):
         sequencer = _CommandAliasSequencer(tokens, aliases)
         processedTokens = sequencer.sequenceExpression(isPrimary = True)
         return processedTokens
@@ -460,7 +460,7 @@ class _CommandAliasSequencer(_Sequencer):
         LexerTokenTypes.EOL,
     )
 
-    def __init__(self, tokens: tuple[LexerToken, ...], aliases: dict[str, Callable[..., str]]):
+    def __init__(self, tokens: tuple[LexerToken, ...], aliases: dict[str, AliasTemplate]):
         super().__init__(tokens)
         self._aliases = aliases
         self._allowBacktickExpressions = False
@@ -508,31 +508,46 @@ class _CommandAliasSequencer(_Sequencer):
         self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
 
         # distinguish branches: IDENTIFIER, IDENTIFIER aliasArgs
-        aliasArgs: tuple[str, ...]
+        aliasIdxsArgs: tuple[tuple[int, str], ...]
         if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
             assert isinstance(aliasTemplate, AliasTemplate)
-            aliasArgs = self.sequenceAliasCallArgs(aliasTemplate.numArgs)
+            aliasIdxsArgs = self.sequenceAliasCallArgs()
         else:
-            aliasArgs = tuple()
+            aliasIdxsArgs = tuple()
+
+        if len(aliasIdxsArgs) != aliasTemplate.numArgs:
+            aliasArgTokenIdxs = [tokenIdx for (tokenIdx, argStr) in aliasIdxsArgs]
+            tooManyArgs = len(aliasIdxsArgs) > aliasTemplate.numArgs
+            if tooManyArgs:
+                unexpectedTokenStartIdx = aliasArgTokenIdxs[aliasTemplate.numArgs]
+                parenCloseIdx = self.numTokensParsed - 1
+                unexpectedTokenIdxs = list(range(unexpectedTokenStartIdx, parenCloseIdx))
+            else:
+                parenCloseIdx = self.numTokensParsed - 1
+                unexpectedTokenIdxs = [parenCloseIdx]
+            raise AliasArgumentCountException(self._tokens, aliasTemplate.numArgs, len(aliasIdxsArgs), unexpectedTokenIdxs)
 
         # default branch: IDENTIFIER
         # branch: IDENTIFIER aliasArgs
-        aliasValue = aliasTemplate(*aliasArgs)
+        aliasValue = aliasTemplate(*[argStr for (tokenIdx, argStr) in aliasIdxsArgs])
         return aliasValue
     
-    def sequenceAliasCallArgs(self, expectedNumArgs: int):
+    def sequenceAliasCallArgs(self):
         # (all branches)
         self._consumeCurrToken(LexerTokenTypes.PAREN_OPEN)
 
         # distinguish branches: PAREN_OPEN PAREN_CLOSE, PAREN_OPEN expression PAREN_CLOSE, ...
-        prevAllowBacktickExpressions = self._allowBacktickExpressions
-        self._allowBacktickExpressions = True
-        aliasArgs: list[str] = list()
-        for argIdx in range(expectedNumArgs):
-            if len(aliasArgs) > 0:
+        aliasIdxsArgs: list[tuple[int, str]] = list()
+        if self._currToken.type is not LexerTokenTypes.PAREN_CLOSE:
+            prevAllowBacktickExpressions = self._allowBacktickExpressions
+            self._allowBacktickExpressions = True
+            argStartTokenIdx = self.numTokensParsed
+            aliasIdxsArgs.append((argStartTokenIdx, self.sequenceExpression(isPrimary = False).strip()))
+            while self._currToken.type is LexerTokenTypes.COMMA:
+                argStartTokenIdx = self.numTokensParsed
                 self._consumeCurrToken(LexerTokenTypes.COMMA)
-            aliasArgs.append(self.sequenceExpression(isPrimary = False).strip())
-        self._allowBacktickExpressions = prevAllowBacktickExpressions
+                aliasIdxsArgs.append((argStartTokenIdx, self.sequenceExpression(isPrimary = False).strip()))
+            self._allowBacktickExpressions = prevAllowBacktickExpressions
 
         # (all branches)
         self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
@@ -541,7 +556,7 @@ class _CommandAliasSequencer(_Sequencer):
         # branch: PAREN_OPEN expression PAREN_CLOSE
         # branch: PAREN_OPEN expression COMMA expression PAREN_CLOSE
         # ...
-        return tuple(aliasArgs)
+        return tuple(aliasIdxsArgs)
 
 
 class CommandType(EnumString):
@@ -597,3 +612,16 @@ class EolException(TracebackException):
         eolToken = tokens[-1]
         tokens = tokens[:-1] + (LexerToken(f" ...", eolToken.type, eolToken.matchIdx),)
         super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [unexpectedTokenIdx], True)
+
+
+class AliasArgumentCountException(TracebackException):
+    def __init__(self, tokens: tuple[LexerToken, ...], expectedCount: int, actualCount: int, unexpectedTokenIdxs: Iterable[int]):
+        tooManyArguments = actualCount > expectedCount
+        if tooManyArguments:
+            receivedGrammarStr = "received too many"
+        else:
+            receivedGrammarStr = "did not receive enough"
+        gramaticalS = "s" if expectedCount != 1 else ""
+        # TODO: add a term tip for "alias"
+        fullMessage = f"Alias expected [{Colors.textGreen.hex}]{expectedCount} argument{gramaticalS}[/], but [{Colors.textRed.hex}]{receivedGrammarStr}[/]"
+        super().__init__(fullMessage, tokens, unexpectedTokenIdxs, True)
