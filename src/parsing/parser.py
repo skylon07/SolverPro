@@ -88,7 +88,7 @@ class _Sequencer:
             raise ParseException(expectedTypes, self._tokens, self.numTokensParsed)
     
     def _throwEolException(self):
-        raise EolException(self._tokens, self.numTokensParsed)
+        raise EolException(self._tokens)
 
 
 class _CommandParserSequencer(_Sequencer):
@@ -608,10 +608,14 @@ class ParseException(TracebackException):
 
 
 class EolException(TracebackException):
-    def __init__(self, tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
-        eolToken = tokens[-1]
-        tokens = tokens[:-1] + (LexerToken(f" ...", eolToken.type, eolToken.matchIdx),)
-        super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [unexpectedTokenIdx], True)
+    def __init__(self, tokens: tuple[LexerToken, ...]):
+        lastToken = tokens[-1]
+        if lastToken.type is LexerTokenTypes.EOL:
+            tokens = tokens[:-1]
+            lastToken = tokens[-1]
+        eolPosition = lastToken.matchIdx + len(lastToken.match)
+        tokens = tokens + (LexerToken(f" ...", LexerTokenTypes.EOL, eolPosition),)
+        super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [len(tokens) - 1], True)
 
 
 class AliasArgumentCountException(TracebackException):
