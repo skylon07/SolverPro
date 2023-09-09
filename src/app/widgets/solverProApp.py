@@ -219,7 +219,7 @@ class SolverProApp(App):
         modifiedRelationStr = f"<replace {self.textRenderer.formatRelation(oldRelation, highlightSyntax = True)}>"
         try:
             result = self.driver.replaceRelation(oldRelation, newRelationCommand)
-            (relation, isRedundant) = result.data
+            (relation, isRedundant) = result.data[0]
             self.mainScreen.writeToLogger(
                 modifiedRelationStr,
                 True,

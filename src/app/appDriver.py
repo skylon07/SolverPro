@@ -65,8 +65,12 @@ class AppDriver:
         # TODO: this would be a good use case for transactional solver stuff when that's implemented
         self._solver.popRelation(oldRelation)
         try:
+            commandHasMultipleRelations = len([char for char in newRelationCommand if char == "="]) > 1
+            if commandHasMultipleRelations:
+                raise TooManyRelationsException(oldRelation, newRelationCommand)
+
             result = first(self.processCommandLines(newRelationCommand), None)
-            if result is None or result.type is not Command.RECORD_RELATION:
+            if result is None or result.type is not Command.RECORD_RELATIONS:
                 raise NotARelationException(oldRelation, newRelationCommand)
             else:
                 return result
@@ -220,4 +224,15 @@ class NotARelationException(MultilineException):
             renderer.formatRelation(oldRelation, highlightSyntax = True),
             "with non-relation",
             renderer.formatLexerSyntax(nonRelationStr),
+        ))
+
+
+class TooManyRelationsException(MultilineException):
+    def __init__(self, oldRelation: Relation, relationsStr: str):
+        renderer = TextRenderer()
+        super().__init__((
+            "Cannot replace single relation",
+            renderer.formatRelation(oldRelation, highlightSyntax = True),
+            "with multiple relations",
+            renderer.formatLexerSyntax(relationsStr),
         ))
