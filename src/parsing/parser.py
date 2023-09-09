@@ -192,23 +192,23 @@ class _CommandParserSequencer(_Sequencer):
         
         # distinguish branches: relation, expression, aliasTemplate
         idx = self.numTokensParsed
-        isRelation = False
+        isRelations = False
         isAliasTemplate = False
         while idx < len(self._tokens):
             token = self._tokens[idx]
             if token.type is LexerTokenTypes.EQUALS:
-                isRelation = True
+                isRelations = True
                 break
             elif token.type is LexerTokenTypes.COLON_EQUALS:
                 isAliasTemplate = True
                 break
             idx += 1
 
-        # branch: relation EOL
-        if isRelation:
-            relation = self.sequenceRelation()
+        # branch: relations EOL
+        if isRelations:
+            relations = self.sequenceRelations()
             self._consumeCurrToken(LexerTokenTypes.EOL)
-            return Command.recordRelation(relation)
+            return Command.recordRelations(relations)
         
         # branch: aliasTemplate EOL
         if isAliasTemplate:
@@ -221,12 +221,19 @@ class _CommandParserSequencer(_Sequencer):
         self._consumeCurrToken(LexerTokenTypes.EOL)
         return Command.evaluateExpression(expression)
     
-    def sequenceRelation(self):
-        # default branch: expression EQUALS expression
-        leftExpr = self.sequenceExpression()
-        self._consumeCurrToken(LexerTokenTypes.EQUALS)
-        rightExpr = self.sequenceExpression()
-        return (leftExpr, rightExpr)
+    def sequenceRelations(self):
+        # (all branches)
+        expr = self.sequenceExpression()
+        
+        # branch: expression EQUALS relations
+        if self._currToken.type is LexerTokenTypes.EQUALS:
+            self._consumeCurrToken(LexerTokenTypes.EQUALS)
+            exprList = self.sequenceRelations()
+            exprList.insert(0, expr)
+            return exprList
+
+        # default branch: expression
+        return [expr]
     
     def sequenceExpression(self):
         # default branch: lowPrecExpr
@@ -565,7 +572,7 @@ class CommandType(EnumString):
 
 class Command(Enum):
     EMPTY = CommandType("EMPTY")
-    RECORD_RELATION = CommandType("RECORD_RELATION")
+    RECORD_RELATIONS = CommandType("RECORD_RELATIONS")
     EVALUATE_EXPRESSION = CommandType("EVALUATE_EXPRESSION")
     RECORD_ALIAS = CommandType("RECORD_ALIAS")
 
@@ -584,8 +591,8 @@ class Command(Enum):
         return cls(cls.EMPTY, None)
     
     @classmethod
-    def recordRelation(cls, relation: tuple[sympy.Expr, sympy.Expr]):
-        return cls(cls.RECORD_RELATION, relation)
+    def recordRelations(cls, relations: list[sympy.Expr]):
+        return cls(cls.RECORD_RELATIONS, relations)
     
     @classmethod
     def evaluateExpression(cls, expression: sympy.Expr):
