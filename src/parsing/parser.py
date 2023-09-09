@@ -626,6 +626,5 @@ class AliasArgumentCountException(TracebackException):
         else:
             receivedGrammarStr = "did not receive enough"
         gramaticalS = "s" if expectedCount != 1 else ""
-        # TODO: add a term tip for "alias"
-        fullMessage = f"Alias expected [{Colors.textGreen.hex}]{expectedCount} argument{gramaticalS}[/], but [{Colors.textRed.hex}]{receivedGrammarStr}[/]"
+        fullMessage = f"[@termtip]Alias[/@termtip] expected [{Colors.textGreen.hex}]{expectedCount} argument{gramaticalS}[/], but [{Colors.textRed.hex}]{receivedGrammarStr}[/]"
         super().__init__(fullMessage, tokens, unexpectedTokenIdxs, True)

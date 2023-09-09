@@ -1,7 +1,5 @@
 from typing import Iterable
 
-from rich.console import RenderableType
-
 from src.common.types import FormattedStr
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
@@ -21,9 +19,43 @@ class TermTips:
     def __init__(self):
         self._renderer = TextRenderer()
         self._terms: dict[str, TermTip | str] = {
+            'alias': TermTip(
+                "Abstract: Alias Template",
+                (
+                    "Alias templates are fundamentally different than equality relations. " \
+                    "While they both substitute their parameters with values, alias templates " \
+                    "logically perform their substitutions directly into the input string, as " \
+                    "if you wrote their evaluated template out by hand. Consider this example:",
+
+                    self._renderer.formatLexerSyntax("plus(a, b) := a + (b)"),
+
+                    self._renderer.formatLexerSyntax("1 + plus(2, 3) + 4"),
+
+                    "The second expression would resolve to:",
+
+                    self._renderer.formatLexerSyntax("1 + 2 + (3) + 4"),
+
+                    "Which would then evaluate to:",
+
+                    self._renderer.formatLexerSyntax("10"),
+
+                    "It is important to note that the template (the expression after `:=`) " \
+                    "is not parsed before it is resolved. This is evident by the " + \
+                    self._renderer.formatLexerSyntax("(3)") + " " + \
+                    "still being surrounded by parentheses, indicating the " + \
+                    self._renderer.formatLexerSyntax("(b)") + " " + \
+                    "was stored with parentheses around it as well. This allows for " \
+                    "some creativity, since the templates don't need to resolve " \
+                    "to \"valid\" expressions. Consider this completely valid example:",
+
+                    self._renderer.formatLexerSyntax("squared := ^2"),
+
+                    self._renderer.formatLexerSyntax("5 squared + 5"),
+                )
+            ),
             'identifiers': 'identifier',
             'identifier': TermTip(
-                "Identifier",
+                "Abstract: Identifier",
                 (
                     "A word or other group of letters/numbers acting as a label to some value.",
                     
@@ -38,6 +70,16 @@ class TermTips:
                     "Identifier:     " + self._renderer.formatLexerSyntax("a  my_var  train2Car3  3rdBox"),
 
                     "Non-identifier: " + self._renderer.formatLexerSyntax("345  1.5  +  ()"),
+                )
+            ),
+            'end of line': 'eol',
+            'eol': TermTip(
+                "Abstract: End of Line",
+                (
+                    "An invisible delimiter that indicates the end of a line of input.",
+
+                    "If an end of line is \"unexpected\", that indicates an incomplete command " \
+                    "was entered."
                 )
             ),
             'integer': TermTip(
@@ -84,16 +126,6 @@ class TermTips:
                     "Float value (imprecise): " + self._renderer.formatLexerSyntax("0.25  2.0"),
                 ),
             ),
-            'end of line': 'eol',
-            'eol': TermTip(
-                "End of Line",
-                (
-                    "An invisible delimiter that indicates the end of a line of input.",
-
-                    "If an end of line is \"unexpected\", that indicates an incomplete command " \
-                    "was entered."
-                )
-            ),
             'paren_open': 'parentheses',
             'paren_close': 'parentheses',
             'parentheses': TermTip(
@@ -134,12 +166,28 @@ class TermTips:
                     "Expression set (invalid): " + self._renderer.formatLexerSyntax("a = {4, b + 3}   1 + {x, y}^2"),
                 )
             ),
+            'backtick': TermTip(
+                "Punctuation: Backticks",
+                (
+                    # TODO: describe backticks
+                )
+            ),
             'equals': TermTip(
                 "Operator: Equate",
                 (
                     "The bridge between two expressions in an equality relation.",
 
                     "Only relations require equals signs; Expressions cannot contain them.",
+                )
+            ),
+            'colon_equals': TermTip(
+                "Operator: Define Alias",
+                (
+                    "The center bewtween an alias' name/signature and its template.",
+
+                    "This operator is key when creating alias templates. Remember that " \
+                    "aliases are fundamentally different than equality relations. You " \
+                    "can read more about them in their dedicated dictionary entry."
                 )
             ),
             'plus': TermTip(
