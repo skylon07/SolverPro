@@ -115,14 +115,12 @@ class MainScreen(Screen):
             if result.type is Command.EMPTY:
                 self.writeSpacerToLogger()
 
-            elif result.type is Command.RECORD_RELATION:
-                data: tuple[Relation, bool] = result.data
-                assert isinstance(data, tuple)
-                (relation, isRedundant) = data
+            elif result.type is Command.RECORD_RELATIONS:
+                relationsData: list[tuple[Relation, bool]] = result.data
                 self.writeToLogger(
                     commandStr,
                     True,
-                    renderer.formatRelation(relation, warnRedundant = isRedundant, highlightSyntax = True)
+                    renderer.formatRelationsRecorded(relationsData, highlightSyntax = True)
                 )
 
             elif result.type is Command.EVALUATE_EXPRESSION:

@@ -94,6 +94,12 @@ class TextRenderer:
             linesList.append(f"[{Colors.textYellow.hex}]Relation is redundant and provided no new inferences[/]")
         return self._formatLines(linesList)
     
+    def formatRelationsRecorded(self, relationsData: list[tuple[Relation, bool]], *, highlightSyntax: bool = False):
+        return self._formatLines(
+            self.formatRelation(relation, warnRedundant = isRedundant, highlightSyntax = highlightSyntax)
+            for (relation, isRedundant) in relationsData
+        )
+    
     def formatRelationReplaced(self, oldRelation: Relation, newRelation: Relation, *, warnRedundant: bool, highlightSyntax: bool = False):
         return self._formatLines([
             f"[{Colors.textMuted.hex}]Info: Relation[/]",

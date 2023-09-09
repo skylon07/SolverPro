@@ -132,12 +132,23 @@ class AppDriver:
         if command.type is Command.EMPTY:
             return ProcessResult(Command.EMPTY, None)
         
-        elif command.type is Command.RECORD_RELATION:
-            (leftExpr, rightExpr) = command.data
-            assert isinstance(leftExpr, sympy.Expr) and isinstance(rightExpr, sympy.Expr)
-            newRelation = Relation(leftExpr, rightExpr)
-            isRedundant = self._solver.recordRelation(newRelation)
-            return ProcessResult(Command.RECORD_RELATION, (newRelation, isRedundant))
+        elif command.type is Command.RECORD_RELATIONS:
+            relations = [
+                Relation(leftExpr, rightExpr)
+                for (leftExprIdx, leftExpr) in enumerate(command.data)
+                for rightExpr in [
+                    command.data[leftExprIdx + 1]
+                    if leftExprIdx + 1 < len(command.data)
+                    else command.data[-1]
+                ]
+                if leftExprIdx + 1 < len(command.data)
+            ]
+            relationsWithRedundancies = [
+                (relation, isRedundant)
+                for relation in relations
+                for isRedundant in [self._solver.recordRelation(relation)]
+            ]
+            return ProcessResult(Command.RECORD_RELATIONS, relationsWithRedundancies)
         
         elif command.type is Command.EVALUATE_EXPRESSION:
             expr: sympy.Expr = command.data
