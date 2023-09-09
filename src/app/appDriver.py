@@ -1,4 +1,4 @@
-from typing import Iterable, Collection
+from typing import Collection
 
 import sympy
 
@@ -7,7 +7,7 @@ from src.common.exceptions import TracebackException, MultilineException
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
 from src.algebrasolver.solver import AlgebraSolver, Relation
-from src.parsing.lexer import CommandLexer, LexerToken
+from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes, AliasTemplate
 from src.parsing.parser import CommandParser, Command, CommandType, isExpressionListSymbol
 
 
@@ -21,17 +21,34 @@ class AppDriver:
         self._historySearchTerm: str = ""
         self._currHistoryIdx: int = -1
 
+        self._aliases: dict[str, AliasTemplate] = dict()
+
     def processCommandLines(self, commandsStr: str):
-        tokens = tuple(self._lexer.findTokens(commandsStr))
-        anyNonEmptyCommands = False
-        for command in self._parser.parseCommand(tokens):
-            if command.type is not Command.EMPTY:
-                anyNonEmptyCommands = True
-            yield self._processCommand(command, tokens)
+        try:
+            tokensWithAliases = tuple(self._lexer.findTokens(commandsStr))
+
+            shouldParseAliases = not any(token.type is LexerTokenTypes.COLON_EQUALS for token in tokensWithAliases)
+            if shouldParseAliases:
+                processedCommandsStr = self._parser.preprocessAliases(tokensWithAliases, self._aliases)
+                processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+            else:
+                processedTokens = tokensWithAliases
+
+            anyNonEmptyCommands = False
+            for command in self._parser.parseCommand(processedTokens):
+                if command.type is not Command.EMPTY:
+                    anyNonEmptyCommands = True
+                yield self._processCommand(command, processedTokens)
+            
+            if anyNonEmptyCommands:
+                self._inputHistory.insert(0, commandsStr)
         
-        if anyNonEmptyCommands:
+        except Exception as exception:
             self._inputHistory.insert(0, commandsStr)
-        self.resetHistoryState()
+            raise exception
+
+        finally:
+            self.resetHistoryState()
 
     def validateSingleLine(self, commandStr: str):
         if "\n" in commandStr:
@@ -56,6 +73,9 @@ class AppDriver:
         except Exception as exception:
             self._solver.recordRelation(oldRelation)
             raise exception
+        
+    def getAliases(self):
+        return dict(self._aliases)
         
     def getInputHistory(self):
         return tuple(self._inputHistory)
@@ -114,12 +134,14 @@ class AppDriver:
         
         elif command.type is Command.RECORD_RELATION:
             (leftExpr, rightExpr) = command.data
+            assert isinstance(leftExpr, sympy.Expr) and isinstance(rightExpr, sympy.Expr)
             newRelation = Relation(leftExpr, rightExpr)
             isRedundant = self._solver.recordRelation(newRelation)
             return ProcessResult(Command.RECORD_RELATION, (newRelation, isRedundant))
         
         elif command.type is Command.EVALUATE_EXPRESSION:
             expr: sympy.Expr = command.data
+            assert isinstance(expr, sympy.Expr)
             undefinedSymbolStrs: list[str] = list()
             for symbol in expr.free_symbols:
                 assert type(symbol) is sympy.Symbol
@@ -131,6 +153,16 @@ class AppDriver:
                 raise UndefinedIdentifiersException(tokens, undefinedSymbolStrs)
             subExprs = self._solver.substituteKnownsFor(expr)
             return ProcessResult(Command.EVALUATE_EXPRESSION, subExprs)
+        
+        elif command.type is Command.RECORD_ALIAS:
+            data: tuple[str, tuple[str, ...], str] = command.data
+            (aliasName, aliasArgs, aliasTemplateStr) = data
+            assert type(aliasName) is str
+            assert isinstance(aliasArgs, tuple)
+            assert type(aliasTemplateStr) is str
+            aliasTemplate = AliasTemplate(aliasName, aliasArgs, tuple(self._lexer.findTokens(aliasTemplateStr)))
+            self._aliases[aliasName] = aliasTemplate
+            return ProcessResult(Command.RECORD_ALIAS, aliasTemplate)
         
         else:
             raise NotImplementedError(f"Processing command of type {command.type} not implemented")

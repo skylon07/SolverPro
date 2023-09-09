@@ -8,22 +8,24 @@ class LexerTokenType(EnumString):
 
 
 class LexerTokenTypes(Enum):
-    IDENTIFIER  = LexerTokenType("IDENTIFIER")
-    INTEGER     = LexerTokenType("INTEGER")
-    FLOAT       = LexerTokenType("FLOAT")
-    PAREN_OPEN  = LexerTokenType("PAREN_OPEN")
-    PAREN_CLOSE = LexerTokenType("PAREN_CLOSE")
-    BRACE_OPEN  = LexerTokenType("BRACE_OPEN")
-    BRACE_CLOSE = LexerTokenType("BRACE_CLOSE")
-    COMMA       = LexerTokenType("COMMA")
-    EQUALS      = LexerTokenType("EQUALS")
-    PLUS        = LexerTokenType("PLUS")
-    DASH        = LexerTokenType("DASH")
-    STAR        = LexerTokenType("STAR")
-    SLASH       = LexerTokenType("SLASH")
-    CARROT      = LexerTokenType("CARROT")
-    EOL         = LexerTokenType("EOL")
-    INVALID     = LexerTokenType("INVALID")
+    IDENTIFIER      = LexerTokenType("IDENTIFIER")
+    INTEGER         = LexerTokenType("INTEGER")
+    FLOAT           = LexerTokenType("FLOAT")
+    PAREN_OPEN      = LexerTokenType("PAREN_OPEN")
+    PAREN_CLOSE     = LexerTokenType("PAREN_CLOSE")
+    BRACE_OPEN      = LexerTokenType("BRACE_OPEN")
+    BRACE_CLOSE     = LexerTokenType("BRACE_CLOSE")
+    BACKTICK        = LexerTokenType("BACKTICK")
+    COMMA           = LexerTokenType("COMMA")
+    EQUALS          = LexerTokenType("EQUALS")
+    COLON_EQUALS    = LexerTokenType("COLON_EQUALS")
+    PLUS            = LexerTokenType("PLUS")
+    DASH            = LexerTokenType("DASH")
+    STAR            = LexerTokenType("STAR")
+    SLASH           = LexerTokenType("SLASH")
+    CARROT          = LexerTokenType("CARROT") # TODO: ~~CARROT~~ --> CARET
+    EOL             = LexerTokenType("EOL")
+    INVALID         = LexerTokenType("INVALID")
 
 
 class LexerToken:
@@ -43,6 +45,43 @@ class LexerToken:
             self.match == other.match and \
             self.type == other.type and \
             self.matchIdx == other.matchIdx
+    
+    def makeWhitespaceTo(self, otherToken: "LexerToken | None"):
+        if otherToken is not None:
+            firstToken = self if self.matchIdx < otherToken.matchIdx else otherToken
+            secondToken = otherToken if firstToken is self else self
+            positionDiff = secondToken.matchIdx - firstToken.matchIdx
+            numSpaces = positionDiff - len(firstToken.match)
+        else:
+            numSpaces = self.matchIdx
+        return " " * numSpaces
+    
+
+# really this is just here to avoid circular imports, and it sort-of fits here
+class AliasTemplate:
+    def __init__(self, name: str, argNames: tuple[str], templateTokens: tuple[LexerToken, ...]):
+        self.name = name
+        self.argNames = argNames
+        self.numArgs = len(argNames)
+        self.templateTokens = templateTokens
+
+    def __repr__(self):
+        return f"AliasTemplate({self.name}, {self.argNames})"
+    
+    def __call__(self, *argVals):
+        assert len(argVals) == self.numArgs
+        replacements = dict(zip(self.argNames, argVals))
+        finalStr = ""
+        lastToken = None
+        for token in self.templateTokens:
+            finalStr += token.makeWhitespaceTo(lastToken)
+            if token.type is LexerTokenTypes.IDENTIFIER and token.match in replacements:
+                tokenReplacement = replacements[token.match]
+                finalStr += tokenReplacement
+            else:
+                finalStr += token.match
+            lastToken = token
+        return finalStr
 
 
 class CommandLexer:
@@ -71,12 +110,20 @@ class CommandLexer:
                 LexerTokenTypes.BRACE_CLOSE
             ),
             LexerRecognizer(
+                r"`",
+                LexerTokenTypes.BACKTICK
+            ),
+            LexerRecognizer(
                 r",",
                 LexerTokenTypes.COMMA
             ),
             LexerRecognizer(
                 r"=",
                 LexerTokenTypes.EQUALS
+            ),
+            LexerRecognizer(
+                r":=",
+                LexerTokenTypes.COLON_EQUALS
             ),
             LexerRecognizer(
                 r"\+",

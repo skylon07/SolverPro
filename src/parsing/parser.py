@@ -1,9 +1,15 @@
+from typing import Iterable
+
 import sympy
 
 from src.common.types import Enum, EnumString
 from src.common.exceptions import TracebackException
 from src.app.widgets.colors import Colors
-from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
+from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken, AliasTemplate
+
+
+# so the dang linter doesn't take FOREVER...
+createSymbol = eval("sympy.Symbol")
 
 
 def isNonSymbolicValue(value: sympy.Basic):
@@ -40,8 +46,52 @@ class CommandParser:
         expressions = sequencer.sequenceExpressionList()
         return expressions
 
+    def preprocessAliases(self, tokens: tuple[LexerToken, ...], aliases: dict[str, AliasTemplate]):
+        sequencer = _CommandAliasSequencer(tokens, aliases)
+        processedTokens = sequencer.sequenceExpression(isPrimary = True)
+        return processedTokens
 
-class _CommandParserSequencer:
+
+class _Sequencer:
+    def __init__(self, tokens: tuple[LexerToken, ...]):
+        self._tokens = tokens
+        self._setNumTokensParsed(0)
+
+    def _setNumTokensParsed(self, numParsed: int):
+        self.numTokensParsed = numParsed
+        self._moreTokens = self.numTokensParsed < len(self._tokens)
+
+    @property
+    def _currToken(self) -> LexerToken:
+        if self._moreTokens:
+            currToken = self._tokens[self.numTokensParsed]
+            return currToken
+        return self._throwEolException()
+
+    def _consumeCurrToken(self, expectedTokenType: LexerTokenType):
+        if self._currToken.type is not expectedTokenType:
+            self._throwUnexpectedToken((expectedTokenType,))
+        
+        self._setNumTokensParsed(self.numTokensParsed + 1)
+
+    def _generateSpacesBeforeCurrToken(self):
+        if self.numTokensParsed > 0:
+            lastToken = self._tokens[self.numTokensParsed - 1]
+        else:
+            lastToken = None
+        return self._currToken.makeWhitespaceTo(lastToken)
+
+    def _throwUnexpectedToken(self, expectedTypes: tuple[LexerTokenType, ...]):
+        if self._currToken.type is LexerTokenTypes.EOL:
+            return self._throwEolException()
+        else:
+            raise ParseException(expectedTypes, self._tokens, self.numTokensParsed)
+    
+    def _throwEolException(self):
+        raise EolException(self._tokens)
+
+
+class _CommandParserSequencer(_Sequencer):
     _lowPrecOpers = (
         LexerTokenTypes.PLUS,
         LexerTokenTypes.DASH,
@@ -65,28 +115,10 @@ class _CommandParserSequencer:
         LexerTokenTypes.IDENTIFIER,
     )
 
-    def __init__(self, commandTokens: tuple[LexerToken, ...]):
-        self._tokens = commandTokens
-        self._setNumTokensParsed(0)
+    def __init__(self, tokens: tuple[LexerToken, ...]):
+        super().__init__(tokens)
         self._allowExpressionList = True
         self._allowIdentifierValues = True
-
-    def _setNumTokensParsed(self, numParsed: int):
-        self.numTokensParsed = numParsed
-        self._moreTokens = self.numTokensParsed < len(self._tokens)
-
-    @property
-    def _currToken(self) -> LexerToken:
-        if self._moreTokens:
-            currToken = self._tokens[self.numTokensParsed]
-            return currToken
-        return self._throwEolException()
-
-    def _consumeCurrToken(self, expectedTokenType: LexerTokenType):
-        if self._currToken.type is not expectedTokenType:
-            self._throwUnexpectedToken((expectedTokenType,))
-        
-        self._setNumTokensParsed(self.numTokensParsed + 1)
 
     def _convertLowPrecExprList(self, lowPrecExprList: list) -> sympy.Expr:
         for (idx, item) in enumerate(lowPrecExprList):
@@ -131,7 +163,7 @@ class _CommandParserSequencer:
             if type(valuePair) is tuple:
                 (valueType, valueStr) = valuePair
                 if valueType is LexerTokenTypes.IDENTIFIER:
-                    value = sympy.Symbol(valueStr)
+                    value = createSymbol(valueStr)
                 else:
                     value = sympy.parse_expr(valueStr)
                 highPrecExprList[idx] = value
@@ -151,29 +183,24 @@ class _CommandParserSequencer:
                 else:
                     raise NotImplementedError(f"Unconsidered token type {operToken.type}(high prec)")
         return finalExpr
-    
-    def _throwUnexpectedToken(self, expectedTypes: tuple[LexerTokenType, ...]):
-        if self._currToken.type is LexerTokenTypes.EOL:
-            return self._throwEolException()
-        else:
-            raise ParseException(expectedTypes, self._tokens, self.numTokensParsed)
-    
-    def _throwEolException(self):
-        raise EolException(self._tokens, self.numTokensParsed)
 
     def sequenceCommand(self):
         # branch: EOL
         if self._currToken.type is LexerTokenTypes.EOL:
-            self._consumeCurrToken(self._currToken.type)
+            self._consumeCurrToken(LexerTokenTypes.EOL)
             return Command.empty()
         
-        # distinguish branches: relation, expression
+        # distinguish branches: relation, expression, aliasTemplate
         idx = self.numTokensParsed
         isRelation = False
+        isAliasTemplate = False
         while idx < len(self._tokens):
             token = self._tokens[idx]
             if token.type is LexerTokenTypes.EQUALS:
                 isRelation = True
+                break
+            elif token.type is LexerTokenTypes.COLON_EQUALS:
+                isAliasTemplate = True
                 break
             idx += 1
 
@@ -182,6 +209,12 @@ class _CommandParserSequencer:
             relation = self.sequenceRelation()
             self._consumeCurrToken(LexerTokenTypes.EOL)
             return Command.recordRelation(relation)
+        
+        # branch: aliasTemplate EOL
+        if isAliasTemplate:
+            aliasTemplate = self.sequenceAliasTemplate()
+            self._consumeCurrToken(LexerTokenTypes.EOL)
+            return Command.recordAlias(aliasTemplate)
         
         # default branch: expression EOL
         expression = self.sequenceExpression()
@@ -207,7 +240,7 @@ class _CommandParserSequencer:
 
         # distinguish branches: expression, expression COMMA expression, ...
         while self._currToken.type is LexerTokenTypes.COMMA:
-            self._consumeCurrToken(self._currToken.type)
+            self._consumeCurrToken(LexerTokenTypes.COMMA)
             expressions.append(self.sequenceExpression())
 
         # default branch: expression
@@ -315,14 +348,14 @@ class _CommandParserSequencer:
     def sequenceEvaluation(self) -> sympy.Expr | tuple[LexerTokenType, str]:
         # branch: PAREN_OPEN expression PAREN_CLOSE
         if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
-            self._consumeCurrToken(self._currToken.type)
+            self._consumeCurrToken(LexerTokenTypes.PAREN_OPEN)
             expression = self.sequenceExpression()
             self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
             return expression
         
         # branch: BRACE_OPEN expressionList BRACE_CLOSE
         elif self._currToken.type is LexerTokenTypes.BRACE_OPEN and self._allowExpressionList:
-            self._consumeCurrToken(self._currToken.type)
+            self._consumeCurrToken(LexerTokenTypes.BRACE_OPEN)
             self._allowExpressionList = False
             self._allowIdentifierValues = False
             expressions = self.sequenceExpressionList()
@@ -331,7 +364,7 @@ class _CommandParserSequencer:
             self._allowExpressionList = True
             self._consumeCurrToken(LexerTokenTypes.BRACE_CLOSE)
             expressionsStr = ", ".join(str(expr) for expr in expressions)
-            return sympy.Symbol(f"{{{expressionsStr}}}")
+            return createSymbol(f"{{{expressionsStr}}}")
 
         # # default branch: value/number
         if self._allowIdentifierValues:
@@ -362,6 +395,169 @@ class _CommandParserSequencer:
         
         return self._throwUnexpectedToken(self._numberTypes)
     
+    def sequenceIdentifier(self):
+        identifier = self._currToken.match
+        self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
+        return identifier
+    
+    def sequenceAliasTemplate(self):
+        # (all branches)
+        aliasName = self._currToken.match
+        self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
+
+        # distinguish branches: IDENTIFIER COLON_EQUALS aliasTemplateStr, IDENTIFIER aliasTemplateArgs COLON_EQUALS aliasTemplateStr
+        aliasArgs: tuple[str, ...]
+        if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
+            aliasArgs = self.sequenceAliasTemplateArgs()
+        else:
+            aliasArgs = tuple()
+
+        # (all branches)
+        self._consumeCurrToken(LexerTokenTypes.COLON_EQUALS)
+        templateStr = self.sequenceAliasTemplateStr()
+
+        # default branch: IDENTIFIER
+        # branch: IDENTIFIER COLON_EQUALS aliasTemplateStr
+        # branch: IDENTIFIER aliasTemplateArgs COLON_EQUALS aliasTemplateStr
+        return (aliasName, aliasArgs, templateStr)
+    
+    def sequenceAliasTemplateArgs(self):
+        # (all branches)
+        self._consumeCurrToken(LexerTokenTypes.PAREN_OPEN)
+
+        # distinguish branches: PAREN_OPEN PAREN_CLOSE, PAREN_OPEN IDENTIFIER PAREN_CLOSE, ...
+        aliasArgNames: list[str]
+        if self._currToken.type is not LexerTokenTypes.PAREN_CLOSE:
+            # distinguish branches: expression, expression COMMA expression, ...
+            aliasArgNames = [self.sequenceIdentifier()]
+            while self._currToken.type is LexerTokenTypes.COMMA:
+                self._consumeCurrToken(LexerTokenTypes.COMMA)
+                aliasArgNames.append(self.sequenceIdentifier())
+        else:
+            aliasArgNames = list()
+        self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
+
+        # default branch: PAREN_OPEN PAREN_CLOSE
+        # branch: PAREN_OPEN IDENTIFIER PAREN_CLOSE
+        # branch: PAREN_OPEN IDENTIFIER COMMA IDENTIFIER PAREN_CLOSE
+        # ...
+        return tuple(aliasArgNames)
+    
+    def sequenceAliasTemplateStr(self):
+        # default branch: ... EOL
+        templateStr = ""
+        while self._currToken.type is not LexerTokenTypes.EOL:
+            templateStr += self._generateSpacesBeforeCurrToken()
+            templateStr += self._currToken.match
+            self._consumeCurrToken(self._currToken.type)
+        return templateStr.strip()
+    
+
+class _CommandAliasSequencer(_Sequencer):
+    _expressionDelimiters = (
+        LexerTokenTypes.COMMA,
+        LexerTokenTypes.PAREN_CLOSE,
+        LexerTokenTypes.EOL,
+    )
+
+    def __init__(self, tokens: tuple[LexerToken, ...], aliases: dict[str, AliasTemplate]):
+        super().__init__(tokens)
+        self._aliases = aliases
+        self._allowBacktickExpressions = False
+
+    def sequenceExpression(self, *, isPrimary: bool) -> str:
+        exprStr = ""
+        parensToClose = 0
+        # branch: ... (delimiter)
+        delimiters = (LexerTokenTypes.EOL,) if isPrimary \
+            else self._expressionDelimiters
+        while self._currToken.type not in delimiters or parensToClose > 0:
+            # sub-branch: BACKTICK <any> <any> ... BACKTICK
+            if self._currToken.type is LexerTokenTypes.BACKTICK and self._allowBacktickExpressions:
+                self._consumeCurrToken(LexerTokenTypes.BACKTICK)
+                while self._currToken.type is not LexerTokenTypes.BACKTICK:
+                    exprStr += self._generateSpacesBeforeCurrToken()
+                    exprStr += self._currToken.match
+                    self._consumeCurrToken(self._currToken.type)
+                self._consumeCurrToken(LexerTokenTypes.BACKTICK)
+            
+            # sub-branch: aliasCall
+            elif self._currToken.type is LexerTokenTypes.IDENTIFIER and self._currToken.match in self._aliases:
+                exprStr += self._generateSpacesBeforeCurrToken()
+                aliasValue = self.sequenceAliasCall()
+                exprStr += aliasValue
+            
+            # sub-branch: <any>
+            else:
+                if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
+                    parensToClose += 1
+                elif self._currToken.type is LexerTokenTypes.PAREN_CLOSE:
+                    parensToClose -= 1
+                    assert parensToClose >= 0
+                exprStr += self._generateSpacesBeforeCurrToken()
+                exprStr += self._currToken.match
+                self._consumeCurrToken(self._currToken.type)
+        return exprStr
+    
+    def sequenceAliasCall(self):
+        from src.app.appDriver import AliasTemplate
+
+        # (all branches)
+        aliasName = self._currToken.match
+        aliasTemplate = self._aliases[aliasName]
+        self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
+
+        # distinguish branches: IDENTIFIER, IDENTIFIER aliasArgs
+        aliasIdxsArgs: tuple[tuple[int, str], ...]
+        if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
+            assert isinstance(aliasTemplate, AliasTemplate)
+            aliasIdxsArgs = self.sequenceAliasCallArgs()
+        else:
+            aliasIdxsArgs = tuple()
+
+        if len(aliasIdxsArgs) != aliasTemplate.numArgs:
+            aliasArgTokenIdxs = [tokenIdx for (tokenIdx, argStr) in aliasIdxsArgs]
+            tooManyArgs = len(aliasIdxsArgs) > aliasTemplate.numArgs
+            if tooManyArgs:
+                unexpectedTokenStartIdx = aliasArgTokenIdxs[aliasTemplate.numArgs]
+                parenCloseIdx = self.numTokensParsed - 1
+                unexpectedTokenIdxs = list(range(unexpectedTokenStartIdx, parenCloseIdx))
+            else:
+                parenCloseIdx = self.numTokensParsed - 1
+                unexpectedTokenIdxs = [parenCloseIdx]
+            raise AliasArgumentCountException(self._tokens, aliasTemplate.numArgs, len(aliasIdxsArgs), unexpectedTokenIdxs)
+
+        # default branch: IDENTIFIER
+        # branch: IDENTIFIER aliasArgs
+        aliasValue = aliasTemplate(*[argStr for (tokenIdx, argStr) in aliasIdxsArgs])
+        return aliasValue
+    
+    def sequenceAliasCallArgs(self):
+        # (all branches)
+        self._consumeCurrToken(LexerTokenTypes.PAREN_OPEN)
+
+        # distinguish branches: PAREN_OPEN PAREN_CLOSE, PAREN_OPEN expression PAREN_CLOSE, ...
+        aliasIdxsArgs: list[tuple[int, str]] = list()
+        if self._currToken.type is not LexerTokenTypes.PAREN_CLOSE:
+            prevAllowBacktickExpressions = self._allowBacktickExpressions
+            self._allowBacktickExpressions = True
+            argStartTokenIdx = self.numTokensParsed
+            aliasIdxsArgs.append((argStartTokenIdx, self.sequenceExpression(isPrimary = False).strip()))
+            while self._currToken.type is LexerTokenTypes.COMMA:
+                argStartTokenIdx = self.numTokensParsed
+                self._consumeCurrToken(LexerTokenTypes.COMMA)
+                aliasIdxsArgs.append((argStartTokenIdx, self.sequenceExpression(isPrimary = False).strip()))
+            self._allowBacktickExpressions = prevAllowBacktickExpressions
+
+        # (all branches)
+        self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
+
+        # default branch: PAREN_OPEN PAREN_CLOSE
+        # branch: PAREN_OPEN expression PAREN_CLOSE
+        # branch: PAREN_OPEN expression COMMA expression PAREN_CLOSE
+        # ...
+        return tuple(aliasIdxsArgs)
+
 
 class CommandType(EnumString):
     pass # intentionally left blank
@@ -371,6 +567,7 @@ class Command(Enum):
     EMPTY = CommandType("EMPTY")
     RECORD_RELATION = CommandType("RECORD_RELATION")
     EVALUATE_EXPRESSION = CommandType("EVALUATE_EXPRESSION")
+    RECORD_ALIAS = CommandType("RECORD_ALIAS")
 
     def __init__(self, commandType: CommandType, data):
         self.type = commandType
@@ -393,6 +590,10 @@ class Command(Enum):
     @classmethod
     def evaluateExpression(cls, expression: sympy.Expr):
         return cls(cls.EVALUATE_EXPRESSION, expression)
+    
+    @classmethod
+    def recordAlias(cls, aliasTemplate: tuple[str, tuple[str, ...], str]):
+        return cls(cls.RECORD_ALIAS, aliasTemplate)
 
 
 class ParseException(TracebackException):
@@ -407,7 +608,23 @@ class ParseException(TracebackException):
 
 
 class EolException(TracebackException):
-    def __init__(self, tokens: tuple[LexerToken, ...], unexpectedTokenIdx: int):
-        eolToken = tokens[-1]
-        tokens = tokens[:-1] + (LexerToken(f" ...", eolToken.type, eolToken.matchIdx),)
-        super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [unexpectedTokenIdx], True)
+    def __init__(self, tokens: tuple[LexerToken, ...]):
+        lastToken = tokens[-1]
+        if lastToken.type is LexerTokenTypes.EOL:
+            tokens = tokens[:-1]
+            lastToken = tokens[-1]
+        eolPosition = lastToken.matchIdx + len(lastToken.match)
+        tokens = tokens + (LexerToken(f" ...", LexerTokenTypes.EOL, eolPosition),)
+        super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [len(tokens) - 1], True)
+
+
+class AliasArgumentCountException(TracebackException):
+    def __init__(self, tokens: tuple[LexerToken, ...], expectedCount: int, actualCount: int, unexpectedTokenIdxs: Iterable[int]):
+        tooManyArguments = actualCount > expectedCount
+        if tooManyArguments:
+            receivedGrammarStr = "received too many"
+        else:
+            receivedGrammarStr = "did not receive enough"
+        gramaticalS = "s" if expectedCount != 1 else ""
+        fullMessage = f"[@termtip]Alias[/@termtip] expected [{Colors.textGreen.hex}]{expectedCount} argument{gramaticalS}[/], but [{Colors.textRed.hex}]{receivedGrammarStr}[/]"
+        super().__init__(fullMessage, tokens, unexpectedTokenIdxs, True)
