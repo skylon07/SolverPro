@@ -65,8 +65,12 @@ class AppDriver:
         # TODO: this would be a good use case for transactional solver stuff when that's implemented
         self._solver.popRelation(oldRelation)
         try:
+            commandHasMultipleRelations = len([char for char in newRelationCommand if char == "="]) > 1
+            if commandHasMultipleRelations:
+                raise TooManyRelationsException(oldRelation, newRelationCommand)
+
             result = first(self.processCommandLines(newRelationCommand), None)
-            if result is None or result.type is not Command.RECORD_RELATION:
+            if result is None or result.type is not Command.RECORD_RELATIONS:
                 raise NotARelationException(oldRelation, newRelationCommand)
             else:
                 return result
@@ -132,12 +136,23 @@ class AppDriver:
         if command.type is Command.EMPTY:
             return ProcessResult(Command.EMPTY, None)
         
-        elif command.type is Command.RECORD_RELATION:
-            (leftExpr, rightExpr) = command.data
-            assert isinstance(leftExpr, sympy.Expr) and isinstance(rightExpr, sympy.Expr)
-            newRelation = Relation(leftExpr, rightExpr)
-            isRedundant = self._solver.recordRelation(newRelation)
-            return ProcessResult(Command.RECORD_RELATION, (newRelation, isRedundant))
+        elif command.type is Command.RECORD_RELATIONS:
+            relations = [
+                Relation(leftExpr, rightExpr)
+                for (leftExprIdx, leftExpr) in enumerate(command.data)
+                for rightExpr in [
+                    command.data[leftExprIdx + 1]
+                    if leftExprIdx + 1 < len(command.data)
+                    else command.data[-1]
+                ]
+                if leftExprIdx + 1 < len(command.data)
+            ]
+            relationsWithRedundancies = [
+                (relation, isRedundant)
+                for relation in relations
+                for isRedundant in [self._solver.recordRelation(relation)]
+            ]
+            return ProcessResult(Command.RECORD_RELATIONS, relationsWithRedundancies)
         
         elif command.type is Command.EVALUATE_EXPRESSION:
             expr: sympy.Expr = command.data
@@ -209,4 +224,15 @@ class NotARelationException(MultilineException):
             renderer.formatRelation(oldRelation, highlightSyntax = True),
             "with non-relation",
             renderer.formatLexerSyntax(nonRelationStr),
+        ))
+
+
+class TooManyRelationsException(MultilineException):
+    def __init__(self, oldRelation: Relation, relationsStr: str):
+        renderer = TextRenderer()
+        super().__init__((
+            "Cannot replace single relation",
+            renderer.formatRelation(oldRelation, highlightSyntax = True),
+            "with multiple relations",
+            renderer.formatLexerSyntax(relationsStr),
         ))

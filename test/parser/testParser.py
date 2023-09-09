@@ -73,7 +73,7 @@ class CommandParserTester:
             LexerToken("-",     LexerTokenTypes.DASH,       10),
             LexerToken("12.34", LexerTokenTypes.FLOAT,      12),
             LexerToken("",      LexerTokenTypes.EOL,        17),
-        ))) == [Command.recordRelation((sympy.parse_expr("a+b"), sympy.parse_expr("c-12.34")))], \
+        ))) == [Command.recordRelations([sympy.parse_expr("a+b"), sympy.parse_expr("c-12.34")])], \
             "Parser failed to parse 2-term relation"
         
         assert list(parser.parseCommand((
@@ -94,7 +94,7 @@ class CommandParserTester:
             LexerToken("-",         LexerTokenTypes.DASH,       39),
             LexerToken("4.6",       LexerTokenTypes.FLOAT,      40),
             LexerToken("",          LexerTokenTypes.EOL,        43),
-        ))) == [Command.recordRelation((sympy.parse_expr("ke+extra"), sympy.parse_expr("1/2*mass*velocity**2+-4.6")))], \
+        ))) == [Command.recordRelations([sympy.parse_expr("ke+extra"), sympy.parse_expr("1/2*mass*velocity**2+-4.6")])], \
             "Parser failed to parse the modified kinetic energy relation"
         
         assert list(parser.parseCommand((
@@ -129,6 +129,29 @@ class CommandParserTester:
             LexerToken("",     LexerTokenTypes.EOL,            36),
         ))) == [Command.evaluateExpression(sympy.parse_expr("(1+x)*(4*-(1+a/2)+5)+(4/2)**2"))], \
             "Parser failed to parse an order of operations nightmare (can you blame it?)"
+        
+    def testHandlesMultipleRelations(self):
+        parser = CommandParser()
+
+        assert list(parser.parseCommand((
+            LexerToken("a",     LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken("+",     LexerTokenTypes.PLUS,       2),
+            LexerToken("b",     LexerTokenTypes.IDENTIFIER, 4),
+            LexerToken("=",     LexerTokenTypes.EQUALS,     6),
+            LexerToken("c",     LexerTokenTypes.IDENTIFIER, 8),
+            LexerToken("-",     LexerTokenTypes.DASH,       10),
+            LexerToken("12.34", LexerTokenTypes.FLOAT,      12),
+            LexerToken("=",     LexerTokenTypes.EQUALS,     14),
+            LexerToken("d",     LexerTokenTypes.IDENTIFIER, 16),
+            LexerToken("+",     LexerTokenTypes.PLUS,       18),
+            LexerToken("e",     LexerTokenTypes.IDENTIFIER, 20),
+            LexerToken("=",     LexerTokenTypes.EQUALS,     22),
+            LexerToken("f",     LexerTokenTypes.IDENTIFIER, 24),
+            LexerToken("*",     LexerTokenTypes.STAR,       25),
+            LexerToken("g",     LexerTokenTypes.FLOAT,      26),
+            LexerToken("",      LexerTokenTypes.EOL,        27),
+        ))) == [Command.recordRelations([sympy.parse_expr("a+b"), sympy.parse_expr("c-12.34"), sympy.parse_expr("d+e"), sympy.parse_expr("f*g")])], \
+            "Parser failed to parse 4-term relation"
         
     def testHandlesExpressionListSymbols(self):
         parser = CommandParser()
@@ -392,7 +415,7 @@ class CommandParserTester:
             LexerToken("+", LexerTokenTypes.PLUS,       10),
             LexerToken("d", LexerTokenTypes.IDENTIFIER, 12),
             LexerToken("",  LexerTokenTypes.EOL,        13),
-        ))) == [Command.recordRelation((sympy.parse_expr("a+b"), sympy.parse_expr("c+d")))]
+        ))) == [Command.recordRelations([sympy.parse_expr("a+b"), sympy.parse_expr("c+d")])]
 
         assert list(parser.parseCommand((
             LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
