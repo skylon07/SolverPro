@@ -102,7 +102,7 @@ class TextRenderer:
     
     def formatRelationReplaced(self, oldRelation: Relation, newRelation: Relation, *, warnRedundant: bool, highlightSyntax: bool = False):
         return self._formatLines([
-            f"[{Colors.textMuted.hex}]Info: Relation[/]",
+            f"[{Colors.textMuted.hex}]Relation[/]",
             self.formatRelation(oldRelation, warnRedundant = False, highlightSyntax = highlightSyntax),
             f"[{Colors.textMuted.hex}]was replaced by[/]",
             self.formatRelation(newRelation, warnRedundant = warnRedundant, highlightSyntax = highlightSyntax),
@@ -110,7 +110,7 @@ class TextRenderer:
     
     def formatRelationDeleted(self, relation: Relation, *, highlightSyntax: bool = False):
         return self._formatLines([
-            f"[{Colors.textMuted.hex}]Info: Relation[/]",
+            f"[{Colors.textMuted.hex}]Relation[/]",
             self.formatRelation(relation, warnRedundant = False, highlightSyntax = highlightSyntax),
             f"[{Colors.textMuted.hex}]was deleted[/]",
         ])
