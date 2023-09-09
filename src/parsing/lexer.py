@@ -59,7 +59,7 @@ class LexerToken:
 
 # really this is just here to avoid circular imports, and it sort-of fits here
 class AliasTemplate:
-    def __init__(self, name: str, argNames: tuple[str], templateTokens: tuple[LexerToken, ...]):
+    def __init__(self, name: str, argNames: tuple[str, ...], templateTokens: tuple[LexerToken, ...]):
         self.name = name
         self.argNames = argNames
         self.numArgs = len(argNames)
