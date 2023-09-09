@@ -216,7 +216,7 @@ class SolverProApp(App):
         ))
 
     def replaceRelation(self, oldRelation: Relation, newRelationCommand: str):
-        modifiedRelationStr = f"<replace {self.textRenderer.formatRelation(oldRelation, highlightSyntax = True)}>"
+        modifiedRelationStr = f"[{Colors.textMuted.hex}]<[/]replace {self.textRenderer.formatRelation(oldRelation, highlightSyntax = True)}[{Colors.textMuted.hex}]>[/]"
         try:
             result = self.driver.replaceRelation(oldRelation, newRelationCommand)
             (relation, isRedundant) = result.data[0]
@@ -238,7 +238,7 @@ class SolverProApp(App):
             return None
 
     def deleteRelation(self, relation: Relation):
-        deletedRelationStr = f"<delete {self.textRenderer.formatLexerSyntax(self.textRenderer.formatRelation(relation))}>"
+        deletedRelationStr = f"[{Colors.textMuted.hex}]<[/]delete {self.textRenderer.formatLexerSyntax(self.textRenderer.formatRelation(relation))}[{Colors.textMuted.hex}]>[/]"
         try:
             self.driver.deleteRelation(relation)
             self.mainScreen.writeToLogger(
