@@ -73,11 +73,8 @@ class AlgebraSolver:
         self._recordedRelations: list[Relation] = list()
         self._symbolValuesDatabase = _SymbolsDatabase()
         self._inferenceTable = _RelationSymbolTable()
-        self._madeContradictionCheckBySubbing = False
 
     def recordRelation(self, relation: Relation):
-        self._madeContradictionCheckBySubbing = False
-        
         # TODO: use transactional data types that can be reversed more efficiently
         #       (this API also needs to be public for the driver -- there's a TODO about this)
         relationsBackup = list(self._recordedRelations)
@@ -211,7 +208,6 @@ class AlgebraSolver:
     def _checkForRedundancies(self, relation: Relation):
         isRedundantWithContradictions = False
         for conditionalSubbedRelationExpr in _CombinationsSubstituter(relation.asExprEqToZero, self._symbolValuesDatabase):
-            self._madeContradictionCheckBySubbing = True
             subbedRelationExpr = conditionalSubbedRelationExpr.value
             if subbedRelationExpr != 0:
                 if len(subbedRelationExpr.free_symbols) == 0:
@@ -237,9 +233,6 @@ class AlgebraSolver:
         for relation in self._recordedRelations:
             if relation in self._inferenceTable:
                 # optimization: we know it's already provided information for a symbol!
-                # (this doesn't mess up contradiction logic since that should've already
-                # been checked via the substitution made before recording the relation)
-                assert self._madeContradictionCheckBySubbing, "Solver didn't make contradiction check (by substitution) before optimizing relation lookup"
                 continue
 
             (symbol, conditionalSolutions) = self._calculateAnySolutionsFromRelation(relation, contradictedSymbolValues)
