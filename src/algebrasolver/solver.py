@@ -13,6 +13,11 @@ from src.parsing.parser import CommandParser, isExpressionListSymbol, isNonSymbo
 
 SolutionSet = set[sympy.Expr]
 
+# so the linter doesn't HANG forever...
+createSymbol = eval("sympy.Symbol")
+subsExpr = eval("sympy.Expr.subs")
+solveSet = eval("sympy.solveset")
+
 
 _ValueType = TypeVar("_ValueType")
 class ConditionalValue(Generic[_ValueType]):
@@ -297,7 +302,7 @@ class AlgebraSolver:
                 "Relation had more than one unknown symbol to solve for"
             unknownSymbol = first(relationExpr.free_symbols)
             assert type(unknownSymbol) is sympy.Symbol
-            solution = sympy.solveset(relationExpr, unknownSymbol)
+            solution = solveSet(relationExpr, unknownSymbol)
             solutionSet = self._interpretSympySolution(unknownSymbol, solution, baseRelation, contradictedSymbolValues)
             yield (unknownSymbol, ConditionalValue(solutionSet, relationExprCondition.conditions))
 
@@ -563,7 +568,7 @@ class _CombinationsSubstituter:
                 for (symbol, conditionalValue) in symbolValueCombination.items()
                 if symbol in self._expression.free_symbols
             }
-            subExpr = self._expression.subs(symbolValueCombination)
+            subExpr = subsExpr(self._expression, symbolValueCombination)
             yield ConditionalValue(subExpr, conditions) # type: ignore
     
     def _generateCombinations(self, numExprListsResolved, resolutionIdx):
@@ -632,8 +637,8 @@ class BadRelationException(MultilineException, ABC):
         )
     
     def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> sympy.Basic:
-        return expr.subs({
-            poorSymbol: sympy.Symbol(f"[{Colors.textYellow.hex}]{poorSymbol}[/]")
+        return subsExpr(expr, {
+            poorSymbol: createSymbol(f"[{Colors.textYellow.hex}]{poorSymbol}[/]")
             for poorSymbol in poorSymbolValues.keys()
         })
 
