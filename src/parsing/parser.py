@@ -619,9 +619,11 @@ class EolException(TracebackException):
         lastToken = tokens[-1]
         if lastToken.type is LexerTokenTypes.EOL:
             tokens = tokens[:-1]
-            lastToken = tokens[-1]
-        eolPosition = lastToken.matchIdx + len(lastToken.match)
-        tokens = tokens + (LexerToken(f" ...", LexerTokenTypes.EOL, eolPosition),)
+            eolPosition = lastToken.matchIdx
+        else:
+            eolPosition = lastToken.matchIdx + len(lastToken.match)
+        newEolToken = LexerToken(f" ...", LexerTokenTypes.EOL, eolPosition)
+        tokens = tokens + (newEolToken,)
         super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [len(tokens) - 1], True)
 
 
