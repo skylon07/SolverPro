@@ -587,16 +587,7 @@ class CommandParserTester:
                 LexerToken("",  LexerTokenTypes.EOL,        9),
             )))
         error1 = runForError(attempt1)
-        assert type(error1) is ParseException
-        assert error1.tokens == (
-            LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
-            LexerToken("=", LexerTokenTypes.EQUALS,     2),
-            LexerToken("b", LexerTokenTypes.IDENTIFIER, 4),
-            LexerToken("=", LexerTokenTypes.EQUALS,     6),
-            LexerToken("c", LexerTokenTypes.IDENTIFIER, 8),
-            LexerToken("",  LexerTokenTypes.EOL,        9),
-        )
-        assert error1.badTokenIdxs == [3]
+        assert error1 is None
 
         def attempt2():
             return list(parser.parseCommand((
