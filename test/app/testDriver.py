@@ -24,7 +24,7 @@ class AppDriverTester:
 
         relationResults = tuple(driver.processCommandLines("5 = b"))
         assert relationResults == (
-            ProcessResult(Command.RECORD_RELATION, (Relation(5, sympy.parse_expr("b")), False)), # type: ignore
+            ProcessResult(Command.RECORD_RELATIONS, [(Relation(5, sympy.parse_expr("b")), False)]), # type: ignore
         ), "Driver didn't record a simple variable relation"
         
         evaluateResults = tuple(driver.processCommandLines("b"))
@@ -37,7 +37,7 @@ class AppDriverTester:
 
         relationResults1 = tuple(driver1.processCommandLines("1 + c = 4"))
         assert relationResults1 == (
-            ProcessResult(Command.RECORD_RELATION, (Relation(sympy.parse_expr("1 + c"), 4), False)), # type: ignore
+            ProcessResult(Command.RECORD_RELATIONS, [(Relation(sympy.parse_expr("1 + c"), 4), False)]), # type: ignore
         ), "Driver did not correctly record simple solvable relation"
         
         evaluateResults1_1 = tuple(driver1.processCommandLines("c"))
@@ -49,17 +49,17 @@ class AppDriverTester:
 
         relationResults1_2 = tuple(driver2.processCommandLines("a*b = c + 5"))
         assert relationResults1_2 == (
-            ProcessResult(Command.RECORD_RELATION, (Relation(sympy.parse_expr("a*b"), sympy.parse_expr("c + 5")), False)),
+            ProcessResult(Command.RECORD_RELATIONS, [(Relation(sympy.parse_expr("a*b"), sympy.parse_expr("c + 5")), False)]),
         ), "Driver did not record the first relation in a series of solvable relations"
 
         relationResults2_2 = tuple(driver2.processCommandLines("a + b = 5"))
         assert relationResults2_2 == (
-            ProcessResult(Command.RECORD_RELATION, (Relation(sympy.parse_expr("a + b"), 5), False)), # type: ignore
+            ProcessResult(Command.RECORD_RELATIONS, [(Relation(sympy.parse_expr("a + b"), 5), False)]), # type: ignore
         ), "Driver did not record the second relation in a series of solvable relations"
 
         relationResults3_2 = tuple(driver2.processCommandLines("b = 2"))
         assert relationResults3_2 == (
-            ProcessResult(Command.RECORD_RELATION, (Relation(sympy.parse_expr("b"), 2), False)), # type: ignore
+            ProcessResult(Command.RECORD_RELATIONS, [(Relation(sympy.parse_expr("b"), 2), False)]), # type: ignore
         ), "Driver did not record the third relation in a series of solvable relations"
         
         evaluateResults1_2 = tuple(driver2.processCommandLines("a"))
