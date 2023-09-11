@@ -188,7 +188,7 @@ class AlgebraSolver:
         self._inferSymbolValuesFromRelations()
     
     def substituteKnownsFor(self, expression: sympy.Expr):
-        conditionals = _CombinationsSubstituter({expression}, self._symbolValuesDatabase)
+        conditionals = _CombinationsSubstituter({expression}, self._symbolValuesDatabase).substitute()
         values = {
             conditional.value
             for conditional in conditionals
@@ -196,7 +196,7 @@ class AlgebraSolver:
         return values
     
     def substituteKnownsWithConditions(self, expression: sympy.Expr):
-        conditionals = _CombinationsSubstituter({expression}, self._symbolValuesDatabase)
+        conditionals = _CombinationsSubstituter({expression}, self._symbolValuesDatabase).substitute()
         return set(conditionals)
     
     def _setInferredSolutions(self, symbol: sympy.Symbol, solutions: set[ConditionalValue[sympy.Expr]], associatedRelation: Relation):
@@ -210,7 +210,7 @@ class AlgebraSolver:
 
     def _checkForRedundancies(self, relation: Relation):
         isRedundantWithContradictions = False
-        for conditionalSubbedRelationExpr in _CombinationsSubstituter({relation.asExprEqToZero}, self._symbolValuesDatabase):
+        for conditionalSubbedRelationExpr in _CombinationsSubstituter({relation.asExprEqToZero}, self._symbolValuesDatabase).substitute():
             subbedRelationExpr = conditionalSubbedRelationExpr.value
             if subbedRelationExpr != 0:
                 if len(freeSymbolsOf(subbedRelationExpr)) == 0:
@@ -262,7 +262,7 @@ class AlgebraSolver:
         self._contradictedSymbolValues = dict()
 
     def _calculateAnySolutionsFromRelation(self, relation: Relation):
-        relationsWithKnownsSubbed = tuple(_CombinationsSubstituter({relation.asExprEqToZero}, self._symbolValuesDatabase))
+        relationsWithKnownsSubbed = tuple(_CombinationsSubstituter({relation.asExprEqToZero}, self._symbolValuesDatabase).substitute())
         assert not any(
             isExpressionListSymbol(symbol) # type: ignore
             for conditionalExpr in relationsWithKnownsSubbed
@@ -624,19 +624,32 @@ class _CombinationsSubstituter:
             exprListSymbol
             for expression in expressions
             for exprListSymbol in freeSymbolsOf(expression)
-            if type(exprListSymbol) is sympy.Symbol and isExpressionListSymbol(exprListSymbol)
+            if isExpressionListSymbol(exprListSymbol)
         )
 
-    def __iter__(self) -> Generator[ConditionalValue[sympy.Expr], Any, None]:
+    def substitute(self) -> Generator[ConditionalValue[sympy.Expr], Any, None]:
         for symbolValueCombination in self._generateCombinations(0, 0):
-            conditions = {
-                symbol: conditionalValue
-                for (symbol, conditionalValue) in symbolValueCombination.items()
-                if symbol in {symbol for expression in self._expressions for symbol in freeSymbolsOf(expression)}
-            }
             for expression in self._expressions:
+                conditions = {
+                    symbol: conditionalValue
+                    for (symbol, conditionalValue) in symbolValueCombination.items()
+                    if symbol in freeSymbolsOf(expression)
+                }
                 subExpr = subsExpr(expression, symbolValueCombination)
-                yield ConditionalValue(subExpr, conditions) # type: ignore
+                yield ConditionalValue(subExpr, conditions)
+    
+    def substituteForMapping(self) -> dict[sympy.Expr, ConditionalValue[sympy.Expr]]:
+        return dict(self._substituteForMapPairs())
+
+    def _substituteForMapPairs(self) -> Generator[tuple[sympy.Expr, ConditionalValue[sympy.Expr]], Any, None]:
+        for symbolValueCombination in self._generateCombinations(0, 0):
+            for expression in self._expressions:
+                conditions = {
+                    symbol: conditionalValue
+                    for (symbol, conditionalValue) in symbolValueCombination.items()
+                    if symbol in freeSymbolsOf(expression)
+                }
+                yield (expression, ConditionalValue(subExpr, conditions))
     
     def _generateCombinations(self, numExprListsResolved, resolutionIdx):
         noExprListsLeft = numExprListsResolved == len(self._exprListSymbols)
