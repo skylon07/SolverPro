@@ -188,7 +188,7 @@ class AlgebraSolver:
         self._inferSymbolValuesFromRelations()
     
     def substituteKnownsFor(self, expression: sympy.Expr):
-        conditionals = _CombinationsSubstituter(expression, self._symbolValuesDatabase)
+        conditionals = _CombinationsSubstituter({expression}, self._symbolValuesDatabase)
         values = {
             conditional.value
             for conditional in conditionals
@@ -196,7 +196,7 @@ class AlgebraSolver:
         return values
     
     def substituteKnownsWithConditions(self, expression: sympy.Expr):
-        conditionals = _CombinationsSubstituter(expression, self._symbolValuesDatabase)
+        conditionals = _CombinationsSubstituter({expression}, self._symbolValuesDatabase)
         return set(conditionals)
     
     def _setInferredSolutions(self, symbol: sympy.Symbol, solutions: set[ConditionalValue[sympy.Expr]], associatedRelation: Relation):
@@ -210,7 +210,7 @@ class AlgebraSolver:
 
     def _checkForRedundancies(self, relation: Relation):
         isRedundantWithContradictions = False
-        for conditionalSubbedRelationExpr in _CombinationsSubstituter(relation.asExprEqToZero, self._symbolValuesDatabase):
+        for conditionalSubbedRelationExpr in _CombinationsSubstituter({relation.asExprEqToZero}, self._symbolValuesDatabase):
             subbedRelationExpr = conditionalSubbedRelationExpr.value
             if subbedRelationExpr != 0:
                 if len(freeSymbolsOf(subbedRelationExpr)) == 0:
@@ -262,7 +262,7 @@ class AlgebraSolver:
         self._contradictedSymbolValues = dict()
 
     def _calculateAnySolutionsFromRelation(self, relation: Relation):
-        relationsWithKnownsSubbed = tuple(_CombinationsSubstituter(relation.asExprEqToZero, self._symbolValuesDatabase))
+        relationsWithKnownsSubbed = tuple(_CombinationsSubstituter({relation.asExprEqToZero}, self._symbolValuesDatabase))
         assert not any(
             isExpressionListSymbol(symbol) # type: ignore
             for conditionalExpr in relationsWithKnownsSubbed
@@ -615,13 +615,14 @@ class _InferenceOrderSolver:
     
 
 class _CombinationsSubstituter:
-    def __init__(self, expression: sympy.Expr, database: _SymbolsDatabase):
-        self._expression = expression
+    def __init__(self, expressions: set[sympy.Expr], database: _SymbolsDatabase):
+        self._expressions = expressions
         self._symbolValuesDatabase = database
         self._currCombination = dict()
         self._resolutionOrder = tuple(database)
         self._exprListSymbols = tuple(
             exprListSymbol
+            for expression in expressions
             for exprListSymbol in freeSymbolsOf(expression)
             if type(exprListSymbol) is sympy.Symbol and isExpressionListSymbol(exprListSymbol)
         )
@@ -631,10 +632,11 @@ class _CombinationsSubstituter:
             conditions = {
                 symbol: conditionalValue
                 for (symbol, conditionalValue) in symbolValueCombination.items()
-                if symbol in freeSymbolsOf(self._expression)
+                if symbol in {symbol for expression in self._expressions for symbol in freeSymbolsOf(expression)}
             }
-            subExpr = subsExpr(self._expression, symbolValueCombination)
-            yield ConditionalValue(subExpr, conditions) # type: ignore
+            for expression in self._expressions:
+                subExpr = subsExpr(expression, symbolValueCombination)
+                yield ConditionalValue(subExpr, conditions) # type: ignore
     
     def _generateCombinations(self, numExprListsResolved, resolutionIdx):
         noExprListsLeft = numExprListsResolved == len(self._exprListSymbols)
