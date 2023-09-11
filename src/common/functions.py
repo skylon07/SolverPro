@@ -1,5 +1,7 @@
 from typing import Callable, Iterable, TypeVar, Any
 
+import sympy
+
 
 def getVersion():
     return "0.4.0"
@@ -36,6 +38,11 @@ def lazyImportSolverProApp():
     # these should be cut out from assert statements anyway
     from src.app.widgets.solverProApp import SolverProApp
     return SolverProApp
+
+def freeSymbolsOf(expr: sympy.Expr) -> set[sympy.Symbol]:
+    symbols = expr.free_symbols
+    assert all(type(symbol) is sympy.Symbol for symbol in symbols)
+    return symbols # type: ignore
 
 # mostly for testing
 def runForError(fn: Callable[[], Any]):

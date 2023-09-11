@@ -3,7 +3,7 @@ from typing import Iterable, Collection, Generator, Any, Generic, TypeVar, overl
 
 import sympy
 
-from src.common.functions import first, surroundJoin
+from src.common.functions import first, surroundJoin, freeSymbolsOf
 from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
 from src.app.widgets.colors import Colors
@@ -52,7 +52,8 @@ class Relation:
         self.rightExpr = rightExpr
         # (leftExpr             = rightExpr)
         # (leftExpr - rightExpr = 0)
-        self.asExprEqToZero = leftExpr - rightExpr # = 0    # type: ignore
+        self.asExprEqToZero: sympy.Expr = leftExpr - rightExpr # = 0    # type: ignore
+        assert isinstance(self.asExprEqToZero, sympy.Expr)
 
     def __repr__(self):
         return f"Relation({self.leftExpr}, {self.rightExpr})"
@@ -88,7 +89,7 @@ class AlgebraSolver:
                 conditional.value
                 for conditional in self._symbolValuesDatabase[symbol]
             }
-            for symbol in relation.asExprEqToZero.free_symbols
+            for symbol in freeSymbolsOf(relation.asExprEqToZero)
             if symbol in self._symbolValuesDatabase and not isExpressionListSymbol(symbol)
         }
         try:
@@ -100,7 +101,7 @@ class AlgebraSolver:
                 # relation `a = 2` comes in, this is "redundant" (aka no new
                 # information about other variables) but also contradictory
                 # (because -4 ≠ 2 and 5 ≠ 2)
-                nonExprSymbols = tuple(symbol for symbol in relation.asExprEqToZero.free_symbols if not isExpressionListSymbol(symbol))
+                nonExprSymbols = tuple(symbol for symbol in freeSymbolsOf(relation.asExprEqToZero) if not isExpressionListSymbol(symbol))
                 couldBeRestrictRedefCase = len(nonExprSymbols) == 1
                 if couldBeRestrictRedefCase:
                     symbol = first(nonExprSymbols)
@@ -159,7 +160,7 @@ class AlgebraSolver:
         return tuple(
             relation
             for relation in self._recordedRelations
-            if symbol in relation.asExprEqToZero.free_symbols
+            if symbol in freeSymbolsOf(relation.asExprEqToZero)
         )
     
     def popRelation(self, relation: Relation):
@@ -212,7 +213,7 @@ class AlgebraSolver:
         for conditionalSubbedRelationExpr in _CombinationsSubstituter(relation.asExprEqToZero, self._symbolValuesDatabase):
             subbedRelationExpr = conditionalSubbedRelationExpr.value
             if subbedRelationExpr != 0:
-                if len(subbedRelationExpr.free_symbols) == 0:
+                if len(freeSymbolsOf(subbedRelationExpr)) == 0:
                     isRedundantWithContradictions = True
                 else:
                     return (False, None)
@@ -265,12 +266,12 @@ class AlgebraSolver:
         assert not any(
             isExpressionListSymbol(symbol) # type: ignore
             for conditionalExpr in relationsWithKnownsSubbed
-            for symbol in conditionalExpr.value.free_symbols
+            for symbol in freeSymbolsOf(conditionalExpr.value)
         )
         if not all(
             relationExprCondition.value == 0
             for relationExprCondition in relationsWithKnownsSubbed
-            if len(relationExprCondition.value.free_symbols) == 0
+            if len(freeSymbolsOf(relationExprCondition.value)) == 0
         ):
             raise ContradictionException(self._contradictedSymbolValues, relation)
 
@@ -278,7 +279,7 @@ class AlgebraSolver:
             relationExprCondition
             for relationExprCondition in relationsWithKnownsSubbed
             # no expression list symbols are present; they've all been substituted
-            if len(relationExprCondition.value.free_symbols) == 1
+            if len(freeSymbolsOf(relationExprCondition.value)) == 1
         )
         
         conditionalSolutionPairs = self._solveRelationExprsForSingleUnknown(relationsWithSingleUnknown, relation)
@@ -294,9 +295,9 @@ class AlgebraSolver:
     def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Expr]], baseRelation: Relation) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
         for relationExprCondition in relationExprConditions:
             relationExpr = relationExprCondition.value
-            assert(len(relationExpr.free_symbols) == 1), \
+            assert(len(freeSymbolsOf(relationExpr)) == 1), \
                 "Relation had more than one unknown symbol to solve for"
-            unknownSymbol = first(relationExpr.free_symbols)
+            unknownSymbol = first(freeSymbolsOf(relationExpr))
             assert type(unknownSymbol) is sympy.Symbol
             solution = solveSet(relationExpr, unknownSymbol)
             solutionSet = self._interpretSympySolution(unknownSymbol, solution, baseRelation)
@@ -557,7 +558,7 @@ class _InferenceOrderSolver:
         for relation in self._relations:
             unknownSymbolsInRelation: list[tuple[sympy.Symbol, int]] = [
                 (symbol, unknownSymbolCounts[symbol])
-                for symbol in relation.asExprEqToZero.free_symbols
+                for symbol in freeSymbolsOf(relation.asExprEqToZero)
                 if symbol not in self._knownSymbols and symbol not in self._potentialInferencesTable and not isExpressionListSymbol(symbol)
             ]
 
@@ -588,7 +589,7 @@ class _InferenceOrderSolver:
         if symbolsInFamily is None:
             symbolsInFamily = set()
 
-        for symbol in baseRelation.asExprEqToZero.free_symbols:
+        for symbol in freeSymbolsOf(baseRelation.asExprEqToZero):
             if symbol in self._potentialInferencesTable:
                 symbolsInFamily.add(symbol)
                 relation = self._potentialInferencesTable[symbol]
@@ -605,7 +606,7 @@ class _InferenceOrderSolver:
     def _countUnknownSymbols(self):
         unknownSymbolCounts: dict[sympy.Symbol, int] = dict()
         for relation in self._relations:
-            for symbol in relation.asExprEqToZero.free_symbols:
+            for symbol in freeSymbolsOf(relation.asExprEqToZero):
                 if symbol in unknownSymbolCounts:
                     unknownSymbolCounts[symbol] += 1
                 elif symbol not in self._knownSymbols:
@@ -621,7 +622,7 @@ class _CombinationsSubstituter:
         self._resolutionOrder = tuple(database)
         self._exprListSymbols = tuple(
             exprListSymbol
-            for exprListSymbol in expression.free_symbols
+            for exprListSymbol in freeSymbolsOf(expression)
             if type(exprListSymbol) is sympy.Symbol and isExpressionListSymbol(exprListSymbol)
         )
 
@@ -630,7 +631,7 @@ class _CombinationsSubstituter:
             conditions = {
                 symbol: conditionalValue
                 for (symbol, conditionalValue) in symbolValueCombination.items()
-                if symbol in self._expression.free_symbols
+                if symbol in freeSymbolsOf(self._expression)
             }
             subExpr = subsExpr(self._expression, symbolValueCombination)
             yield ConditionalValue(subExpr, conditions) # type: ignore

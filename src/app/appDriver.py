@@ -2,7 +2,7 @@ from typing import Collection
 
 import sympy
 
-from src.common.functions import surroundJoin, first
+from src.common.functions import surroundJoin, first, freeSymbolsOf
 from src.common.exceptions import TracebackException, MultilineException
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
@@ -158,8 +158,7 @@ class AppDriver:
             expr: sympy.Expr = command.data
             assert isinstance(expr, sympy.Expr)
             undefinedSymbolStrs: list[str] = list()
-            for symbol in expr.free_symbols:
-                assert type(symbol) is sympy.Symbol
+            for symbol in freeSymbolsOf(expr):
                 relations = self._solver.getRelationsWithSymbol(symbol)
                 noRelationsForSymbol = len(relations) == 0
                 if noRelationsForSymbol and not isExpressionListSymbol(symbol):
