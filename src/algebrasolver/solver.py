@@ -378,7 +378,7 @@ class AlgebraSolver:
 
     def _backSubstituteSymbols(self, symbolsToBackSubstitute: Iterable[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation]]):
         for (symbol, conditionalSolutions, knownFromRelation) in symbolsToBackSubstitute:
-            subbedSolutionsWithoutConditions = _CombinationsSubstituter(
+            subbedSolutionsWithoutOriginalConditions = _CombinationsSubstituter(
                 {conditionalSolution.value for conditionalSolution in conditionalSolutions},
                 self._symbolValuesDatabase
             ).substituteForMapping()
@@ -387,7 +387,7 @@ class AlgebraSolver:
                     conditionalSubbedSolution.value,
                     self._unionConditions(conditionalSolution.conditions, conditionalSubbedSolution.conditions)
                 )
-                for (solution, conditionalSubbedSolution) in subbedSolutionsWithoutConditions.items()
+                for (solution, conditionalSubbedSolution) in subbedSolutionsWithoutOriginalConditions.items()
                 for conditionalSolution in conditionalSolutions
                 if conditionalSolution.value == solution
             }
