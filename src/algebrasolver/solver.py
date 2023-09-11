@@ -618,7 +618,7 @@ class _CombinationsSubstituter:
     def __init__(self, expressions: set[sympy.Expr], database: _SymbolsDatabase):
         self._expressions = expressions
         self._symbolValuesDatabase = database
-        self._currCombination = dict()
+        self._currCombination: dict[sympy.Symbol, sympy.Expr] = dict()
         self._resolutionOrder = tuple(database)
         self._exprListSymbols = tuple(
             exprListSymbol
@@ -635,7 +635,7 @@ class _CombinationsSubstituter:
                     for (symbol, conditionalValue) in symbolValueCombination.items()
                     if symbol in freeSymbolsOf(expression)
                 }
-                subExpr = subsExpr(expression, symbolValueCombination)
+                subExpr = self._subsUntilFixed(expression, symbolValueCombination)
                 yield ConditionalValue(subExpr, conditions)
     
     def substituteForMapping(self) -> dict[sympy.Expr, ConditionalValue[sympy.Expr]]:
@@ -649,7 +649,15 @@ class _CombinationsSubstituter:
                     for (symbol, conditionalValue) in symbolValueCombination.items()
                     if symbol in freeSymbolsOf(expression)
                 }
+                subExpr = self._subsUntilFixed(expression, symbolValueCombination)
                 yield (expression, ConditionalValue(subExpr, conditions))
+
+    def _subsUntilFixed(self, expression: sympy.Expr, combination: dict[sympy.Symbol, sympy.Expr]):
+        lastExpression = None
+        while lastExpression != expression:
+            lastExpression = expression
+            expression = subsExpr(expression, combination)
+        return expression
     
     def _generateCombinations(self, numExprListsResolved, resolutionIdx):
         noExprListsLeft = numExprListsResolved == len(self._exprListSymbols)
@@ -671,8 +679,7 @@ class _CombinationsSubstituter:
             if self._testConditionsMet(conditionalValue):
                 # overwritten to save on memory (instead of copying and creating a bunch of dicts)
                 self._currCombination[symbolToInclude] = conditionalValue.value
-                for finishedCombination in self._generateCombinations(numExprListsResolved, resolutionIdx):
-                    yield finishedCombination
+                yield from self._generateCombinations(numExprListsResolved, resolutionIdx)
 
     def _testConditionsMet(self, conditionalValue: ConditionalValue[Any]):
         for (symbol, value) in conditionalValue.conditions.items():
