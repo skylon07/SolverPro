@@ -73,6 +73,7 @@ class AlgebraSolver:
         self._recordedRelations: list[Relation] = list()
         self._symbolValuesDatabase = _SymbolsDatabase()
         self._inferenceTable = _RelationSymbolTable()
+        self._contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None] = dict()
 
     def recordRelation(self, relation: Relation):
         # TODO: use transactional data types that can be reversed more efficiently
@@ -82,7 +83,7 @@ class AlgebraSolver:
         inferenceTableBackup = self._inferenceTable.copy()
         
         # if there is a contradiction, it would be with these
-        contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None] = {
+        self._contradictedSymbolValues = {
             symbol: {
                 conditional.value
                 for conditional in self._symbolValuesDatabase[symbol]
@@ -107,12 +108,12 @@ class AlgebraSolver:
 
                     isRestrictionOfExpressionList = self._dependsOnExpressionListSymbols(symbol)
                     if isRestrictionOfExpressionList:
-                        raise ContradictionException(contradictedSymbolValues, relation)
+                        raise ContradictionException(self._contradictedSymbolValues, relation)
 
                     (oldSolutions, oldRelation) = self._popInferredSolutions(symbol)
                     
                     try:
-                        (newSymbol, newSolutions) = self._calculateAnySolutionsFromRelation(relation, dict())
+                        (newSymbol, newSolutions) = self._calculateAnySolutionsFromRelation(relation)
                     except ContradictionException:
                         # shouldn't be possible... but just in case!
                         raise RuntimeError("A contradiction was realized during restriction calculation (no new relations added...?)")
@@ -138,13 +139,14 @@ class AlgebraSolver:
                             self._setInferredSolutions(symbol, oldSolutions, oldRelation)
             
             self._recordedRelations.append(relation)
-            self._inferSymbolValuesFromRelations(contradictedSymbolValues)
+            self._inferSymbolValuesFromRelations()
             return isRedundant
         
         except Exception as exception:
             self._recordedRelations = relationsBackup
             self._symbolValuesDatabase = databaseBackup
             self._inferenceTable = inferenceTableBackup
+            self._contradictedSymbolValues = dict()
             raise exception
 
     def getSymbolConditionalValues(self, symbol: sympy.Symbol):
@@ -182,7 +184,7 @@ class AlgebraSolver:
                             break # to move on to the next symbol
 
         # in case redundant relations can re-infer lost values
-        self._inferSymbolValuesFromRelations(dict())
+        self._inferSymbolValuesFromRelations()
     
     def substituteKnownsFor(self, expression: sympy.Expr):
         conditionals = _CombinationsSubstituter(expression, self._symbolValuesDatabase)
@@ -228,14 +230,14 @@ class AlgebraSolver:
                         return True
         return False
 
-    def _inferSymbolValuesFromRelations(self, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]):
+    def _inferSymbolValuesFromRelations(self):
         anySymbolsUpdated = False
         for relation in self._recordedRelations:
             if relation in self._inferenceTable:
                 # optimization: we know it's already provided information for a symbol!
                 continue
 
-            (symbol, conditionalSolutions) = self._calculateAnySolutionsFromRelation(relation, contradictedSymbolValues)
+            (symbol, conditionalSolutions) = self._calculateAnySolutionsFromRelation(relation)
             someSubbedRelationWasSolvable = symbol is not None
             if someSubbedRelationWasSolvable:
                 assert relation not in self._inferenceTable, "Solver inferred new value from already consumed relation" # impossible... unless things aren't getting recorded/popped right
@@ -249,15 +251,16 @@ class AlgebraSolver:
                 # just in case there ever is a contradiction...
                 # (otherwise the user will never be able to see what the value
                 # was, since it'll be "forgotten")
-                contradictedSymbolValues[symbol] = inferredValues
+                self._contradictedSymbolValues[symbol] = inferredValues
                 
                 anySymbolsUpdated = True
             
         # TODO: there's probably some dependency-path optimization that could be made here
         if anySymbolsUpdated:
-            self._inferSymbolValuesFromRelations(contradictedSymbolValues)
+            self._inferSymbolValuesFromRelations()
+        self._contradictedSymbolValues = dict()
 
-    def _calculateAnySolutionsFromRelation(self, relation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]):
+    def _calculateAnySolutionsFromRelation(self, relation: Relation):
         relationsWithKnownsSubbed = tuple(_CombinationsSubstituter(relation.asExprEqToZero, self._symbolValuesDatabase))
         assert not any(
             isExpressionListSymbol(symbol) # type: ignore
@@ -269,7 +272,7 @@ class AlgebraSolver:
             for relationExprCondition in relationsWithKnownsSubbed
             if len(relationExprCondition.value.free_symbols) == 0
         ):
-            raise ContradictionException(contradictedSymbolValues, relation)
+            raise ContradictionException(self._contradictedSymbolValues, relation)
 
         relationsWithSingleUnknown = (
             relationExprCondition
@@ -278,7 +281,7 @@ class AlgebraSolver:
             if len(relationExprCondition.value.free_symbols) == 1
         )
         
-        conditionalSolutionPairs = self._solveRelationExprsForSingleUnknown(relationsWithSingleUnknown, relation, contradictedSymbolValues)
+        conditionalSolutionPairs = self._solveRelationExprsForSingleUnknown(relationsWithSingleUnknown, relation)
         if __debug__:
             conditionalSolutionPairs = tuple(conditionalSolutionPairs)
             assert all(type(conditionalSolutionSet.value) is set for (symbol, conditionalSolutionSet) in conditionalSolutionPairs), \
@@ -288,7 +291,7 @@ class AlgebraSolver:
         assert not isExpressionListSymbol(symbol) # type: ignore
         return (symbol, conditionalSolutions)
 
-    def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Expr]], baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
+    def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Expr]], baseRelation: Relation) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
         for relationExprCondition in relationExprConditions:
             relationExpr = relationExprCondition.value
             assert(len(relationExpr.free_symbols) == 1), \
@@ -296,10 +299,10 @@ class AlgebraSolver:
             unknownSymbol = first(relationExpr.free_symbols)
             assert type(unknownSymbol) is sympy.Symbol
             solution = solveSet(relationExpr, unknownSymbol)
-            solutionSet = self._interpretSympySolution(unknownSymbol, solution, baseRelation, contradictedSymbolValues)
+            solutionSet = self._interpretSympySolution(unknownSymbol, solution, baseRelation)
             yield (unknownSymbol, ConditionalValue(solutionSet, relationExprCondition.conditions))
 
-    def _interpretSympySolution(self, symbol: sympy.Symbol, solution: sympy.Set, baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> set[sympy.Expr]:
+    def _interpretSympySolution(self, symbol: sympy.Symbol, solution: sympy.Set, baseRelation: Relation) -> set[sympy.Expr]:
         # normal solutions to problem
         # example:
         #   a^2 = 4; a = {2, -2}
@@ -312,7 +315,7 @@ class AlgebraSolver:
         # example:
         #   a/(b - 1) = 5; b = 1; a = {}
         elif solution is sympy.EmptySet:
-            raise NoSolutionException([symbol], contradictedSymbolValues, baseRelation)
+            raise NoSolutionException([symbol], self._contradictedSymbolValues, baseRelation)
         
         else:
             raise NotImplementedError(f"Solver reached unconsidered set: {type(solution).__name__}")
