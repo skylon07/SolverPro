@@ -451,6 +451,8 @@ class AlgebraSolver:
             newConditions[symbol] = condition
         return newConditions
 
+# TODO: there's a lot of helper classes here... they should be split into their
+#       own files and given their own test cases
 
 class _RelationSymbolTable:
     _DefaultType = TypeVar("_DefaultType")
