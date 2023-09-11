@@ -540,6 +540,74 @@ class _RelationSymbolTable:
             return value
         else:
             raise KeyError(key)
+        
+
+class _InferenceOrderSolver:
+    def __init__(self, relations: list[Relation], knownSymbols: set[sympy.Symbol]):
+        self._relations = relations
+        self._knownSymbols = knownSymbols
+        self._potentialInferencesTable = _RelationSymbolTable()
+
+
+    def findSolveOrders(self):
+        unknownSymbolCounts = self._countUnknownSymbols()
+        for relation in self._relations:
+            unknownSymbolsInRelation: list[tuple[sympy.Symbol, int]] = [
+                (symbol, unknownSymbolCounts[symbol])
+                for symbol in relation.asExprEqToZero.free_symbols
+                if symbol not in self._knownSymbols and symbol not in self._potentialInferencesTable
+            ]
+
+            (symbolToSolve, symbolCount) = min(
+                unknownSymbolsInRelation,
+                key = lambda symbolAndCount: symbolAndCount[1],
+                default = (None, None)
+            )
+            if symbolToSolve is not None:
+                self._potentialInferencesTable[symbolToSolve] = relation
+
+                # optimization: inference family cannot be solid unless this relation
+                # has potential inferences for all of its symbols
+                wasLastUnknownSymbol = len(unknownSymbolsInRelation) == 1
+                if wasLastUnknownSymbol:
+                    (canBackSubstitute, symbolsInFamily) = self._testSolidInferenceFamily(relation)
+                    if canBackSubstitute:
+                        return {
+                            (symbolToInfer, relationToInferFrom)
+                            for symbolToInfer in symbolsInFamily
+                            for relationToInferFrom in [self._potentialInferencesTable[symbolToInfer]]
+                        }
+        return None
+    
+    def _testSolidInferenceFamily(self, baseRelation: Relation, relationsChecked: set[Relation] | None = None, symbolsInFamily: set[sympy.Symbol] | None = None):
+        if relationsChecked is None:
+            relationsChecked = {baseRelation}
+        if symbolsInFamily is None:
+            symbolsInFamily = set()
+
+        for symbol in baseRelation.asExprEqToZero.free_symbols:
+            if symbol in self._potentialInferencesTable:
+                symbolsInFamily.add(symbol)
+                relation = self._potentialInferencesTable[symbol]
+                if relation not in relationsChecked:
+                    relationsChecked.add(relation)
+                    holeExists = not self._testSolidInferenceFamily(relation, relationsChecked, symbolsInFamily)
+                    if holeExists:
+                        return (False, symbolsInFamily)
+            elif symbol not in self._knownSymbols:
+                return (False, symbolsInFamily)
+        return (True, symbolsInFamily)
+
+
+    def _countUnknownSymbols(self):
+        unknownSymbolCounts: dict[sympy.Symbol, int] = dict()
+        for relation in self._relations:
+            for symbol in relation.asExprEqToZero.free_symbols:
+                if symbol in unknownSymbolCounts:
+                    unknownSymbolCounts[symbol] += 1
+                elif symbol not in self._knownSymbols:
+                    unknownSymbolCounts[symbol] = 1
+        return unknownSymbolCounts
     
 
 class _CombinationsSubstituter:
