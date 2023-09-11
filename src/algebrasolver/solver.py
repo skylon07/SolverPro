@@ -219,6 +219,7 @@ class AlgebraSolver:
                 # information about other variables) but also contradictory
                 # (because -4 ≠ 2 and 5 ≠ 2)
                 nonExprSymbols = tuple(symbol for symbol in freeSymbolsOf(relation.asExprEqToZero) if not isExpressionListSymbol(symbol))
+                wasActuallyRestrictRedefCase = False
                 couldBeRestrictRedefCase = len(nonExprSymbols) == 1
                 if couldBeRestrictRedefCase:
                     symbol = first(nonExprSymbols)
@@ -249,12 +250,14 @@ class AlgebraSolver:
                             }
                             self._setInferredSolutions(symbol, newSolutionsWithCorrectConditions, relation)
                             isRedundant = False # since it technically did provide new information...
+                            wasActuallyRestrictRedefCase = True
                             
                             # TODO: (optimization) remove other symbol values that relied on any conditions now not present
                             #       (since other symbols might have conditions that will never be true when substituted,
                             #       due to the values that were just removed)
-                        else:
-                            self._setInferredSolutions(symbol, oldSolutions, oldRelation)
+                
+                if not wasActuallyRestrictRedefCase:
+                    raise ContradictionException(self._contradictedSymbolValues, relation)
             
             self._recordedRelations.append(relation)
             self._inferSymbolValuesFromRelations()
@@ -378,19 +381,12 @@ class AlgebraSolver:
 
     def _backSubstituteSymbols(self, symbolsToBackSubstitute: Iterable[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation]]):
         for (symbol, conditionalSolutions, knownFromRelation) in symbolsToBackSubstitute:
-            subbedSolutionsWithoutOriginalConditions = _CombinationsSubstituter(
+            # conditions aren't tracked from forward solving; the conditions
+            # from back substituting keep the "universes" together
+            subbedSolutions = set(_CombinationsSubstituter(
                 {conditionalSolution.value for conditionalSolution in conditionalSolutions},
                 self._symbolValuesDatabase
-            ).substituteForMapping()
-            subbedSolutions = {
-                ConditionalValue(
-                    conditionalSubbedSolution.value,
-                    self._unionConditions(conditionalSolution.conditions, conditionalSubbedSolution.conditions)
-                )
-                for (solution, conditionalSubbedSolution) in subbedSolutionsWithoutOriginalConditions.items()
-                for conditionalSolution in conditionalSolutions
-                if conditionalSolution.value == solution
-            }
+            ).substitute())
             self._setInferredSolutions(symbol, subbedSolutions, knownFromRelation)
             
             inferredValues = {
