@@ -357,13 +357,7 @@ class AlgebraSolver:
                 symbolsToBackSubstitute = reversed(tuple(self._forwardSolveSymbols(symbolsToSolve)))
                 self._backSubstituteSymbols(symbolsToBackSubstitute)
                 self._checkForContradictions()
-            # symbolsToSolve = _InferenceOrderSolver(self._recordedRelations, set(self._symbolValuesDatabase)).findSolveOrder()
-            symbolsToSolve = [
-                (createSymbol("a"), Relation(sympy.parse_expr("a + b + e"), sympy.parse_expr("8"))),
-                (createSymbol("d"), Relation(sympy.parse_expr("b + d + e"), sympy.parse_expr("6"))),
-                (createSymbol("b"), Relation(sympy.parse_expr("b + c + e"), sympy.parse_expr("7"))),
-                (createSymbol("c"), Relation(sympy.parse_expr("a + b + c + d + e"), sympy.parse_expr("11"))),
-            ]
+            symbolsToSolve = _InferenceOrderSolver(self._recordedRelations, set(self._symbolValuesDatabase)).findSolveOrder()
             firstLoop = False
         
         self._contradictedSymbolValues = dict()
