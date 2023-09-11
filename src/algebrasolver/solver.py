@@ -163,15 +163,18 @@ class _SymbolsDatabase:
         if isExpressionListSymbol(symbol):
             return 0
         else:
-            conditionSymbols = {
-                symbol
-                for conditionValue in self[symbol]
-                for symbol in conditionValue.conditions.keys()
-            }
-            rank = 1 + sum(
-                self._calculateSymbolResolutionRank(symbol)
-                for symbol in conditionSymbols
-            )
+            if symbol in self:
+                conditionSymbols = {
+                    symbol
+                    for conditionValue in self[symbol]
+                    for symbol in conditionValue.conditions.keys()
+                }
+                rank = 1 + sum(
+                    self._calculateSymbolResolutionRank(symbol)
+                    for symbol in conditionSymbols
+                )
+            else:
+                rank = 1
             return rank
 
     def _popSymbolFromResolutionOrder(self, symbol: sympy.Symbol):
