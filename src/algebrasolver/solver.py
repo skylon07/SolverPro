@@ -549,13 +549,13 @@ class _InferenceOrderSolver:
         self._potentialInferencesTable = _RelationSymbolTable()
 
 
-    def findSolveOrders(self):
+    def findSolveOrder(self):
         unknownSymbolCounts = self._countUnknownSymbols()
         for relation in self._relations:
             unknownSymbolsInRelation: list[tuple[sympy.Symbol, int]] = [
                 (symbol, unknownSymbolCounts[symbol])
                 for symbol in relation.asExprEqToZero.free_symbols
-                if symbol not in self._knownSymbols and symbol not in self._potentialInferencesTable
+                if symbol not in self._knownSymbols and symbol not in self._potentialInferencesTable and not isExpressionListSymbol(symbol)
             ]
 
             (symbolToSolve, symbolCount) = min(
