@@ -691,7 +691,7 @@ class _CombinationsSubstituter:
                 conditionIsIrrelevant = symbol not in self._currCombination
                 if conditionIsIrrelevant:
                     continue 
-            if self._currCombination[symbol] != value:
+            if self._currCombination.get(symbol, value) != value:
                 return False
         return True
 
