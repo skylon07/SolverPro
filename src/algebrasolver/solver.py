@@ -601,6 +601,8 @@ class _InferenceOrderSolver:
             symbolsInFamily = set()
 
         for symbol in freeSymbolsOf(baseRelation.asExprEqToZero):
+            if isExpressionListSymbol(symbol):
+                continue
             if symbol in self._potentialInferencesTable:
                 symbolsInFamily.add(symbol)
                 relation = self._potentialInferencesTable[symbol]
@@ -619,7 +621,9 @@ class _InferenceOrderSolver:
         unknownSymbolCounts: dict[sympy.Symbol, int] = dict()
         for relation in self._relations:
             for symbol in freeSymbolsOf(relation.asExprEqToZero):
-                if symbol in unknownSymbolCounts:
+                if isExpressionListSymbol(symbol):
+                    continue
+                elif symbol in unknownSymbolCounts:
                     unknownSymbolCounts[symbol] += 1
                 elif symbol not in self._knownSymbols:
                     unknownSymbolCounts[symbol] = 1
