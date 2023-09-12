@@ -377,18 +377,38 @@ class AlgebraSolver:
             yield (symbol, flattenedConditionalSolutions, relation)
 
     def _backSubstituteSymbols(self, symbolsToBackSubstitute: Iterable[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation]]):
-        for (symbol, conditionalSolutions, knownFromRelation) in symbolsToBackSubstitute:
-            # conditions aren't tracked from forward solving; the conditions
-            # from back substituting keep the "universes" together
-            subbedSolutions = set(_CombinationsSubstituter(
-                {conditionalSolution.value for conditionalSolution in conditionalSolutions},
-                self._symbolValuesDatabase
-            ).substitute())
-            self._setInferredSolutions(symbol, subbedSolutions, knownFromRelation)
+        for (symbol, unsolvedConditionalSolutions, relationKnownFrom) in symbolsToBackSubstitute:
+            conditionalSolutionsWithKnownSymbols = {
+                ConditionalValue(
+                    conditional.value,
+                    {
+                        symbol: condition
+                        for (symbol, condition) in conditional.conditions.items()
+                        if symbol in self._symbolValuesDatabase
+                    }
+                )
+                for conditional in unsolvedConditionalSolutions
+            }
+            subbedSolutions = {
+                ConditionalValue(
+                    subbedConditionalSolution.value,
+                    self._unionConditions(
+                        subbedConditionalSolution.conditions,
+                        conditionalSolution.conditions
+                    )
+                )
+                for (unsubbedSolutionExpr, subbedConditionalSolution) in _CombinationsSubstituter(
+                    {conditionalSolution.value for conditionalSolution in unsolvedConditionalSolutions},
+                    self._symbolValuesDatabase
+                ).substituteForMapping().items()
+                for conditionalSolution in conditionalSolutionsWithKnownSymbols
+                if conditionalSolution.value == unsubbedSolutionExpr
+            }
+            self._setInferredSolutions(symbol, subbedSolutions, relationKnownFrom)
             
             inferredValues = {
-                solution.value
-                for solution in conditionalSolutions
+                subbedConditionalSolution.value
+                for subbedConditionalSolution in subbedSolutions
             }
             # just in case there ever is a contradiction...
             # (otherwise the user will never be able to see what the value
