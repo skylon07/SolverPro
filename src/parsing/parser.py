@@ -32,6 +32,15 @@ def isExpressionListSymbol(value: sympy.Symbol):
             return True
     return False
 
+def freeSymbolsOf(expr: sympy.Expr, *, includeExpressionLists: bool = True) -> set[sympy.Symbol]:
+    symbols = expr.free_symbols
+    assert all(type(symbol) is sympy.Symbol for symbol in symbols)
+    return {
+        symbol
+        for symbol in symbols
+        if not isExpressionListSymbol(symbol) or includeExpressionLists # type: ignore
+    }
+
 
 class CommandParser:
     def parseCommand(self, commandTokens: tuple[LexerToken, ...]):

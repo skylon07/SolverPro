@@ -3,12 +3,12 @@ from typing import Iterable, Collection, Generator, Any, Generic, TypeVar, overl
 
 import sympy
 
-from src.common.functions import first, surroundJoin, freeSymbolsOf
+from src.common.functions import first, surroundJoin
 from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
 from src.app.widgets.colors import Colors
 from src.parsing.lexer import CommandLexer
-from src.parsing.parser import CommandParser, isExpressionListSymbol, isNonSymbolicValue
+from src.parsing.parser import CommandParser, isExpressionListSymbol, isNonSymbolicValue, freeSymbolsOf
 
 
 SolutionSet = set[sympy.Expr]
@@ -203,8 +203,8 @@ class AlgebraSolver:
                 conditional.value
                 for conditional in self._symbolValuesDatabase[symbol]
             }
-            for symbol in freeSymbolsOf(relation.asExprEqToZero)
-            if symbol in self._symbolValuesDatabase and not isExpressionListSymbol(symbol)
+            for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False)
+            if symbol in self._symbolValuesDatabase
         }
         try:
             (isRedundant, isRedundantWithContradictions) = self._checkForRedundancies(relation)
@@ -215,7 +215,7 @@ class AlgebraSolver:
                 # relation `a = 2` comes in, this is "redundant" (aka no new
                 # information about other variables) but also contradictory
                 # (because -4 ≠ 2 and 5 ≠ 2)
-                nonExprSymbols = tuple(symbol for symbol in freeSymbolsOf(relation.asExprEqToZero) if not isExpressionListSymbol(symbol))
+                nonExprSymbols = tuple(symbol for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False))
                 wasActuallyRestrictRedefCase = False
                 couldBeRestrictRedefCase = len(nonExprSymbols) == 1
                 if couldBeRestrictRedefCase:
@@ -566,8 +566,8 @@ class _InferenceOrderSolver:
         for relation in self._relations:
             unknownSymbolsInRelation: list[tuple[sympy.Symbol, int]] = [
                 (symbol, unknownSymbolCounts[symbol])
-                for symbol in freeSymbolsOf(relation.asExprEqToZero)
-                if symbol not in self._knownSymbols and symbol not in self._potentialInferencesTable and not isExpressionListSymbol(symbol)
+                for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False)
+                if symbol not in self._knownSymbols and symbol not in self._potentialInferencesTable
             ]
 
             (symbolToSolve, symbolCount) = min(
@@ -590,7 +590,7 @@ class _InferenceOrderSolver:
                                 for symbolToInfer in symbolsInFamily
                                 for relationToInferFrom in [self._potentialInferencesTable[symbolToInfer]]
                             ],
-                            key = lambda data: len(freeSymbolsOf(data[1].asExprEqToZero))
+                            key = lambda data: len(freeSymbolsOf(data[1].asExprEqToZero, includeExpressionLists = False))
                         )
         return None
     
@@ -600,9 +600,7 @@ class _InferenceOrderSolver:
         if symbolsInFamily is None:
             symbolsInFamily = set()
 
-        for symbol in freeSymbolsOf(baseRelation.asExprEqToZero):
-            if isExpressionListSymbol(symbol):
-                continue
+        for symbol in freeSymbolsOf(baseRelation.asExprEqToZero, includeExpressionLists = False):
             if symbol in self._potentialInferencesTable:
                 symbolsInFamily.add(symbol)
                 relation = self._potentialInferencesTable[symbol]
@@ -620,10 +618,8 @@ class _InferenceOrderSolver:
     def _countUnknownSymbols(self):
         unknownSymbolCounts: dict[sympy.Symbol, int] = dict()
         for relation in self._relations:
-            for symbol in freeSymbolsOf(relation.asExprEqToZero):
-                if isExpressionListSymbol(symbol):
-                    continue
-                elif symbol in unknownSymbolCounts:
+            for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False):
+                if symbol in unknownSymbolCounts:
                     unknownSymbolCounts[symbol] += 1
                 elif symbol not in self._knownSymbols:
                     unknownSymbolCounts[symbol] = 1
