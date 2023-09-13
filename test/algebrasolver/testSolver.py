@@ -170,6 +170,19 @@ class AlgebraSolverTester:
             sympy.parse_expr("-2*I"),
             sympy.parse_expr("2*I"),
         }
+
+    def testGetsRelationsInOrder(self):
+        solver = AlgebraSolver()
+
+        solver.recordRelation(Relation(sympy.parse_expr("a"), 1)) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("b + c"), 2)) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("c"), 3)) # type: ignore
+
+        assert solver.getRelations() == (
+            Relation(sympy.parse_expr("a"), 1),  # type: ignore
+            Relation(sympy.parse_expr("b + c"), 2), # type: ignore
+            Relation(sympy.parse_expr("c"), 3), # type: ignore
+        )
         
     def testGetsSymbolValues(self):
         solver = AlgebraSolver()
@@ -689,5 +702,3 @@ class AlgebraSolverTester:
         assert solver6.substituteKnownsFor(sympy.parse_expr("b")) == {7}
         assert solver6.substituteKnownsFor(sympy.parse_expr("c")) == {3}
         assert solver6.substituteKnownsFor(sympy.parse_expr("d")) == {10}
-
-    # TODO: test getting list of relations
