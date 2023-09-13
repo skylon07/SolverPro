@@ -4,6 +4,10 @@ from src.common.functions import runForError
 from src.algebrasolver.solver import AlgebraSolver, ConditionalValue, Relation, ContradictionException, NoSolutionException
 
 
+# as always, to prevent the linter from FREAKING OUT
+createSymbol = eval("sympy.Symbol")
+
+
 class AlgebraSolverTester:
     def testRecordsRelations(self):
         solver = AlgebraSolver()
@@ -224,10 +228,10 @@ class AlgebraSolverTester:
         
         solver4 = AlgebraSolver()
 
-        isRedundant1_4 = solver4.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
+        isRedundant1_4 = solver4.recordRelation(Relation(sympy.parse_expr("a"), createSymbol("{1, 2}")))
         assert isRedundant1_4 is False
         
-        isRedundant2_4 = solver4.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
+        isRedundant2_4 = solver4.recordRelation(Relation(sympy.parse_expr("a"), createSymbol("{1, 2}")))
         assert isRedundant2_4 is True
 
     def testDetectsContradictions(self):
@@ -280,20 +284,20 @@ class AlgebraSolverTester:
     def testFindsContradictionsWithExpressionLists(self):
         solver = AlgebraSolver()
 
-        solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2}")))
-        solver.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{4, 8}")))
-        solver.recordRelation((Relation(sympy.parse_expr("c"), sympy.Symbol("{1, 2, 3, 4}"))))
+        solver.recordRelation(Relation(sympy.parse_expr("a"), createSymbol("{1, 2}")))
+        solver.recordRelation(Relation(sympy.parse_expr("b"), createSymbol("{4, 8}")))
+        solver.recordRelation((Relation(sympy.parse_expr("c"), createSymbol("{1, 2, 3, 4}"))))
         solver.recordRelation((Relation(sympy.parse_expr("d"), sympy.parse_expr("c"))))
 
         def recordContradiction1():
-            solver.recordRelation(Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2, 3}")))
+            solver.recordRelation(Relation(sympy.parse_expr("a"), createSymbol("{1, 2, 3}")))
         error1 = runForError(recordContradiction1)
         
         assert type(error1) is ContradictionException
         assert error1.poorSymbolValues == {
             sympy.parse_expr("a"): {1, 2},
         }
-        assert error1.contradictingRelation == Relation(sympy.parse_expr("a"), sympy.Symbol("{1, 2, 3}")), \
+        assert error1.contradictingRelation == Relation(sympy.parse_expr("a"), createSymbol("{1, 2, 3}")), \
             "Solver did not find a contradiction in solutions with extra values"
 
         def recordContradiction2():
@@ -307,14 +311,14 @@ class AlgebraSolverTester:
         assert error2.contradictingRelation == Relation(sympy.parse_expr("b"), 4) # type: ignore
 
         def recordContradiction3():
-            solver.recordRelation(Relation(sympy.parse_expr("d"), sympy.Symbol("{2, 3}")))
+            solver.recordRelation(Relation(sympy.parse_expr("d"), createSymbol("{2, 3}")))
         error3 = runForError(recordContradiction3)
 
         assert type(error3) is ContradictionException
         assert error3.poorSymbolValues == {
             sympy.parse_expr("d"): {1, 2, 3, 4}
         }
-        assert error3.contradictingRelation == Relation(sympy.parse_expr("d"), sympy.Symbol("{2, 3}"))
+        assert error3.contradictingRelation == Relation(sympy.parse_expr("d"), createSymbol("{2, 3}"))
         
     def testSolutionRestricting(self):
         solver1 = AlgebraSolver()
@@ -354,7 +358,7 @@ class AlgebraSolverTester:
         solver3.recordRelation(Relation(sympy.parse_expr("(a + b)**2"), 9)) # type: ignore
         assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {-5, -1, 1, 5}
 
-        solver3.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{-1, 1, 5}")))
+        solver3.recordRelation(Relation(sympy.parse_expr("b"), createSymbol("{-1, 1, 5}")))
         assert solver3.substituteKnownsFor(sympy.parse_expr("b")) == {-1, 1, 5}, \
             "Solver did not restrict variable to multiple values *and* preserve its conditions"
         
@@ -370,7 +374,7 @@ class AlgebraSolverTester:
             sympy.parse_expr("1/36"),   # (6)^-2
         }
 
-        solver4.recordRelation(Relation(sympy.parse_expr("b"), sympy.Symbol("{-6, 2}")))
+        solver4.recordRelation(Relation(sympy.parse_expr("b"), createSymbol("{-6, 2}")))
         assert solver4.substituteKnownsFor(sympy.parse_expr("b**a")) == {36, 4}, \
             "Solver did not correctly substitute only valid combinations of variables in multi-conditional expression"
     
