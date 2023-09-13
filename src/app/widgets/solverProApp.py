@@ -110,8 +110,7 @@ class MainScreen(Screen):
             # and the driver does not behave transactionally (an error on the
             # third of four lines still actually executes the first two)
             driver.validateSingleLine(commandStr)
-            result = first(tuple(driver.processCommandLines(commandStr)), None)
-            assert result is not None
+            result = first(tuple(driver.processCommandLines(commandStr)))
             if result.type is Command.EMPTY:
                 self.writeSpacerToLogger()
 

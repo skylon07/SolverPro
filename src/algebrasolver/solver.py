@@ -220,8 +220,7 @@ class AlgebraSolver:
                 couldBeRestrictRedefCase = len(nonExprSymbols) == 1
                 if couldBeRestrictRedefCase:
                     symbol = first(nonExprSymbols)
-                    assert type(symbol) is sympy.Symbol
-
+                    
                     isRestrictionOfExpressionList = self._dependsOnExpressionListSymbols(symbol)
                     if isRestrictionOfExpressionList:
                         raise ContradictionException(self._contradictedSymbolValues, relation)

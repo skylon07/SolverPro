@@ -1,6 +1,4 @@
-from typing import Callable, Iterable, TypeVar, Any
-
-import sympy
+from typing import Callable, Iterable, TypeVar, Any, overload
 
 
 def getVersion():
@@ -14,6 +12,10 @@ def iterDifference(iter1, iter2):
 _firstNoDefault = object()
 _IterableType = TypeVar("_IterableType")
 _DefaultType = TypeVar("_DefaultType")
+@overload
+def first(iterable: Iterable[_IterableType]) -> _IterableType: ...
+@overload
+def first(iterable: Iterable[_IterableType], default: _DefaultType) -> _IterableType | _DefaultType: ...
 def first(iterable: Iterable[_IterableType], default: _DefaultType = _firstNoDefault) -> _IterableType | _DefaultType:
     try:
         for item in iterable:
