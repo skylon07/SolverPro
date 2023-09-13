@@ -220,19 +220,20 @@ class AlgebraSolver:
                 couldBeRestrictRedefCase = len(nonExprSymbols) == 1
                 if couldBeRestrictRedefCase:
                     symbol = first(nonExprSymbols)
-                    
+
                     isRestrictionOfExpressionList = self._dependsOnExpressionListSymbols(symbol)
                     if isRestrictionOfExpressionList:
                         raise ContradictionException(self._contradictedSymbolValues, relation)
 
                     (oldSolutions, oldRelation) = self._popInferredSolutions(symbol)
-                    
+
                     try:
-                        (newSymbol, newSolutions) = self._calculateAnySolutionsFromRelation(relation)
+                        (newSymbol, newSolutions, newRelation) = self._solveForRestrictRedefCase(symbol, relation)
                     except ContradictionException:
                         # shouldn't be possible... but just in case!
                         raise RuntimeError("A contradiction was realized during restriction calculation (no new relations added...?)")
-                    assert symbol == newSymbol, "Restriction solutions don't match found symbol" # this shouldn't be possible either!
+                    assert symbol == newSymbol, "Restriction solutions don't match found symbol" # this shouldn't be possible (to fail) either!
+                    assert relation == newRelation, "Restriction solution relations don't match" # this ALSO shouldn't be possible (to fail)!
                     if symbol is not None:
                         oldSolutionValues = tuple(solution.value for solution in oldSolutions)
                         newValuesAreActuallyRestrictions = len(newSolutions) < len(oldSolutions) and \
@@ -347,6 +348,9 @@ class AlgebraSolver:
                     if isExpressionListSymbol(conditionalSymbol) or self._dependsOnExpressionListSymbols(conditionalSymbol, symbolsChecked):
                         return True
         return False
+    
+    def _solveForRestrictRedefCase(self, symbol: sympy.Symbol, relation: Relation):
+        return first(self._forwardSolveSymbols([(symbol, relation)]))
 
     def _inferSymbolValuesFromRelations(self):
         symbolsToSolve = None
@@ -361,12 +365,14 @@ class AlgebraSolver:
         
         self._contradictedSymbolValues = dict()
 
-    def _forwardSolveSymbols(self, symbolsToSolve: Iterable[tuple[sympy.Symbol, Relation]], database: _SymbolsDatabase | None = None) -> Generator[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation], Any, None]:
+    def _forwardSolveSymbols(self, symbolsToSolve: Iterable[tuple[sympy.Symbol, Relation]], database: _SymbolsDatabase | None = None, *, isRestrictRedefSolve: bool = False) -> Generator[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation], Any, None]:
         if database is None:
             database = self._symbolValuesDatabase.copy()
         
         for (symbol, relation) in symbolsToSolve:
-            relationsWithKnownsAndInferredSubbed = _CombinationsSubstituter({relation.asExprEqToZero}, database).substitute()
+            restrictRedefSymbol = None if not isRestrictRedefSolve \
+                else symbol
+            relationsWithKnownsAndInferredSubbed = _CombinationsSubstituter({relation.asExprEqToZero}, database, restrictRedefSymbol = restrictRedefSymbol).substitute()
             flattenedConditionalSolutions = {
                 ConditionalValue(solution, conditionalSolutions.conditions)
                 for conditionalSolutions in self._solveRelationForSymbol(relationsWithKnownsAndInferredSubbed, relation, symbol)
@@ -626,7 +632,7 @@ class _InferenceOrderSolver:
     
 
 class _CombinationsSubstituter:
-    def __init__(self, expressions: set[sympy.Expr], database: _SymbolsDatabase):
+    def __init__(self, expressions: set[sympy.Expr], database: _SymbolsDatabase, *, restrictRedefSymbol: sympy.Symbol | None = None):
         self._expressions = expressions
         self._symbolValuesDatabase = database
         self._currCombination: dict[sympy.Symbol, sympy.Expr] = dict()
@@ -637,6 +643,7 @@ class _CombinationsSubstituter:
             for exprListSymbol in freeSymbolsOf(expression)
             if isExpressionListSymbol(exprListSymbol)
         )
+        self._restrictRedefSymbol = restrictRedefSymbol
 
     def substitute(self) -> Generator[ConditionalValue[sympy.Expr], Any, None]:
         for symbolValueCombination in self._generateCombinations(0, 0):
@@ -702,7 +709,10 @@ class _CombinationsSubstituter:
                 conditionIsIrrelevant = symbol not in self._currCombination
                 if conditionIsIrrelevant:
                     continue 
-            if self._currCombination[symbol] != value:
+            if symbol not in self._currCombination:
+                # we just pretend the conditions match; the contradiction checking will be done later
+                assert self._restrictRedefSymbol == symbol, "Symbol was expected to be in combination but was missing (and wasn't a redefinition case)"
+            elif self._currCombination[symbol] != value:
                 return False
         return True
 
