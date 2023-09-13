@@ -405,12 +405,8 @@ class AlgebraSolverTester:
                 sympy.parse_expr("c"): 1, # type: ignore
             }),
         }
-        assert solver.substituteKnownsWithConditions(sympy.parse_expr("a")) == {
-            ConditionalValue(sympy.parse_expr("a"), dict()),
-        }
-        assert solver.substituteKnownsWithConditions(sympy.parse_expr("b")) == {
-            ConditionalValue(sympy.parse_expr("b"), dict()),
-        }
+        assert solver.substituteKnownsFor(sympy.parse_expr("a")) == {4}
+        assert solver.substituteKnownsFor(sympy.parse_expr("b")) == {0}
 
         def attemptContradiction2():
             solver.recordRelation(Relation(sympy.parse_expr("a"), 1)) # type: ignore
@@ -422,12 +418,10 @@ class AlgebraSolverTester:
                 sympy.parse_expr("c"): 1, # type: ignore
             }),
         }
-        assert solver.substituteKnownsWithConditions(sympy.parse_expr("a")) == {
-            ConditionalValue(sympy.parse_expr("a"), dict()),
-        }, "Solver should forget inferred values made from new relations that contradict later"
-        assert solver.substituteKnownsWithConditions(sympy.parse_expr("b")) == {
-            ConditionalValue(sympy.parse_expr("b"), dict()),
-        }, "Solver should forget deeply inferred values made from new relations that contradict later"
+        assert solver.substituteKnownsFor(sympy.parse_expr("a")) == {4}, \
+            "Solver should forget inferred values made from new relations that contradict later"
+        assert solver.substituteKnownsFor(sympy.parse_expr("b")) == {0}, \
+            "Solver should forget deeply inferred values made from new relations that contradict later"
 
         solver.recordRelation(Relation(sympy.parse_expr("x/(y - 2)"), 6)) # type: ignore
 
@@ -621,6 +615,8 @@ class AlgebraSolverTester:
         solver5.recordRelation(Relation(sympy.parse_expr("k2f"), sympy.parse_expr("1/2*m2*v2f**2")))
         solver5.recordRelation(Relation(sympy.parse_expr("kt"), sympy.parse_expr("k1i + k2i")))
         solver5.recordRelation(Relation(sympy.parse_expr("kt"), sympy.parse_expr("k1f + k2f")))
+        # putting single-variable definition relations afterward checks that relations are sorted
+        # and inferred from in the correct order (aka tests against "variable trapping")
         solver5.recordRelation(Relation(sympy.parse_expr("m1"), 10)) # type: ignore
         solver5.recordRelation(Relation(sympy.parse_expr("m2"), 16)) # type: ignore
         solver5.recordRelation(Relation(sympy.parse_expr("v1i"), 15)) # type: ignore
