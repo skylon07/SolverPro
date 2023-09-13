@@ -366,10 +366,10 @@ class AlgebraSolver:
             database = self._symbolValuesDatabase.copy()
         
         for (symbol, relation) in symbolsToSolve:
-            relationsWithKnownsSubbed = _CombinationsSubstituter({relation.asExprEqToZero}, database).substitute()
+            relationsWithKnownsAndInferredSubbed = _CombinationsSubstituter({relation.asExprEqToZero}, database).substitute()
             flattenedConditionalSolutions = {
                 ConditionalValue(solution, conditionalSolutions.conditions)
-                for conditionalSolutions in self._solveRelationForSymbol(relationsWithKnownsSubbed, relation, symbol)
+                for conditionalSolutions in self._solveRelationForSymbol(relationsWithKnownsAndInferredSubbed, relation, symbol)
                 for solution in conditionalSolutions.value
             }
             database[symbol] = flattenedConditionalSolutions
