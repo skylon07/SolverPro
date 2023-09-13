@@ -350,7 +350,7 @@ class AlgebraSolver:
         return False
     
     def _solveForRestrictRedefCase(self, symbol: sympy.Symbol, relation: Relation):
-        return first(self._forwardSolveSymbols([(symbol, relation)]))
+        return first(self._forwardSolveSymbols([(symbol, relation)], isRestrictRedefSolve = True))
 
     def _inferSymbolValuesFromRelations(self):
         symbolsToSolve = None
