@@ -142,6 +142,25 @@ class AlgebraSolverTester:
                 }),
             }
         
+    def testSolvesByBackSubstitution(self):
+        # previously, the solver could only solve for variables in relations
+        # with a single unknown; this test case proves the true power of Solver Pro!
+        solver = AlgebraSolver()
+        
+        # three friends wish to split their money proportionally with each other
+        # to pay for a project they are working on
+        solver.recordRelation(Relation(sympy.parse_expr("projectCost"), 500)) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("alexBalance"), 300)) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("bobBalance"), 200)) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("jakeBalance"), 500)) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("alexContribution/alexBalance"), sympy.parse_expr("bobContribution/bobBalance"))) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("bobContribution/bobBalance"), sympy.parse_expr("jakeContribution/jakeBalance"))) # type: ignore
+        solver.recordRelation(Relation(sympy.parse_expr("alexContribution + bobContribution + jakeContribution"), sympy.parse_expr("projectCost"))) # type: ignore
+
+        assert solver.substituteKnownsFor(sympy.parse_expr("alexContribution")) == {150}
+        assert solver.substituteKnownsFor(sympy.parse_expr("bobContribution")) == {100}
+        assert solver.substituteKnownsFor(sympy.parse_expr("jakeContribution")) == {250}
+        
     def testHandlesComplexValues(self):
         solver = AlgebraSolver()
 
