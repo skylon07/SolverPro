@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, Collection, Generator, Any, Generic, TypeVar, overload
+import bisect
 
 import sympy
 
@@ -186,14 +187,19 @@ class AlgebraSolver:
     def __init__(self):
         # a list of relational expressions with an implied equality to zero
         self._recordedRelations: list[Relation] = list()
+        self._recordedRelationsSorted: list[Relation] = list()
+        # database for "known" values of symbols
         self._symbolValuesDatabase = _SymbolsDatabase()
+        # table relating symbols to the relations they were inferred from
         self._inferenceTable = _RelationSymbolTable()
+        # temporary table of "bad symbols", reset on every attempt to record a relation
         self._contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None] = dict()
 
     def recordRelation(self, relation: Relation):
         # TODO: use transactional data types that can be reversed more efficiently
         #       (this API also needs to be public for the driver -- there's a TODO about this)
         relationsBackup = list(self._recordedRelations)
+        relationsSortedBackup = list(self._recordedRelationsSorted)
         databaseBackup = self._symbolValuesDatabase.copy()
         inferenceTableBackup = self._inferenceTable.copy()
         
@@ -257,11 +263,17 @@ class AlgebraSolver:
                     raise ContradictionException(self._contradictedSymbolValues, relation)
             
             self._recordedRelations.append(relation)
+            bisect.insort(
+                self._recordedRelationsSorted,
+                relation,
+                key = lambda relation: len(freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False))
+            )
             self._inferSymbolValuesFromRelations()
             return isRedundant
         
         except Exception as exception:
             self._recordedRelations = relationsBackup
+            self._recordedRelationsSorted = relationsSortedBackup
             self._symbolValuesDatabase = databaseBackup
             self._inferenceTable = inferenceTableBackup
             self._contradictedSymbolValues = dict()
@@ -282,6 +294,7 @@ class AlgebraSolver:
     
     def popRelation(self, relation: Relation):
         self._recordedRelations.remove(relation)
+        self._recordedRelationsSorted.remove(relation)
         inferredSymbol = self._inferenceTable.get(relation)
         databaseDependsOnRelation = inferredSymbol is not None
         if databaseDependsOnRelation:
@@ -360,7 +373,7 @@ class AlgebraSolver:
                 symbolsToBackSubstitute = reversed(tuple(self._forwardSolveSymbols(symbolsToSolve)))
                 self._backSubstituteSymbols(symbolsToBackSubstitute)
                 self._checkForContradictions()
-            symbolsToSolve = _InferenceOrderSolver(self._recordedRelations, set(self._symbolValuesDatabase)).findSolveOrder()
+            symbolsToSolve = _InferenceOrderSolver(self._recordedRelationsSorted, self._symbolValuesDatabase).findSolveOrder()
             firstLoop = False
         
         self._contradictedSymbolValues = dict()
@@ -421,7 +434,9 @@ class AlgebraSolver:
             self._contradictedSymbolValues[symbol] = inferredValues
 
     def _checkForContradictions(self):
-        for relation in self._recordedRelations:
+        # sorted is theoretically faster to detect since it'll check single-variable
+        # relations first (which are the most common kinds of contradictions)
+        for relation in self._recordedRelationsSorted:
             if relation in self._inferenceTable:
                 # can't have contradictions if it's part of where the solution came from...
                 continue
@@ -560,17 +575,25 @@ class _RelationSymbolTable:
         
 
 class _InferenceOrderSolver:
-    def __init__(self, relations: list[Relation], knownSymbols: set[sympy.Symbol]):
+    def __init__(self, relations: list[Relation], knownSymbols: _SymbolsDatabase):
         self._relations = relations
         self._knownSymbols = knownSymbols
         self._potentialInferencesTable = _RelationSymbolTable()
 
-
     def findSolveOrder(self):
-        unknownSymbolCounts = self._countUnknownSymbols()
+        symbolCounts = self._countSymbols()
+        # relations must be sorted to prevent "trapping" a variable from being known:
+        # a + b + c + d = 123
+        # a + b + d = 234
+        # a + b - d = 432
+        # c = 8
+        # in the above, `c` is chosen for the first relation (since it has the
+        # lowest count), however this "traps" it since it won't be chosen for the
+        # last relation, which actually provides its value
+        assert self._testRelationsSorted(), "Relations for inference solver must be sorted!"
         for relation in self._relations:
             unknownSymbolsInRelation: list[tuple[sympy.Symbol, int]] = [
-                (symbol, unknownSymbolCounts[symbol])
+                (symbol, symbolCounts[symbol])
                 for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False)
                 if symbol not in self._knownSymbols and symbol not in self._potentialInferencesTable
             ]
@@ -619,8 +642,7 @@ class _InferenceOrderSolver:
                 return (False, symbolsInFamily)
         return (True, symbolsInFamily)
 
-
-    def _countUnknownSymbols(self):
+    def _countSymbols(self):
         unknownSymbolCounts: dict[sympy.Symbol, int] = dict()
         for relation in self._relations:
             for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False):
@@ -630,6 +652,15 @@ class _InferenceOrderSolver:
                     unknownSymbolCounts[symbol] = 1
         return unknownSymbolCounts
     
+    def _testRelationsSorted(self):
+        lastNumSymbols = -1
+        for relation in self._relations:
+            numSymbols = len(freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False))
+            if numSymbols < lastNumSymbols:
+                return False
+            lastNumSymbols = numSymbols
+        return True
+
 
 class _CombinationsSubstituter:
     def __init__(self, expressions: set[sympy.Expr], database: _SymbolsDatabase, *, restrictRedefSymbol: sympy.Symbol | None = None):
