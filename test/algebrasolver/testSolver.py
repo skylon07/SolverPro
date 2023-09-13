@@ -271,11 +271,10 @@ class AlgebraSolverTester:
         
         assert type(error4) is ContradictionException
         assert error4.poorSymbolValues == {
-            sympy.parse_expr("x"): {1},
-            sympy.parse_expr("y") : {3},
-        }, "Solver should not have any implementation for offended symbols (yet) in two-var case"
+            sympy.parse_expr("x"): {4},
+        }, "Solver did not recognize contradiction after forward substitution of two variables"
         assert error4.contradictingRelation == Relation(
-            sympy.parse_expr("x - y + z"), 6 # type: ignore
+            sympy.parse_expr("x"), 1 # type: ignore
         ), "Solver found contradiction in the wrong relation for two-var case"
 
     def testFindsContradictionsWithExpressionLists(self):
