@@ -239,8 +239,8 @@ class CommandParserTester:
                 tuple(["a"]),
                 (
                     LexerToken("ALIAS1",    LexerTokenTypes.IDENTIFIER, 0),
-                    LexerToken("-",         LexerTokenTypes.DASH,       6),
-                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 7),
+                    LexerToken("-",         LexerTokenTypes.DASH,       7),
+                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 9),
                 ),
             ),
             "alias2": AliasTemplate(
@@ -248,10 +248,10 @@ class CommandParserTester:
                 tuple(["a", "b"]),
                 (
                     LexerToken("ALIAS2",    LexerTokenTypes.IDENTIFIER, 0),
-                    LexerToken("-",         LexerTokenTypes.DASH,       6),
-                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 7),
-                    LexerToken("-",         LexerTokenTypes.DASH,       8),
-                    LexerToken("b",         LexerTokenTypes.IDENTIFIER, 9),
+                    LexerToken("-",         LexerTokenTypes.DASH,       7),
+                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 9),
+                    LexerToken("-",         LexerTokenTypes.DASH,       11),
+                    LexerToken("b",         LexerTokenTypes.IDENTIFIER, 13),
                 ),
             ),
             "alias3": AliasTemplate(
@@ -259,19 +259,19 @@ class CommandParserTester:
                 tuple(["a", "b", "c"]),
                 (
                     LexerToken("ALIAS3",    LexerTokenTypes.IDENTIFIER, 0),
-                    LexerToken("-",         LexerTokenTypes.DASH,       6),
-                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 7),
-                    LexerToken("-",         LexerTokenTypes.DASH,       8),
-                    LexerToken("b",         LexerTokenTypes.IDENTIFIER, 9),
-                    LexerToken("-",         LexerTokenTypes.DASH,       10),
-                    LexerToken("c",         LexerTokenTypes.IDENTIFIER, 11),
+                    LexerToken("-",         LexerTokenTypes.DASH,       7),
+                    LexerToken("a",         LexerTokenTypes.IDENTIFIER, 9),
+                    LexerToken("-",         LexerTokenTypes.DASH,       11),
+                    LexerToken("b",         LexerTokenTypes.IDENTIFIER, 13),
+                    LexerToken("-",         LexerTokenTypes.DASH,       15),
+                    LexerToken("c",         LexerTokenTypes.IDENTIFIER, 17),
                 ),
             ),
         }
 
         assert parser.preprocessAliases((
             LexerToken("alias0",    LexerTokenTypes.IDENTIFIER,     0),
-            LexerToken("",          LexerTokenTypes.EOL,            29),
+            LexerToken("",          LexerTokenTypes.EOL,            6),
         ), aliases) == "ALIAS0"
 
         assert parser.preprocessAliases((
@@ -287,7 +287,7 @@ class CommandParserTester:
             LexerToken("param1",    LexerTokenTypes.IDENTIFIER,     6),
             LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    28),
             LexerToken("",          LexerTokenTypes.EOL,            29),
-        ), aliases) == "ALIAS1-param1"
+        ), aliases) == "ALIAS1 - param1"
 
         assert parser.preprocessAliases((
             LexerToken("alias2",    LexerTokenTypes.IDENTIFIER,     0),
@@ -297,7 +297,7 @@ class CommandParserTester:
             LexerToken("param2",    LexerTokenTypes.IDENTIFIER,     14),
             LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    28),
             LexerToken("",          LexerTokenTypes.EOL,            29),
-        ), aliases) == "ALIAS2-param1-param2"
+        ), aliases) == "ALIAS2 - param1 - param2"
 
         assert parser.preprocessAliases((
             LexerToken("alias3",    LexerTokenTypes.IDENTIFIER,     0),
@@ -309,7 +309,21 @@ class CommandParserTester:
             LexerToken("param3",    LexerTokenTypes.IDENTIFIER,     22),
             LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    28),
             LexerToken("",          LexerTokenTypes.EOL,            29),
-        ), aliases) == "ALIAS3-param1-param2-param3"
+        ), aliases) == "ALIAS3 - param1 - param2 - param3"
+
+        assert parser.preprocessAliases((
+            LexerToken("PADDING",   LexerTokenTypes.IDENTIFIER,     4),
+            LexerToken("TEST",      LexerTokenTypes.IDENTIFIER,     12),
+            LexerToken("alias3",    LexerTokenTypes.IDENTIFIER,     18),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     24),
+            LexerToken("param1",    LexerTokenTypes.IDENTIFIER,     25),
+            LexerToken(",",         LexerTokenTypes.COMMA,          31),
+            LexerToken("param2",    LexerTokenTypes.IDENTIFIER,     33),
+            LexerToken(",",         LexerTokenTypes.COMMA,          39),
+            LexerToken("param3",    LexerTokenTypes.IDENTIFIER,     41),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    47),
+            LexerToken("",          LexerTokenTypes.EOL,            51),
+        ), aliases) == "    PADDING TEST  ALIAS3 - param1 - param2 - param3"
 
     def testRecordingAliasCommand(self):
         parser = CommandParser()
