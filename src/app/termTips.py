@@ -50,7 +50,9 @@ class TermTips:
 
                     self._renderer.formatLexerSyntax("squared := ^2"),
 
-                    self._renderer.formatLexerSyntax("5 squared + 5"),
+                    self._renderer.formatLexerSyntax("5 squared() + 5"),
+
+                    "(Parentheses are optional when the alias takes no arguments)",
                 )
             ),
             'identifiers': 'identifier',
@@ -59,13 +61,12 @@ class TermTips:
                 (
                     "A word or other group of letters/numbers acting as a label to some value.",
                     
-                    # TODO: edit this when aliasing is implemented
-                    "The only identifiers currently implemented by Solver Pro are " \
-                    "the variables contained in expressions and relations. Identifiers " \
-                    "consist of letters and numbers (but no spaces -- use underscores " \
-                    "instead), with at least one letter present. Unlike most " \
-                    "other programs, Solver Pro permits a number to start an identifier " \
-                    "name, as long as at least one letter appears in the name later.",
+                    "Identifiers can be variables contained in expressions and relations, " \
+                    "or they can be the names of alias templates. Identifiers consist of " \
+                    "letters and numbers (but no spaces -- use underscores instead), " \
+                    "with at least one letter present. Unlike most other programs, " \
+                    "Solver Pro permits a number to start an identifier name, as long " \
+                    "as at least one letter appears in the name later.",
 
                     "Identifier:     " + self._renderer.formatLexerSyntax("a  my_var  train2Car3  3rdBox"),
 
