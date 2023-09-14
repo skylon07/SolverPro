@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, Collection, Generator, Any, Generic, TypeVar, overload
+import bisect
 
 import sympy
 
@@ -8,10 +9,15 @@ from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
 from src.app.widgets.colors import Colors
 from src.parsing.lexer import CommandLexer
-from src.parsing.parser import CommandParser, isExpressionListSymbol, isNonSymbolicValue
+from src.parsing.parser import CommandParser, isExpressionListSymbol, isNonSymbolicValue, freeSymbolsOf
 
 
 SolutionSet = set[sympy.Expr]
+
+# so the linter doesn't HANG forever...
+createSymbol = eval("sympy.Symbol")
+subsExpr = eval("sympy.Expr.subs")
+solveSet = eval("sympy.solveset")
 
 
 _ValueType = TypeVar("_ValueType")
@@ -47,7 +53,8 @@ class Relation:
         self.rightExpr = rightExpr
         # (leftExpr             = rightExpr)
         # (leftExpr - rightExpr = 0)
-        self.asExprEqToZero = leftExpr - rightExpr # = 0    # type: ignore
+        self.asExprEqToZero: sympy.Expr = leftExpr - rightExpr # = 0    # type: ignore
+        assert isinstance(self.asExprEqToZero, sympy.Expr)
 
     def __repr__(self):
         return f"Relation({self.leftExpr}, {self.rightExpr})"
@@ -61,284 +68,6 @@ class Relation:
         
         return self.leftExpr == other.leftExpr and self.rightExpr == other.rightExpr
 
-
-class AlgebraSolver:
-    def __init__(self):
-        # a list of relational expressions with an implied equality to zero
-        self._recordedRelations: list[Relation] = list()
-        self._symbolValuesDatabase = _SymbolsDatabase()
-        self._inferenceTable = _RelationSymbolTable()
-        self._madeContradictionCheckBySubbing = False
-
-    def recordRelation(self, relation: Relation):
-        self._madeContradictionCheckBySubbing = False
-        
-        # TODO: use transactional data types that can be reversed more efficiently
-        #       (this API also needs to be public for the driver -- there's a TODO about this)
-        relationsBackup = list(self._recordedRelations)
-        databaseBackup = self._symbolValuesDatabase.copy()
-        inferenceTableBackup = self._inferenceTable.copy()
-        
-        # if there is a contradiction, it would be with these
-        contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None] = {
-            symbol: {
-                conditional.value
-                for conditional in self._symbolValuesDatabase[symbol]
-            }
-            for symbol in relation.asExprEqToZero.free_symbols
-            if symbol in self._symbolValuesDatabase and not isExpressionListSymbol(symbol)
-        }
-        try:
-            (isRedundant, isRedundantWithContradictions) = self._checkForRedundancies(relation)
-            if isRedundantWithContradictions:
-                # test for restricted redefinition case, which is when a
-                # relation is restricting what some variable's values are
-                # example: if `a` is already known, {-4, 2, 5}, and a new
-                # relation `a = 2` comes in, this is "redundant" (aka no new
-                # information about other variables) but also contradictory
-                # (because -4 ≠ 2 and 5 ≠ 2)
-                nonExprSymbols = tuple(symbol for symbol in relation.asExprEqToZero.free_symbols if not isExpressionListSymbol(symbol))
-                couldBeRestrictRedefCase = len(nonExprSymbols) == 1
-                if couldBeRestrictRedefCase:
-                    symbol = first(nonExprSymbols)
-                    assert type(symbol) is sympy.Symbol
-
-                    isRestrictionOfExpressionList = self._dependsOnExpressionListSymbols(symbol)
-                    if isRestrictionOfExpressionList:
-                        raise ContradictionException(contradictedSymbolValues, relation)
-
-                    (oldSolutions, oldRelation) = self._popInferredSolutions(symbol)
-                    
-                    try:
-                        (newSymbol, newSolutions) = self._calculateAnySolutionsFromRelation(relation, dict())
-                    except ContradictionException:
-                        # shouldn't be possible... but just in case!
-                        raise RuntimeError("A contradiction was realized during restriction calculation (no new relations added...?)")
-                    assert symbol == newSymbol, "Restriction solutions don't match found symbol" # this shouldn't be possible either!
-                    if symbol is not None:
-                        oldSolutionValues = tuple(solution.value for solution in oldSolutions)
-                        newValuesAreActuallyRestrictions = len(newSolutions) < len(oldSolutions) and \
-                            all(solution.value in oldSolutionValues for solution in newSolutions)
-                        if newValuesAreActuallyRestrictions:
-                            newSolutionValues = {condition.value for condition in newSolutions}
-                            newSolutionsWithCorrectConditions = {
-                                condition
-                                for condition in oldSolutions
-                                if condition.value in newSolutionValues
-                            }
-                            self._setInferredSolutions(symbol, newSolutionsWithCorrectConditions, relation)
-                            isRedundant = False # since it technically did provide new information...
-                            
-                            # TODO: (optimization) remove other symbol values that relied on any conditions now not present
-                            #       (since other symbols might have conditions that will never be true when substituted,
-                            #       due to the values that were just removed)
-                        else:
-                            self._setInferredSolutions(symbol, oldSolutions, oldRelation)
-            
-            self._recordedRelations.append(relation)
-            self._inferSymbolValuesFromRelations(contradictedSymbolValues)
-            return isRedundant
-        
-        except Exception as exception:
-            self._recordedRelations = relationsBackup
-            self._symbolValuesDatabase = databaseBackup
-            self._inferenceTable = inferenceTableBackup
-            raise exception
-
-    def getSymbolConditionalValues(self, symbol: sympy.Symbol):
-        return self._symbolValuesDatabase.get(symbol)
-    
-    def getRelations(self):
-        return tuple(self._recordedRelations)
-    
-    def getRelationsWithSymbol(self, symbol: sympy.Symbol):
-        return tuple(
-            relation
-            for relation in self._recordedRelations
-            if symbol in relation.asExprEqToZero.free_symbols
-        )
-    
-    def popRelation(self, relation: Relation):
-        self._recordedRelations.remove(relation)
-        inferredSymbol = self._inferenceTable.get(relation)
-        databaseDependsOnRelation = inferredSymbol is not None
-        if databaseDependsOnRelation:
-            self._popInferredSolutions(inferredSymbol)
-            poppedSymbols = {inferredSymbol}
-            # TODO: there's probably some dependency-path optimization that could be made here
-            anyPopped = True
-            while anyPopped:
-                anyPopped = False
-                for symbol in self._symbolValuesDatabase:
-                    for conditionalValue in self._symbolValuesDatabase[symbol]:
-                        conditions = conditionalValue.conditions
-                        symbolDependsOnPoppedSymbols = any(poppedSymbol in conditions for poppedSymbol in poppedSymbols)
-                        if symbolDependsOnPoppedSymbols:
-                            self._popInferredSolutions(symbol)
-                            poppedSymbols.add(symbol)
-                            anyPopped = True
-                            break # to move on to the next symbol
-
-        # in case redundant relations can re-infer lost values
-        self._inferSymbolValuesFromRelations(dict())
-    
-    def substituteKnownsFor(self, expression: sympy.Expr):
-        conditionals = _CombinationsSubstituter(expression, self._symbolValuesDatabase)
-        values = {
-            conditional.value
-            for conditional in conditionals
-        }
-        return values
-    
-    def substituteKnownsWithConditions(self, expression: sympy.Expr):
-        conditionals = _CombinationsSubstituter(expression, self._symbolValuesDatabase)
-        return set(conditionals)
-    
-    def _setInferredSolutions(self, symbol: sympy.Symbol, solutions: set[ConditionalValue[sympy.Expr]], associatedRelation: Relation):
-        self._symbolValuesDatabase[symbol] = solutions
-        self._inferenceTable[symbol] = associatedRelation
-
-    def _popInferredSolutions(self, symbol: sympy.Symbol):
-        solutions = self._symbolValuesDatabase.pop(symbol)
-        associatedRelation = self._inferenceTable.pop(symbol)
-        return (solutions, associatedRelation)
-
-    def _checkForRedundancies(self, relation: Relation):
-        isRedundantWithContradictions = False
-        for conditionalSubbedRelationExpr in _CombinationsSubstituter(relation.asExprEqToZero, self._symbolValuesDatabase):
-            self._madeContradictionCheckBySubbing = True
-            subbedRelationExpr = conditionalSubbedRelationExpr.value
-            if subbedRelationExpr != 0:
-                if len(subbedRelationExpr.free_symbols) == 0:
-                    isRedundantWithContradictions = True
-                else:
-                    return (False, None)
-        return (True, isRedundantWithContradictions)
-    
-    def _dependsOnExpressionListSymbols(self, symbol: sympy.Symbol, symbolsChecked: set[sympy.Symbol] | None = None):
-        if symbolsChecked is None:
-            symbolsChecked = set()
-        
-        if symbol not in symbolsChecked:
-            symbolsChecked.add(symbol)
-            for conditionalValue in self._symbolValuesDatabase[symbol]:
-                for conditionalSymbol in conditionalValue.conditions:
-                    if isExpressionListSymbol(conditionalSymbol) or self._dependsOnExpressionListSymbols(conditionalSymbol, symbolsChecked):
-                        return True
-        return False
-
-    def _inferSymbolValuesFromRelations(self, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]):
-        anySymbolsUpdated = False
-        for relation in self._recordedRelations:
-            if relation in self._inferenceTable:
-                # optimization: we know it's already provided information for a symbol!
-                # (this doesn't mess up contradiction logic since that should've already
-                # been checked via the substitution made before recording the relation)
-                assert self._madeContradictionCheckBySubbing, "Solver didn't make contradiction check (by substitution) before optimizing relation lookup"
-                continue
-
-            (symbol, conditionalSolutions) = self._calculateAnySolutionsFromRelation(relation, contradictedSymbolValues)
-            someSubbedRelationWasSolvable = symbol is not None
-            if someSubbedRelationWasSolvable:
-                assert relation not in self._inferenceTable, "Solver inferred new value from already consumed relation" # impossible... unless things aren't getting recorded/popped right
-                assert symbol not in self._inferenceTable, "Solver inferred new value for already inferred symbol" # impossible... because it should have subbed, right?
-                self._setInferredSolutions(symbol, conditionalSolutions, relation)
-                
-                inferredValues = {
-                    solution.value
-                    for solution in conditionalSolutions
-                }
-                # just in case there ever is a contradiction...
-                # (otherwise the user will never be able to see what the value
-                # was, since it'll be "forgotten")
-                contradictedSymbolValues[symbol] = inferredValues
-                
-                anySymbolsUpdated = True
-            
-        # TODO: there's probably some dependency-path optimization that could be made here
-        if anySymbolsUpdated:
-            self._inferSymbolValuesFromRelations(contradictedSymbolValues)
-
-    def _calculateAnySolutionsFromRelation(self, relation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]):
-        relationsWithKnownsSubbed = tuple(_CombinationsSubstituter(relation.asExprEqToZero, self._symbolValuesDatabase))
-        assert not any(
-            isExpressionListSymbol(symbol) # type: ignore
-            for conditionalExpr in relationsWithKnownsSubbed
-            for symbol in conditionalExpr.value.free_symbols
-        )
-        if not all(
-            relationExprCondition.value == 0
-            for relationExprCondition in relationsWithKnownsSubbed
-            if len(relationExprCondition.value.free_symbols) == 0
-        ):
-            raise ContradictionException(contradictedSymbolValues, relation)
-
-        relationsWithSingleUnknown = (
-            relationExprCondition
-            for relationExprCondition in relationsWithKnownsSubbed
-            # no expression list symbols are present; they've all been substituted
-            if len(relationExprCondition.value.free_symbols) == 1
-        )
-        
-        conditionalSolutionPairs = self._solveRelationExprsForSingleUnknown(relationsWithSingleUnknown, relation, contradictedSymbolValues)
-        if __debug__:
-            conditionalSolutionPairs = tuple(conditionalSolutionPairs)
-            assert all(type(conditionalSolutionSet.value) is set for (symbol, conditionalSolutionSet) in conditionalSolutionPairs), \
-                "Solver got a solution set that wasn't a FiniteSet"
-        
-        (symbol, conditionalSolutions) = self._convertConditionalSolutionsToSetsOfConditions(conditionalSolutionPairs)
-        assert not isExpressionListSymbol(symbol) # type: ignore
-        return (symbol, conditionalSolutions)
-
-    def _solveRelationExprsForSingleUnknown(self, relationExprConditions: Iterable[ConditionalValue[sympy.Expr]], baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> Generator[tuple[sympy.Symbol, ConditionalValue[SolutionSet]], Any, None]:
-        for relationExprCondition in relationExprConditions:
-            relationExpr = relationExprCondition.value
-            assert(len(relationExpr.free_symbols) == 1), \
-                "Relation had more than one unknown symbol to solve for"
-            unknownSymbol = first(relationExpr.free_symbols)
-            assert type(unknownSymbol) is sympy.Symbol
-            solution = sympy.solveset(relationExpr, unknownSymbol)
-            solutionSet = self._interpretSympySolution(unknownSymbol, solution, baseRelation, contradictedSymbolValues)
-            yield (unknownSymbol, ConditionalValue(solutionSet, relationExprCondition.conditions))
-
-    def _interpretSympySolution(self, symbol: sympy.Symbol, solution: sympy.Set, baseRelation: Relation, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> set[sympy.Expr]:
-        # normal solutions to problem
-        # example:
-        #   a^2 = 4; a = {2, -2}
-        if type(solution) is sympy.FiniteSet:
-            solutionSet = set(solution)
-            assert all(isinstance(item, sympy.Expr) for item in solutionSet)
-            return solutionSet # type: ignore
-        
-        # solved such that no solutions are available
-        # example:
-        #   a/(b - 1) = 5; b = 1; a = {}
-        elif solution is sympy.EmptySet:
-            raise NoSolutionException([symbol], contradictedSymbolValues, baseRelation)
-        
-        else:
-            raise NotImplementedError(f"Solver reached unconsidered set: {type(solution).__name__}")
-
-    def _convertConditionalSolutionsToSetsOfConditions(self, conditionalSolutionPairs: Iterable[tuple[sympy.Symbol, ConditionalValue[SolutionSet]]]):
-        if __debug__:
-            conditionalSolutionPairs = tuple(conditionalSolutionPairs)
-            if len(conditionalSolutionPairs) > 0:
-                symbolSolved = conditionalSolutionPairs[0][0]
-                allSymbolsTheSame = all(symbol == symbolSolved for (symbol, conditionalValue) in conditionalSolutionPairs)
-                assert allSymbolsTheSame, \
-                    "Substitutions in relation led to different unknown variables"
-
-        symbol = None
-        totalSolutionSet: set[ConditionalValue[sympy.Expr]] = set()
-        for (symbol, conditionalValueSet) in conditionalSolutionPairs:
-            valueSet = conditionalValueSet.value
-            conditions = conditionalValueSet.conditions
-            for value in valueSet:
-                assert isNonSymbolicValue(value), \
-                    "Solver makes false assumption that FiniteSets only contain non-symbolic values"
-                totalSolutionSet.add(ConditionalValue(value, conditions))
-        return (symbol, totalSolutionSet)
-    
 
 class _SymbolsDatabase:
     """
@@ -452,7 +181,308 @@ class _SymbolsDatabase:
             for (rank, symbol) in self._symbolResolutionOrder
         ].index(symbol)
         return self._symbolResolutionOrder.pop(symbolIdx)
+
+
+class AlgebraSolver:
+    def __init__(self):
+        # a list of relational expressions with an implied equality to zero
+        self._recordedRelations: list[Relation] = list()
+        self._recordedRelationsSorted: list[Relation] = list()
+        # database for "known" values of symbols
+        self._symbolValuesDatabase = _SymbolsDatabase()
+        # table relating symbols to the relations they were inferred from
+        self._inferenceTable = _RelationSymbolTable()
+        # temporary table of "bad symbols", reset on every attempt to record a relation
+        self._contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None] = dict()
+
+    def recordRelation(self, relation: Relation):
+        # TODO: use transactional data types that can be reversed more efficiently
+        #       (this API also needs to be public for the driver -- there's a TODO about this)
+        relationsBackup = list(self._recordedRelations)
+        relationsSortedBackup = list(self._recordedRelationsSorted)
+        databaseBackup = self._symbolValuesDatabase.copy()
+        inferenceTableBackup = self._inferenceTable.copy()
+        
+        # if there is a contradiction, it would be with these
+        self._contradictedSymbolValues = {
+            symbol: {
+                conditional.value
+                for conditional in self._symbolValuesDatabase[symbol]
+            }
+            for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False)
+            if symbol in self._symbolValuesDatabase
+        }
+        try:
+            (isRedundant, isRedundantWithContradictions) = self._checkForRedundancies(relation)
+            if isRedundantWithContradictions:
+                # test for restricted redefinition case, which is when a
+                # relation is restricting what some variable's values are
+                # example: if `a` is already known, {-4, 2, 5}, and a new
+                # relation `a = 2` comes in, this is "redundant" (aka no new
+                # information about other variables) but also contradictory
+                # (because -4 ≠ 2 and 5 ≠ 2)
+                nonExprSymbols = tuple(symbol for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False))
+                wasActuallyRestrictRedefCase = False
+                couldBeRestrictRedefCase = len(nonExprSymbols) == 1
+                if couldBeRestrictRedefCase:
+                    symbol = first(nonExprSymbols)
+
+                    isRestrictionOfExpressionList = self._dependsOnExpressionListSymbols(symbol)
+                    if isRestrictionOfExpressionList:
+                        raise ContradictionException(self._contradictedSymbolValues, relation)
+
+                    (oldSolutions, oldRelation) = self._popInferredSolutions(symbol)
+
+                    try:
+                        (newSymbol, newSolutions, newRelation) = self._solveForRestrictRedefCase(symbol, relation)
+                    except ContradictionException:
+                        # shouldn't be possible... but just in case!
+                        raise RuntimeError("A contradiction was realized during restriction calculation (no new relations added...?)")
+                    assert symbol == newSymbol, "Restriction solutions don't match found symbol" # this shouldn't be possible (to fail) either!
+                    assert relation == newRelation, "Restriction solution relations don't match" # this ALSO shouldn't be possible (to fail)!
+                    if symbol is not None:
+                        oldSolutionValues = tuple(solution.value for solution in oldSolutions)
+                        newValuesAreActuallyRestrictions = len(newSolutions) < len(oldSolutions) and \
+                            all(solution.value in oldSolutionValues for solution in newSolutions)
+                        if newValuesAreActuallyRestrictions:
+                            newSolutionValues = {condition.value for condition in newSolutions}
+                            newSolutionsWithCorrectConditions = {
+                                condition
+                                for condition in oldSolutions
+                                if condition.value in newSolutionValues
+                            }
+                            self._setInferredSolutions(symbol, newSolutionsWithCorrectConditions, relation)
+                            isRedundant = False # since it technically did provide new information...
+                            wasActuallyRestrictRedefCase = True
+                            
+                            # TODO: (optimization) remove other symbol values that relied on any conditions now not present
+                            #       (since other symbols might have conditions that will never be true when substituted,
+                            #       due to the values that were just removed)
+                
+                if not wasActuallyRestrictRedefCase:
+                    raise ContradictionException(self._contradictedSymbolValues, relation)
+            
+            self._recordedRelations.append(relation)
+            bisect.insort(
+                self._recordedRelationsSorted,
+                relation,
+                key = lambda relation: len(freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False))
+            )
+            self._inferSymbolValuesFromRelations()
+            return isRedundant
+        
+        except Exception as exception:
+            self._recordedRelations = relationsBackup
+            self._recordedRelationsSorted = relationsSortedBackup
+            self._symbolValuesDatabase = databaseBackup
+            self._inferenceTable = inferenceTableBackup
+            self._contradictedSymbolValues = dict()
+            raise exception
+
+    def getSymbolConditionalValues(self, symbol: sympy.Symbol):
+        return self._symbolValuesDatabase.get(symbol)
     
+    def getRelations(self):
+        return tuple(self._recordedRelations)
+    
+    def getRelationsWithSymbol(self, symbol: sympy.Symbol):
+        return tuple(
+            relation
+            for relation in self._recordedRelations
+            if symbol in freeSymbolsOf(relation.asExprEqToZero)
+        )
+    
+    def popRelation(self, relation: Relation):
+        self._recordedRelations.remove(relation)
+        self._recordedRelationsSorted.remove(relation)
+        inferredSymbol = self._inferenceTable.get(relation)
+        databaseDependsOnRelation = inferredSymbol is not None
+        if databaseDependsOnRelation:
+            self._popInferredSolutions(inferredSymbol)
+            poppedSymbols = {inferredSymbol}
+            # TODO: there's probably some dependency-path optimization that could be made here
+            anyPopped = True
+            while anyPopped:
+                anyPopped = False
+                for symbol in self._symbolValuesDatabase:
+                    for conditionalValue in self._symbolValuesDatabase[symbol]:
+                        conditions = conditionalValue.conditions
+                        symbolDependsOnPoppedSymbols = any(poppedSymbol in conditions for poppedSymbol in poppedSymbols)
+                        if symbolDependsOnPoppedSymbols:
+                            self._popInferredSolutions(symbol)
+                            poppedSymbols.add(symbol)
+                            anyPopped = True
+                            break # to move on to the next symbol
+
+        # in case redundant relations can re-infer lost values
+        self._inferSymbolValuesFromRelations()
+    
+    def substituteKnownsFor(self, expression: sympy.Expr):
+        conditionals = _CombinationsSubstituter({expression}, self._symbolValuesDatabase).substitute()
+        values = {
+            conditional.value
+            for conditional in conditionals
+        }
+        return values
+    
+    def substituteKnownsWithConditions(self, expression: sympy.Expr):
+        conditionals = _CombinationsSubstituter({expression}, self._symbolValuesDatabase).substitute()
+        return set(conditionals)
+    
+    def _setInferredSolutions(self, symbol: sympy.Symbol, solutions: set[ConditionalValue[sympy.Expr]], associatedRelation: Relation):
+        assert all(isNonSymbolicValue(solution.value) for solution in solutions), "Solver tried to set a variable's inferred values to an unsolved expression"
+        self._symbolValuesDatabase[symbol] = solutions
+        self._inferenceTable[symbol] = associatedRelation
+
+    def _popInferredSolutions(self, symbol: sympy.Symbol):
+        solutions = self._symbolValuesDatabase.pop(symbol)
+        associatedRelation = self._inferenceTable.pop(symbol)
+        return (solutions, associatedRelation)
+
+    def _checkForRedundancies(self, relation: Relation):
+        isRedundantWithContradictions = False
+        for conditionalSubbedRelationExpr in _CombinationsSubstituter({relation.asExprEqToZero}, self._symbolValuesDatabase).substitute():
+            subbedRelationExpr = conditionalSubbedRelationExpr.value
+            if subbedRelationExpr != 0:
+                if len(freeSymbolsOf(subbedRelationExpr)) == 0:
+                    isRedundantWithContradictions = True
+                else:
+                    return (False, None)
+        return (True, isRedundantWithContradictions)
+    
+    def _dependsOnExpressionListSymbols(self, symbol: sympy.Symbol, symbolsChecked: set[sympy.Symbol] | None = None):
+        if symbolsChecked is None:
+            symbolsChecked = set()
+        
+        if symbol not in symbolsChecked:
+            symbolsChecked.add(symbol)
+            for conditionalValue in self._symbolValuesDatabase[symbol]:
+                for conditionalSymbol in conditionalValue.conditions:
+                    if isExpressionListSymbol(conditionalSymbol) or self._dependsOnExpressionListSymbols(conditionalSymbol, symbolsChecked):
+                        return True
+        return False
+    
+    def _solveForRestrictRedefCase(self, symbol: sympy.Symbol, relation: Relation):
+        return first(self._forwardSolveSymbols([(symbol, relation)], isRestrictRedefSolve = True))
+
+    def _inferSymbolValuesFromRelations(self):
+        symbolsToSolve = None
+        firstLoop = True
+        while symbolsToSolve is not None or firstLoop:
+            if not firstLoop and symbolsToSolve is not None:
+                symbolsToBackSubstitute = reversed(tuple(self._forwardSolveSymbols(symbolsToSolve)))
+                self._backSubstituteSymbols(symbolsToBackSubstitute)
+                self._checkForContradictions()
+            symbolsToSolve = _InferenceOrderSolver(self._recordedRelationsSorted, self._symbolValuesDatabase).findSolveOrder()
+            firstLoop = False
+        
+        self._contradictedSymbolValues = dict()
+
+    def _forwardSolveSymbols(self, symbolsToSolve: Iterable[tuple[sympy.Symbol, Relation]], database: _SymbolsDatabase | None = None, *, isRestrictRedefSolve: bool = False) -> Generator[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation], Any, None]:
+        if database is None:
+            database = self._symbolValuesDatabase.copy()
+        
+        for (symbol, relation) in symbolsToSolve:
+            restrictRedefSymbol = None if not isRestrictRedefSolve \
+                else symbol
+            relationsWithKnownsAndInferredSubbed = _CombinationsSubstituter({relation.asExprEqToZero}, database, restrictRedefSymbol = restrictRedefSymbol).substitute()
+            flattenedConditionalSolutions = {
+                ConditionalValue(solution, conditionalSolutions.conditions)
+                for conditionalSolutions in self._solveRelationForSymbol(relationsWithKnownsAndInferredSubbed, relation, symbol)
+                for solution in conditionalSolutions.value
+            }
+            database[symbol] = flattenedConditionalSolutions
+            yield (symbol, flattenedConditionalSolutions, relation)
+
+    def _backSubstituteSymbols(self, symbolsToBackSubstitute: Iterable[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation]]):
+        for (symbol, unsolvedConditionalSolutions, relationKnownFrom) in symbolsToBackSubstitute:
+            conditionalSolutionsWithKnownSymbols = {
+                ConditionalValue(
+                    conditional.value,
+                    {
+                        symbol: condition
+                        for (symbol, condition) in conditional.conditions.items()
+                        if symbol in self._symbolValuesDatabase
+                    }
+                )
+                for conditional in unsolvedConditionalSolutions
+            }
+            subbedSolutions = {
+                ConditionalValue(
+                    subbedConditionalSolution.value,
+                    self._unionConditions(
+                        subbedConditionalSolution.conditions,
+                        conditionalSolution.conditions
+                    )
+                )
+                for (unsubbedSolutionExpr, subbedConditionalSolution) in _CombinationsSubstituter(
+                    {conditionalSolution.value for conditionalSolution in unsolvedConditionalSolutions},
+                    self._symbolValuesDatabase
+                ).substituteForMapping().items()
+                for conditionalSolution in conditionalSolutionsWithKnownSymbols
+                if conditionalSolution.value == unsubbedSolutionExpr
+            }
+            self._setInferredSolutions(symbol, subbedSolutions, relationKnownFrom)
+            
+            inferredValues = {
+                subbedConditionalSolution.value
+                for subbedConditionalSolution in subbedSolutions
+            }
+            # just in case there ever is a contradiction...
+            # (otherwise the user will never be able to see what the value
+            # was, since it'll be "forgotten")
+            self._contradictedSymbolValues[symbol] = inferredValues
+
+    def _checkForContradictions(self):
+        # sorted is theoretically faster to detect since it'll check single-variable
+        # relations first (which are the most common kinds of contradictions)
+        for relation in self._recordedRelationsSorted:
+            if relation in self._inferenceTable:
+                # can't have contradictions if it's part of where the solution came from...
+                continue
+
+            relationsWithKnownsSubbed = _CombinationsSubstituter({relation.asExprEqToZero}, self._symbolValuesDatabase).substitute()
+            if not all(
+                relationExprCondition.value == 0
+                for relationExprCondition in relationsWithKnownsSubbed
+                if len(relationExprCondition.value.free_symbols) == 0
+            ):
+                raise ContradictionException(self._contradictedSymbolValues, relation)
+            
+    def _solveRelationForSymbol(self, relationsWithKnownsSubbed: Iterable[ConditionalValue[sympy.Expr]], fromRelation: Relation, unknownSymbol: sympy.Symbol):
+        for relationExprCondition in relationsWithKnownsSubbed:
+            relationExpr = relationExprCondition.value
+            solution = solveSet(relationExpr, unknownSymbol)
+            solutionSet = self._interpretSympySolution(unknownSymbol, solution, fromRelation)
+            yield ConditionalValue(solutionSet, relationExprCondition.conditions)
+
+    def _interpretSympySolution(self, symbol: sympy.Symbol, solution: sympy.Set, fromRelation: Relation) -> set[sympy.Expr]:
+        # normal solutions to problem
+        # example:
+        #   a^2 = 4; a = {2, -2}
+        if type(solution) is sympy.FiniteSet:
+            solutionSet = set(solution)
+            assert all(isinstance(item, sympy.Expr) for item in solutionSet)
+            return solutionSet # type: ignore
+        
+        # solved such that no solutions are available
+        # example:
+        #   a/(b - 1) = 5; b = 1; a = {}
+        elif solution is sympy.EmptySet:
+            raise NoSolutionException([symbol], self._contradictedSymbolValues, fromRelation)
+        
+        else:
+            raise NotImplementedError(f"Solver reached unconsidered set: {type(solution).__name__}")
+        
+    def _unionConditions(self, firstConditions: dict[sympy.Symbol, sympy.Expr], secondConditions: dict[sympy.Symbol, sympy.Expr]):
+        newConditions = dict(firstConditions)
+        for (symbol, condition) in secondConditions.items():
+            assert symbol not in newConditions or newConditions[symbol] == condition
+            newConditions[symbol] = condition
+        return newConditions
+
+# TODO: there's a lot of helper classes here... they should be split into their
+#       own files and given their own test cases
 
 class _RelationSymbolTable:
     _DefaultType = TypeVar("_DefaultType")
@@ -542,29 +572,141 @@ class _RelationSymbolTable:
             return value
         else:
             raise KeyError(key)
+        
+
+class _InferenceOrderSolver:
+    def __init__(self, relations: list[Relation], knownSymbols: _SymbolsDatabase):
+        self._relations = relations
+        self._knownSymbols = knownSymbols
+        self._potentialInferencesTable = _RelationSymbolTable()
+
+    def findSolveOrder(self):
+        symbolCounts = self._countSymbols()
+        # relations must be sorted to prevent "trapping" a variable from being known:
+        # a + b + c + d = 123
+        # a + b + d = 234
+        # a + b - d = 432
+        # c = 8
+        # in the above, `c` is chosen for the first relation (since it has the
+        # lowest count), however this "traps" it since it won't be chosen for the
+        # last relation, which actually provides its value
+        assert self._testRelationsSorted(), "Relations for inference solver must be sorted!"
+        for relation in self._relations:
+            unknownSymbolsInRelation: list[tuple[sympy.Symbol, int]] = [
+                (symbol, symbolCounts[symbol])
+                for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False)
+                if symbol not in self._knownSymbols and symbol not in self._potentialInferencesTable
+            ]
+
+            (symbolToSolve, symbolCount) = min(
+                unknownSymbolsInRelation,
+                key = lambda symbolAndCount: symbolAndCount[1],
+                default = (None, None)
+            )
+            if symbolToSolve is not None:
+                self._potentialInferencesTable[symbolToSolve] = relation
+
+                # optimization: inference family cannot be solid unless this relation
+                # has potential inferences for all of its symbols
+                wasLastUnknownSymbol = len(unknownSymbolsInRelation) == 1
+                if wasLastUnknownSymbol:
+                    (canBackSubstitute, symbolsInFamily) = self._testSolidInferenceFamily(relation)
+                    if canBackSubstitute:
+                        return sorted(
+                            [
+                                (symbolToInfer, relationToInferFrom)
+                                for symbolToInfer in symbolsInFamily
+                                for relationToInferFrom in [self._potentialInferencesTable[symbolToInfer]]
+                            ],
+                            key = lambda data: len(freeSymbolsOf(data[1].asExprEqToZero, includeExpressionLists = False))
+                        )
+        return None
     
+    def _testSolidInferenceFamily(self, baseRelation: Relation, relationsChecked: set[Relation] | None = None, symbolsInFamily: set[sympy.Symbol] | None = None):
+        if relationsChecked is None:
+            relationsChecked = {baseRelation}
+        if symbolsInFamily is None:
+            symbolsInFamily = set()
+
+        for symbol in freeSymbolsOf(baseRelation.asExprEqToZero, includeExpressionLists = False):
+            if symbol in self._potentialInferencesTable:
+                symbolsInFamily.add(symbol)
+                relation = self._potentialInferencesTable[symbol]
+                if relation not in relationsChecked:
+                    relationsChecked.add(relation)
+                    (isSolid, symbolsInFamily_extraRef) = self._testSolidInferenceFamily(relation, relationsChecked, symbolsInFamily)
+                    holeExists = not isSolid
+                    if holeExists:
+                        return (False, symbolsInFamily)
+            elif symbol not in self._knownSymbols:
+                return (False, symbolsInFamily)
+        return (True, symbolsInFamily)
+
+    def _countSymbols(self):
+        unknownSymbolCounts: dict[sympy.Symbol, int] = dict()
+        for relation in self._relations:
+            for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False):
+                if symbol in unknownSymbolCounts:
+                    unknownSymbolCounts[symbol] += 1
+                elif symbol not in self._knownSymbols:
+                    unknownSymbolCounts[symbol] = 1
+        return unknownSymbolCounts
+    
+    def _testRelationsSorted(self):
+        lastNumSymbols = -1
+        for relation in self._relations:
+            numSymbols = len(freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False))
+            if numSymbols < lastNumSymbols:
+                return False
+            lastNumSymbols = numSymbols
+        return True
+
 
 class _CombinationsSubstituter:
-    def __init__(self, expression: sympy.Expr, database: _SymbolsDatabase):
-        self._expression = expression
+    def __init__(self, expressions: set[sympy.Expr], database: _SymbolsDatabase, *, restrictRedefSymbol: sympy.Symbol | None = None):
+        self._expressions = expressions
         self._symbolValuesDatabase = database
-        self._currCombination = dict()
+        self._currCombination: dict[sympy.Symbol, sympy.Expr] = dict()
         self._resolutionOrder = tuple(database)
         self._exprListSymbols = tuple(
             exprListSymbol
-            for exprListSymbol in expression.free_symbols
-            if type(exprListSymbol) is sympy.Symbol and isExpressionListSymbol(exprListSymbol)
+            for expression in expressions
+            for exprListSymbol in freeSymbolsOf(expression)
+            if isExpressionListSymbol(exprListSymbol)
         )
+        self._restrictRedefSymbol = restrictRedefSymbol
 
-    def __iter__(self) -> Generator[ConditionalValue[sympy.Expr], Any, None]:
+    def substitute(self) -> Generator[ConditionalValue[sympy.Expr], Any, None]:
         for symbolValueCombination in self._generateCombinations(0, 0):
-            conditions = {
-                symbol: conditionalValue
-                for (symbol, conditionalValue) in symbolValueCombination.items()
-                if symbol in self._expression.free_symbols
-            }
-            subExpr = self._expression.subs(symbolValueCombination)
-            yield ConditionalValue(subExpr, conditions) # type: ignore
+            for expression in self._expressions:
+                conditions = {
+                    symbol: conditionalValue
+                    for (symbol, conditionalValue) in symbolValueCombination.items()
+                    if symbol in freeSymbolsOf(expression)
+                }
+                subExpr = self._subsUntilFixed(expression, symbolValueCombination)
+                yield ConditionalValue(subExpr, conditions)
+    
+    def substituteForMapping(self) -> dict[sympy.Expr, ConditionalValue[sympy.Expr]]:
+        return dict(self._substituteForMapPairs())
+
+    def _substituteForMapPairs(self) -> Generator[tuple[sympy.Expr, ConditionalValue[sympy.Expr]], Any, None]:
+        for symbolValueCombination in self._generateCombinations(0, 0):
+            for expression in self._expressions:
+                conditions = {
+                    symbol: conditionalValue
+                    for (symbol, conditionalValue) in symbolValueCombination.items()
+                    if symbol in freeSymbolsOf(expression)
+                }
+                subExpr = self._subsUntilFixed(expression, symbolValueCombination)
+                yield (expression, ConditionalValue(subExpr, conditions))
+
+    def _subsUntilFixed(self, expression: sympy.Expr, combination: dict[sympy.Symbol, sympy.Expr]):
+        lastExpression = None
+        while lastExpression != expression:
+            lastExpression = expression
+            expression = subsExpr(expression, combination)
+        return expression
     
     def _generateCombinations(self, numExprListsResolved, resolutionIdx):
         noExprListsLeft = numExprListsResolved == len(self._exprListSymbols)
@@ -586,8 +728,7 @@ class _CombinationsSubstituter:
             if self._testConditionsMet(conditionalValue):
                 # overwritten to save on memory (instead of copying and creating a bunch of dicts)
                 self._currCombination[symbolToInclude] = conditionalValue.value
-                for finishedCombination in self._generateCombinations(numExprListsResolved, resolutionIdx):
-                    yield finishedCombination
+                yield from self._generateCombinations(numExprListsResolved, resolutionIdx)
 
     def _testConditionsMet(self, conditionalValue: ConditionalValue[Any]):
         for (symbol, value) in conditionalValue.conditions.items():
@@ -599,7 +740,10 @@ class _CombinationsSubstituter:
                 conditionIsIrrelevant = symbol not in self._currCombination
                 if conditionIsIrrelevant:
                     continue 
-            if self._currCombination[symbol] != value:
+            if symbol not in self._currCombination:
+                # we just pretend the conditions match; the contradiction checking will be done later
+                assert self._restrictRedefSymbol == symbol, "Symbol was expected to be in combination but was missing (and wasn't a redefinition case)"
+            elif self._currCombination[symbol] != value:
                 return False
         return True
 
@@ -632,8 +776,8 @@ class BadRelationException(MultilineException, ABC):
         )
     
     def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> sympy.Basic:
-        return expr.subs({
-            poorSymbol: sympy.Symbol(f"[{Colors.textYellow.hex}]{poorSymbol}[/]")
+        return subsExpr(expr, {
+            poorSymbol: createSymbol(f"[{Colors.textYellow.hex}]{poorSymbol}[/]")
             for poorSymbol in poorSymbolValues.keys()
         })
 
