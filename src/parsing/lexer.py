@@ -191,7 +191,7 @@ class CommandLexer:
 
     def stripWhitespace(self, lineData: str):
         idx = 0
-        # newline intentionally left out
+        # newline left out to preserve individual lines
         whitespaces = "\t "
         while idx < len(lineData) and lineData[idx] in whitespaces:
             idx += 1
