@@ -34,6 +34,10 @@ class LexerToken:
         self.type = tokenType
         self.matchIdx = matchIdx
 
+    @property
+    def matchIdxEnd(self):
+        return self.matchIdx + len(self.match)
+
     def __repr__(self):
         return f"LexerToken('{self.match}', {self.type}, {self.matchIdx})"
     
@@ -46,15 +50,18 @@ class LexerToken:
             self.type == other.type and \
             self.matchIdx == other.matchIdx
     
-    def makeWhitespaceTo(self, otherToken: "LexerToken | None"):
+    def spacesBetween(self, otherToken: "LexerToken | None"):
         if otherToken is not None:
             firstToken = self if self.matchIdx < otherToken.matchIdx else otherToken
             secondToken = otherToken if firstToken is self else self
-            positionDiff = secondToken.matchIdx - firstToken.matchIdx
-            numSpaces = positionDiff - len(firstToken.match)
+            firstTokenMatchIdxEnd = firstToken.matchIdx + len(firstToken.match)
+            numSpaces = secondToken.matchIdx - firstTokenMatchIdxEnd
         else:
             numSpaces = self.matchIdx
-        return " " * numSpaces
+        return numSpaces
+    
+    def makeWhitespaceTo(self, otherToken: "LexerToken | None"):
+        return " " * self.spacesBetween(otherToken)
     
 
 # really this is just here to avoid circular imports, and it sort-of fits here

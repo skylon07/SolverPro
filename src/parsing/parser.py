@@ -630,7 +630,7 @@ class EolException(TracebackException):
             tokens = tokens[:-1]
             eolPosition = lastToken.matchIdx
         else:
-            eolPosition = lastToken.matchIdx + len(lastToken.match)
+            eolPosition = lastToken.matchIdxEnd
         newEolToken = LexerToken(f" ...", LexerTokenTypes.EOL, eolPosition)
         tokens = tokens + (newEolToken,)
         super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [len(tokens) - 1], True)
