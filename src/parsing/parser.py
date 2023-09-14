@@ -42,6 +42,7 @@ def freeSymbolsOf(expr: sympy.Expr, *, includeExpressionLists: bool = True) -> s
     }
 
 
+# TODO: make these static methods
 class CommandParser:
     def parseCommand(self, commandTokens: tuple[LexerToken, ...]):
         while len(commandTokens) > 0:

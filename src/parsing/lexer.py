@@ -91,6 +91,7 @@ class AliasTemplate:
         return finalStr
 
 
+# TODO: make these static methods
 class CommandLexer:
     types = LexerTokenTypes()
     
