@@ -110,4 +110,7 @@ class AppDriverTester:
 
     # TODO: test popping relations
 
+    # TODO: test aliases (creating them, creating with an alias call in the template,
+    #       alias calls with other alias calls as arguments)
+
     # TODO: add tests for robustness (from old project)
