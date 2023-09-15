@@ -16,6 +16,7 @@ class LexerTokenTypes(Enum):
     BRACE_OPEN      = LexerTokenType("BRACE_OPEN")
     BRACE_CLOSE     = LexerTokenType("BRACE_CLOSE")
     BACKTICK        = LexerTokenType("BACKTICK")
+    EVAL_KEY        = LexerTokenType("EVAL_KEY")
     COMMA           = LexerTokenType("COMMA")
     EQUALS          = LexerTokenType("EQUALS")
     COLON_EQUALS    = LexerTokenType("COLON_EQUALS")
@@ -120,6 +121,10 @@ class CommandLexer:
             LexerRecognizer(
                 r"`",
                 LexerTokenTypes.BACKTICK
+            ),
+            LexerRecognizer(
+                "\x1a" + r"\d+" + "\x1a",
+                LexerTokenTypes.EVAL_KEY
             ),
             LexerRecognizer(
                 r",",
