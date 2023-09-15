@@ -9,7 +9,8 @@ from rich.text import Text
 from src.common.types import FormattedStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.app.widgets.colors import Colors
-from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer, AliasTemplate
+from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer
+from src.parsing.parser import AliasTemplate
 from src.algebrasolver.solver import Relation
 
 

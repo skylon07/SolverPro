@@ -1,8 +1,8 @@
 import sympy
 
 from src.common.functions import runForError
-from src.parsing.parser import CommandParser, Command, ParseException, EolException
-from src.parsing.lexer import LexerToken, LexerTokenTypes, AliasTemplate
+from src.parsing.parser import CommandParser, Command, AliasTemplate, ParseException, EolException
+from src.parsing.lexer import LexerToken, LexerTokenTypes
 
 
 # so the linter doesn't take FOREVER...

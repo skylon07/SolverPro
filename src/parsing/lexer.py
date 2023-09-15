@@ -63,33 +63,6 @@ class LexerToken:
     
     def makeWhitespaceTo(self, otherToken: "LexerToken | None"):
         return " " * self.spacesBetween(otherToken)
-    
-
-# really this is just here to avoid circular imports, and it sort-of fits here
-class AliasTemplate:
-    def __init__(self, name: str, argNames: tuple[str, ...], templateTokens: tuple[LexerToken, ...]):
-        self.name = name
-        self.argNames = argNames
-        self.numArgs = len(argNames)
-        self.templateTokens = templateTokens
-
-    def __repr__(self):
-        return f"AliasTemplate({self.name}, {self.argNames})"
-    
-    def __call__(self, *argVals):
-        assert len(argVals) == self.numArgs
-        replacements = dict(zip(self.argNames, argVals))
-        finalStr = ""
-        lastToken = None
-        for token in self.templateTokens:
-            finalStr += token.makeWhitespaceTo(lastToken)
-            if token.type is LexerTokenTypes.IDENTIFIER and token.match in replacements:
-                tokenReplacement = replacements[token.match]
-                finalStr += tokenReplacement
-            else:
-                finalStr += token.match
-            lastToken = token
-        return finalStr
 
 
 # TODO: make these static methods

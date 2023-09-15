@@ -5,7 +5,7 @@ import sympy
 from src.common.types import Enum, EnumString
 from src.common.exceptions import TracebackException
 from src.app.widgets.colors import Colors
-from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken, AliasTemplate
+from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 
 # so the dang linter doesn't take FOREVER...
@@ -56,7 +56,7 @@ class CommandParser:
         expressions = sequencer.sequenceExpressionList()
         return expressions
 
-    def preprocessAliases(self, tokens: tuple[LexerToken, ...], aliases: dict[str, AliasTemplate]):
+    def preprocessAliases(self, tokens: tuple[LexerToken, ...], aliases: dict[str, "AliasTemplate"]):
         sequencer = _CommandAliasSequencer(tokens, aliases)
         processedTokens = sequencer.sequenceExpression(isPrimary = True)
         return processedTokens
@@ -477,7 +477,7 @@ class _CommandAliasSequencer(_Sequencer):
         LexerTokenTypes.EOL,
     )
 
-    def __init__(self, tokens: tuple[LexerToken, ...], aliases: dict[str, AliasTemplate]):
+    def __init__(self, tokens: tuple[LexerToken, ...], aliases: dict[str, "AliasTemplate"]):
         super().__init__(tokens)
         self._aliases = aliases
         self._allowBacktickExpressions = False
@@ -517,8 +517,6 @@ class _CommandAliasSequencer(_Sequencer):
         return exprStr
     
     def sequenceAliasCall(self):
-        from src.app.appDriver import AliasTemplate
-
         # (all branches)
         aliasName = self._currToken.match
         aliasTemplate = self._aliases[aliasName]
@@ -546,7 +544,7 @@ class _CommandAliasSequencer(_Sequencer):
 
         # default branch: IDENTIFIER
         # branch: IDENTIFIER aliasArgs
-        aliasValue = aliasTemplate(*[argStr for (tokenIdx, argStr) in aliasIdxsArgs])
+        aliasValue = aliasTemplate.evaluate(*[argStr for (tokenIdx, argStr) in aliasIdxsArgs])
         return aliasValue
     
     def sequenceAliasCallArgs(self):
@@ -574,6 +572,32 @@ class _CommandAliasSequencer(_Sequencer):
         # branch: PAREN_OPEN expression COMMA expression PAREN_CLOSE
         # ...
         return tuple(aliasIdxsArgs)
+    
+
+class AliasTemplate:
+    def __init__(self, name: str, argNames: tuple[str, ...], templateTokens: tuple[LexerToken, ...]):
+        self.name = name
+        self.argNames = argNames
+        self.numArgs = len(argNames)
+        self.templateTokens = templateTokens
+
+    def __repr__(self):
+        return f"AliasTemplate({self.name}, {self.argNames})"
+    
+    def evaluate(self, *argVals: str):
+        assert len(argVals) == self.numArgs
+        replacements = dict(zip(self.argNames, argVals))
+        finalStr = ""
+        lastToken = None
+        for token in self.templateTokens:
+            finalStr += token.makeWhitespaceTo(lastToken)
+            if token.type is LexerTokenTypes.IDENTIFIER and token.match in replacements:
+                tokenReplacement = replacements[token.match]
+                finalStr += tokenReplacement
+            else:
+                finalStr += token.match
+            lastToken = token
+        return finalStr
 
 
 class CommandType(EnumString):

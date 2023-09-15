@@ -7,8 +7,8 @@ from src.common.exceptions import TracebackException, MultilineException
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
 from src.algebrasolver.solver import AlgebraSolver, Relation
-from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes, AliasTemplate
-from src.parsing.parser import CommandParser, Command, CommandType, isExpressionListSymbol, freeSymbolsOf
+from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
+from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplate, isExpressionListSymbol, freeSymbolsOf
 
 
 class AppDriver:
