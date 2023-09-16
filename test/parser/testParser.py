@@ -1,8 +1,8 @@
 import sympy
 
 from src.common.functions import runForError
-from src.parsing.parser import CommandParser, Command, AliasTemplate, ParseException, EolException
-from src.parsing.lexer import LexerToken, LexerTokenTypes
+from src.parsing.parser import CommandParser, Command, AliasTemplate, ParseException, EolException, UnknownAliasException, AliasArgumentCountException
+from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
 
 
 # so the linter doesn't take FOREVER...
@@ -325,6 +325,19 @@ class CommandParserTester:
             LexerToken("",          LexerTokenTypes.EOL,            51),
         ), aliases) == "    PADDING TEST  ALIAS3 - param1 - param2 - param3"
 
+    def testEvaluatesBuiltinAliases(self):
+        parser = CommandParser()
+
+        assert list(parser.parseCommand((
+            LexerToken("something", LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("+",         LexerTokenTypes.PLUS,           10),
+            LexerToken("sqrt",      LexerTokenTypes.IDENTIFIER,     12),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     16),
+            LexerToken("4",         LexerTokenTypes.INTEGER,        17),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    18),
+            LexerToken("",          LexerTokenTypes.EOL,            19),
+        ))) == [Command.evaluateExpression(sympy.parse_expr("something + 2"))]
+
     def testRecordingAliasCommand(self):
         parser = CommandParser()
 
@@ -566,12 +579,135 @@ class CommandParserTester:
             LexerToken("",      LexerTokenTypes.EOL,        5),
         ))) == [Command.evaluateExpression(createSymbol("while"))], \
             "Parser did not correctly evaluate symbol 'while'"
+
+    def testAliasResolutionForRobustness(self):
+        lexer = CommandLexer()
+        parser = CommandParser()
+
+        aliases = {
+            "plus": AliasTemplate(
+                "plus",
+                ("a", "b"),
+                (
+                    LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
+                    LexerToken("+", LexerTokenTypes.IDENTIFIER, 2),
+                    LexerToken("b", LexerTokenTypes.IDENTIFIER, 4),
+                )
+            ),
+        }
+
+        assert list(parser.parseCommand(tuple(lexer.findTokens(parser.preprocessAliases((
+            LexerToken("plus",          LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",             LexerTokenTypes.PAREN_OPEN,     4),
+            LexerToken("something",     LexerTokenTypes.IDENTIFIER,     5),
+            LexerToken(",",             LexerTokenTypes.COMMA,          14),
+            LexerToken("plus",          LexerTokenTypes.IDENTIFIER,     16),
+            LexerToken("(",             LexerTokenTypes.PAREN_OPEN,     20),
+            LexerToken("1",             LexerTokenTypes.INTEGER,        21),
+            LexerToken(",",             LexerTokenTypes.COMMA,          22),
+            LexerToken("aThing",        LexerTokenTypes.IDENTIFIER,     24),
+            LexerToken(")",             LexerTokenTypes.PAREN_CLOSE,    30),
+            LexerToken(")",             LexerTokenTypes.PAREN_CLOSE,    31),
+            LexerToken("",              LexerTokenTypes.EOL,            32),
+        ), aliases))))) == [Command.evaluateExpression(sympy.parse_expr("something + 1 + aThing"))], \
+            "Parser failed to correctly process one nested alias template"
+
+        assert list(parser.parseCommand(tuple(lexer.findTokens(parser.preprocessAliases((
+            LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     4),
+            LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     5),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     9),
+            LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     10),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     14),
+            LexerToken("1",         LexerTokenTypes.INTEGER,        15),
+            LexerToken(",",         LexerTokenTypes.COMMA,          16),
+            LexerToken("1",         LexerTokenTypes.INTEGER,        18),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    19),
+            LexerToken(",",         LexerTokenTypes.COMMA,          20),
+            LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     22),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     26),
+            LexerToken("1",         LexerTokenTypes.INTEGER,        27),
+            LexerToken(",",         LexerTokenTypes.COMMA,          28),
+            LexerToken("1",         LexerTokenTypes.INTEGER,        30),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    31),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    32),
+            LexerToken(",",         LexerTokenTypes.COMMA,          33),
+            LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     35),
+            LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     39),
+            LexerToken("1",         LexerTokenTypes.INTEGER,        40),
+            LexerToken(",",         LexerTokenTypes.COMMA,          41),
+            LexerToken("aThing",    LexerTokenTypes.IDENTIFIER,     43),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    49),
+            LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    50),
+            LexerToken("",          LexerTokenTypes.EOL,            51),
+        ), aliases))))) == [Command.evaluateExpression(sympy.parse_expr("1 + 1 + 1 + 1 + 1 + aThing"))], \
+            "Parser failed to correctly process multiple nested alias templates"
         
-        # TODO: multiple recursive alias calls
-        # TODO: alias calls with mixed parameter types
+        assert list(parser.parseCommand(tuple(lexer.findTokens(parser.preprocessAliases((
+            LexerToken("sqrt",  LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     4),
+            LexerToken("sqrt",  LexerTokenTypes.IDENTIFIER,     5),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     9),
+            LexerToken("sqrt",  LexerTokenTypes.IDENTIFIER,     10),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     14),
+            LexerToken("64",    LexerTokenTypes.INTEGER,        15),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    17),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    18),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    19),
+            LexerToken("",      LexerTokenTypes.EOL,            20),
+        ), aliases))))) == [Command.evaluateExpression(sympy.parse_expr("sqrt(sqrt(sqrt(64)))"))], \
+            "Parser failed to correctly process multiple nested builtin aliases"
+        
+        assert list(parser.parseCommand(tuple(lexer.findTokens(parser.preprocessAliases((
+            LexerToken("plus",  LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     4),
+            LexerToken("sqrt",  LexerTokenTypes.IDENTIFIER,     5),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     9),
+            LexerToken("plus",  LexerTokenTypes.IDENTIFIER,     10),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     14),
+            LexerToken("sqrt",  LexerTokenTypes.IDENTIFIER,     15),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     19),
+            LexerToken("4",     LexerTokenTypes.INTEGER,        20),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    21),
+            LexerToken(",",     LexerTokenTypes.COMMA,          22),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        24),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    25),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    26),
+            LexerToken(",",     LexerTokenTypes.COMMA,          27),
+            LexerToken("plus",  LexerTokenTypes.IDENTIFIER,     29),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     33),
+            LexerToken("plus",  LexerTokenTypes.IDENTIFIER,     34),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     38),
+            LexerToken("1",     LexerTokenTypes.INTEGER,        39),
+            LexerToken(",",     LexerTokenTypes.COMMA,          40),
+            LexerToken("1",     LexerTokenTypes.INTEGER,        42),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    43),
+            LexerToken(",",     LexerTokenTypes.COMMA,          44),
+            LexerToken("sqrt",  LexerTokenTypes.IDENTIFIER,     46),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     50),
+            LexerToken("plus",  LexerTokenTypes.IDENTIFIER,     51),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     55),
+            LexerToken("sqrt",  LexerTokenTypes.IDENTIFIER,     56),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     60),
+            LexerToken("plus",  LexerTokenTypes.IDENTIFIER,     61),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     65),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        66),
+            LexerToken(",",     LexerTokenTypes.COMMA,          67),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        69),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    70),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    71),
+            LexerToken(",",     LexerTokenTypes.COMMA,          72),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        74),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    75),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    76),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    77),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    78),
+            LexerToken("",      LexerTokenTypes.EOL,            79),
+        ), aliases))))) == [Command.evaluateExpression(sympy.parse_expr("sqrt(sqrt(4) + 2) + 1 + 1 + sqrt(sqrt(2 + 2) + 2)"))], \
+            "Parser failed to correctly process multiple nested aliases of various types"
+        
         # TODO: alias calls with expressions with parenthesis
         # TODO: alias calls with expression lists (in parenthesis and backticks)
-        # TODO: more alias recording tests
         
     def testEolExceptionsMakeEolVisible(self):
         parser = CommandParser()
@@ -859,5 +995,137 @@ class CommandParserTester:
         assert type(error12) is ParseException
         assert error12.badTokenIdxs == [1]
 
-        # TODO: alias call with missing arguments
-        # TODO: alias call with extra arguments
+        def attempt13():
+            return list(parser.parseCommand((
+                LexerToken("something", LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken("+",         LexerTokenTypes.PLUS,           10),
+                LexerToken("undefined", LexerTokenTypes.IDENTIFIER,     12),
+                LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     21),
+                LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    22),
+                LexerToken("",          LexerTokenTypes.EOL,            23),
+            )))
+        error13 = runForError(attempt13)
+        assert type(error13) is UnknownAliasException
+        assert error13.badTokenIdxs == [2]
+
+        def attempt14():
+            return list(parser.parseCommand((
+                LexerToken("something", LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken("+",         LexerTokenTypes.PLUS,           10),
+                LexerToken("sqrt",      LexerTokenTypes.IDENTIFIER,     12),
+                LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     16),
+                LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    17),
+                LexerToken("",          LexerTokenTypes.EOL,            18),
+            )))
+        error14 = runForError(attempt14)
+        assert type(error14) is AliasArgumentCountException
+        assert error14.badTokenIdxs == [4]
+
+        def attempt15():
+            aliases = {
+                "plus": AliasTemplate(
+                    "plus",
+                    ("a", "b"),
+                    (
+                        LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
+                        LexerToken("+", LexerTokenTypes.IDENTIFIER, 2),
+                        LexerToken("b", LexerTokenTypes.IDENTIFIER, 4),
+                    )
+                ),
+            }
+            return list(parser.preprocessAliases((
+                LexerToken("something", LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken("+",         LexerTokenTypes.PLUS,           10),
+                LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     12),
+                LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     16),
+                LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    17),
+                LexerToken("",          LexerTokenTypes.EOL,            18),
+            ), aliases))
+        error15 = runForError(attempt15)
+        assert type(error15) is AliasArgumentCountException
+        assert error15.badTokenIdxs == [4]
+
+        def attempt16():
+            aliases = {
+                "plus": AliasTemplate(
+                    "plus",
+                    ("a", "b"),
+                    (
+                        LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
+                        LexerToken("+", LexerTokenTypes.IDENTIFIER, 2),
+                        LexerToken("b", LexerTokenTypes.IDENTIFIER, 4),
+                    )
+                ),
+            }
+            return list(parser.preprocessAliases((
+                LexerToken("something", LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken("+",         LexerTokenTypes.PLUS,           10),
+                LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     12),
+                LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     16),
+                LexerToken("4",         LexerTokenTypes.INTEGER,        17),
+                LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    18),
+                LexerToken("",          LexerTokenTypes.EOL,            19),
+            ), aliases))
+        error16 = runForError(attempt16)
+        assert type(error16) is AliasArgumentCountException
+        assert error16.badTokenIdxs == [5]
+
+        def attempt17():
+            aliases = {
+                "plus": AliasTemplate(
+                    "plus",
+                    ("a", "b"),
+                    (
+                        LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
+                        LexerToken("+", LexerTokenTypes.IDENTIFIER, 2),
+                        LexerToken("b", LexerTokenTypes.IDENTIFIER, 4),
+                    )
+                ),
+            }
+            return list(parser.preprocessAliases((
+                LexerToken("something", LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken("+",         LexerTokenTypes.PLUS,           10),
+                LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     12),
+                LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     16),
+                LexerToken("2",         LexerTokenTypes.INTEGER,        17),
+                LexerToken(",",         LexerTokenTypes.COMMA,          18),
+                LexerToken("4",         LexerTokenTypes.INTEGER,        20),
+                LexerToken(",",         LexerTokenTypes.COMMA,          21),
+                LexerToken("6",         LexerTokenTypes.INTEGER,        23),
+                LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    24),
+                LexerToken("",          LexerTokenTypes.EOL,            25),
+            ), aliases))
+        error17 = runForError(attempt17)
+        assert type(error17) is AliasArgumentCountException
+        assert error17.badTokenIdxs == [7, 8]
+
+        def attempt18():
+            aliases = {
+                "plus": AliasTemplate(
+                    "plus",
+                    ("a", "b"),
+                    (
+                        LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
+                        LexerToken("+", LexerTokenTypes.IDENTIFIER, 2),
+                        LexerToken("b", LexerTokenTypes.IDENTIFIER, 4),
+                    )
+                ),
+            }
+            return list(parser.preprocessAliases((
+                LexerToken("something", LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken("+",         LexerTokenTypes.PLUS,           10),
+                LexerToken("plus",      LexerTokenTypes.IDENTIFIER,     12),
+                LexerToken("(",         LexerTokenTypes.PAREN_OPEN,     16),
+                LexerToken("2",         LexerTokenTypes.INTEGER,        17),
+                LexerToken(",",         LexerTokenTypes.COMMA,          18),
+                LexerToken("4",         LexerTokenTypes.INTEGER,        20),
+                LexerToken(",",         LexerTokenTypes.COMMA,          21),
+                LexerToken("6",         LexerTokenTypes.INTEGER,        23),
+                LexerToken(",",         LexerTokenTypes.COMMA,          24),
+                LexerToken("6",         LexerTokenTypes.INTEGER,        26),
+                LexerToken(")",         LexerTokenTypes.PAREN_CLOSE,    27),
+                LexerToken("",          LexerTokenTypes.EOL,            25),
+            ), aliases))
+        error18 = runForError(attempt18)
+        assert type(error18) is AliasArgumentCountException
+        assert error18.badTokenIdxs == [7, 8, 9, 10]
