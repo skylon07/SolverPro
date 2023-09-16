@@ -29,8 +29,16 @@ class AppDriver:
 
             shouldParseAliases = not any(token.type is LexerTokenTypes.COLON_EQUALS for token in tokensWithAliases)
             if shouldParseAliases:
-                processedCommandsStr = self._parser.preprocessAliases(tokensWithAliases, self._aliases)
-                processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+                lastProcessedTokens = None
+                processedTokens = tokensWithAliases
+                roundCount = 0
+                while processedTokens != lastProcessedTokens:
+                    lastProcessedTokens = processedTokens
+                    processedCommandsStr = self._parser.preprocessAliases(processedTokens, self._aliases)
+                    processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+                    roundCount += 1
+                    if roundCount == 999:
+                        raise RecursiveTemplatesException()
             else:
                 processedTokens = tokensWithAliases
 
@@ -234,4 +242,12 @@ class TooManyRelationsException(MultilineException):
             renderer.formatRelation(oldRelation, highlightSyntax = True),
             "with multiple relations",
             renderer.formatLexerSyntax(relationsStr),
+        ))
+
+
+class RecursiveTemplatesException(MultilineException):
+    def __init__(self):
+        super().__init__((
+            "Too many dependent aliases",
+            "Double-check your alias templates don't have circular dependencies",
         ))
