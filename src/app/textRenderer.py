@@ -78,7 +78,7 @@ class TextRenderer:
     def _identifierFormat(self, tokens: tuple[LexerToken, ...], tokenIdx: int):
         token = tokens[tokenIdx]
         if self._driver is not None:
-            if token.match in self._driver.getAliases():
+            if token.match in self._driver.getAllAliasNames():
                 return Colors.alias
         if tokenIdx + 1 < len(tokens):
             nextToken = tokens[tokenIdx + 1]

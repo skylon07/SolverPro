@@ -8,7 +8,7 @@ from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
 from src.algebrasolver.solver import AlgebraSolver, Relation
 from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
-from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplate, isExpressionListSymbol, freeSymbolsOf
+from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplate, freeSymbolsOf
 
 
 class AppDriver:
@@ -86,8 +86,8 @@ class AppDriver:
             self._solver.recordRelation(oldRelation)
             raise exception
         
-    def getAliases(self):
-        return dict(self._aliases)
+    def getAllAliasNames(self):
+        return tuple(self._aliases.keys()) + tuple(self._parser.builtinAliases.keys())
         
     def getInputHistory(self):
         return tuple(self._inputHistory)
