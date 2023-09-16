@@ -822,9 +822,9 @@ class CommandParserTester:
 
         def attempt_emptyExpressionList():
             return list(parser.parseCommand((
-                LexerToken('{', LexerTokenTypes.BRACE_OPEN,     0),
-                LexerToken('}', LexerTokenTypes.BRACE_CLOSE,    1),
-                LexerToken('',  LexerTokenTypes.EOL,            2),
+                LexerToken("{", LexerTokenTypes.BRACE_OPEN,     0),
+                LexerToken("}", LexerTokenTypes.BRACE_CLOSE,    1),
+                LexerToken("",  LexerTokenTypes.EOL,            2),
             )))
         error_emptyExpressionList = runForError(attempt_emptyExpressionList)
         assert type(error_emptyExpressionList) is ParseException
@@ -832,28 +832,28 @@ class CommandParserTester:
 
         def attempt12():
             return list(parser.parseCommand((
-                LexerToken('{',     LexerTokenTypes.BRACE_OPEN,     0),
-                LexerToken('a',     LexerTokenTypes.IDENTIFIER,     1),
-                LexerToken('+',     LexerTokenTypes.PLUS,           2),
-                LexerToken('r',     LexerTokenTypes.IDENTIFIER,     3),
-                LexerToken('*',     LexerTokenTypes.STAR,           4),
-                LexerToken('b',     LexerTokenTypes.IDENTIFIER,     5),
-                LexerToken(',',     LexerTokenTypes.COMMA,          6),
-                LexerToken('(',     LexerTokenTypes.PAREN_OPEN,     8),
-                LexerToken('a',     LexerTokenTypes.IDENTIFIER,     9),
-                LexerToken('+',     LexerTokenTypes.PLUS,           10),
-                LexerToken('b',     LexerTokenTypes.IDENTIFIER,     11),
-                LexerToken(')',     LexerTokenTypes.PAREN_CLOSE,    12),
-                LexerToken('/',     LexerTokenTypes.SLASH,          13),
-                LexerToken('d',     LexerTokenTypes.IDENTIFIER,     14),
-                LexerToken(',',     LexerTokenTypes.COMMA,          15),
-                LexerToken('14',    LexerTokenTypes.INTEGER,        17),
-                LexerToken('-',     LexerTokenTypes.DASH,           19),
-                LexerToken('12',    LexerTokenTypes.INTEGER,        20),
-                LexerToken('*',     LexerTokenTypes.STAR,           22),
-                LexerToken('a',     LexerTokenTypes.IDENTIFIER,     23),
-                LexerToken('}',     LexerTokenTypes.BRACE_CLOSE,    24),
-                LexerToken('',      LexerTokenTypes.EOL,            25),
+                LexerToken("{",     LexerTokenTypes.BRACE_OPEN,     0),
+                LexerToken("a",     LexerTokenTypes.IDENTIFIER,     1),
+                LexerToken("+",     LexerTokenTypes.PLUS,           2),
+                LexerToken("r",     LexerTokenTypes.IDENTIFIER,     3),
+                LexerToken("*",     LexerTokenTypes.STAR,           4),
+                LexerToken("b",     LexerTokenTypes.IDENTIFIER,     5),
+                LexerToken(",",     LexerTokenTypes.COMMA,          6),
+                LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     8),
+                LexerToken("a",     LexerTokenTypes.IDENTIFIER,     9),
+                LexerToken("+",     LexerTokenTypes.PLUS,           10),
+                LexerToken("b",     LexerTokenTypes.IDENTIFIER,     11),
+                LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    12),
+                LexerToken("/",     LexerTokenTypes.SLASH,          13),
+                LexerToken("d",     LexerTokenTypes.IDENTIFIER,     14),
+                LexerToken(",",     LexerTokenTypes.COMMA,          15),
+                LexerToken("14",    LexerTokenTypes.INTEGER,        17),
+                LexerToken("-",     LexerTokenTypes.DASH,           19),
+                LexerToken("12",    LexerTokenTypes.INTEGER,        20),
+                LexerToken("*",     LexerTokenTypes.STAR,           22),
+                LexerToken("a",     LexerTokenTypes.IDENTIFIER,     23),
+                LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    24),
+                LexerToken("",      LexerTokenTypes.EOL,            25),
             )))
         error12 = runForError(attempt12)
         assert type(error12) is ParseException
