@@ -16,6 +16,7 @@ class LexerTokenTypes(Enum):
     BRACE_OPEN      = LexerTokenType("BRACE_OPEN")
     BRACE_CLOSE     = LexerTokenType("BRACE_CLOSE")
     BACKTICK        = LexerTokenType("BACKTICK")
+    COLON           = LexerTokenType("COLON")
     COMMA           = LexerTokenType("COMMA")
     EQUALS          = LexerTokenType("EQUALS")
     COLON_EQUALS    = LexerTokenType("COLON_EQUALS")
@@ -125,6 +126,10 @@ class CommandLexer:
             LexerRecognizer(
                 r"\^",
                 LexerTokenTypes.CARROT
+            ),
+            LexerRecognizer(
+                r":",
+                LexerTokenTypes.COLON
             ),
 
             # lower priority recognizers
