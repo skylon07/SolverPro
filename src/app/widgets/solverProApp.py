@@ -10,7 +10,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import RichLog, Button, Label
 
 from src.common.functions import first, getVersion
-from src.app.appDriver import AppDriver, Command, AliasTemplate
+from src.app.appDriver import AppDriver, Command
 from src.app.widgets.appHeader import AppHeader
 from src.app.widgets.coloredInput import ColoredInput
 from src.app.widgets.termTipModal import TermTipModal
@@ -19,7 +19,7 @@ from src.app.widgets.historyScreen import HistoryScreen
 from src.app.widgets.colors import Colors
 from src.app.termTips import TermTips
 from src.app.textRenderer import TextRenderer
-from src.parsing.lexer import AliasTemplate
+from src.parsing.parser import AliasTemplate
 from src.algebrasolver.solver import Relation
 
 
@@ -122,7 +122,7 @@ class MainScreen(Screen):
                     renderer.formatRelationsRecorded(relationsData, highlightSyntax = True)
                 )
 
-            elif result.type is Command.EVALUATE_EXPRESSION:
+            elif result.type is Command.EVALUATE_EXPRESSION or result.type is Command.SIMPLIFY_EXPRESSION:
                 exprs: set[sympy.Expr] = result.data
                 assert isinstance(exprs, set)
                 self.writeToLogger(

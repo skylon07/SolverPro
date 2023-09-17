@@ -7,8 +7,8 @@ from src.common.exceptions import TracebackException, MultilineException
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
 from src.algebrasolver.solver import AlgebraSolver, Relation
-from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes, AliasTemplate
-from src.parsing.parser import CommandParser, Command, CommandType, isExpressionListSymbol, freeSymbolsOf
+from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
+from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplate, freeSymbolsOf
 
 
 class AppDriver:
@@ -23,14 +23,24 @@ class AppDriver:
 
         self._aliases: dict[str, AliasTemplate] = dict()
 
+        self._warmUpSimplify()
+
     def processCommandLines(self, commandsStr: str):
         try:
             tokensWithAliases = tuple(self._lexer.findTokens(commandsStr))
 
             shouldParseAliases = not any(token.type is LexerTokenTypes.COLON_EQUALS for token in tokensWithAliases)
             if shouldParseAliases:
-                processedCommandsStr = self._parser.preprocessAliases(tokensWithAliases, self._aliases)
-                processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+                lastProcessedTokens = None
+                processedTokens = tokensWithAliases
+                roundCount = 0
+                while processedTokens != lastProcessedTokens:
+                    lastProcessedTokens = processedTokens
+                    processedCommandsStr = self._parser.preprocessAliases(processedTokens, self._aliases)
+                    processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+                    roundCount += 1
+                    if roundCount == 999:
+                        raise RecursiveTemplatesException()
             else:
                 processedTokens = tokensWithAliases
 
@@ -78,8 +88,8 @@ class AppDriver:
             self._solver.recordRelation(oldRelation)
             raise exception
         
-    def getAliases(self):
-        return dict(self._aliases)
+    def getAllAliasNames(self):
+        return tuple(self._aliases.keys()) + tuple(self._parser.builtinAliases.keys())
         
     def getInputHistory(self):
         return tuple(self._inputHistory)
@@ -178,8 +188,19 @@ class AppDriver:
             self._aliases[aliasName] = aliasTemplate
             return ProcessResult(Command.RECORD_ALIAS, aliasTemplate)
         
+        elif command.type is Command.SIMPLIFY_EXPRESSION:
+            expr: sympy.Expr = command.data
+            assert isinstance(expr, sympy.Expr)
+            expr = sympy.simplify(expr)
+            return ProcessResult(Command.SIMPLIFY_EXPRESSION, {expr})
+        
         else:
             raise NotImplementedError(f"Processing command of type {command.type} not implemented")
+        
+    def _warmUpSimplify(self):
+        # for some reason, the first call to this is a tad slow...
+        # this just gets that out of the way so the app doesn't feel slow
+        return sympy.simplify("x + x")
 
    
 class ProcessResult:
@@ -234,4 +255,12 @@ class TooManyRelationsException(MultilineException):
             renderer.formatRelation(oldRelation, highlightSyntax = True),
             "with multiple relations",
             renderer.formatLexerSyntax(relationsStr),
+        ))
+
+
+class RecursiveTemplatesException(MultilineException):
+    def __init__(self):
+        super().__init__((
+            "Too many dependent aliases",
+            "Double-check your alias templates don't have circular dependencies",
         ))

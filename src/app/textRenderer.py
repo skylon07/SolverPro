@@ -7,9 +7,11 @@ from rich.markup import render as renderMarkup
 from rich.text import Text
 
 from src.common.types import FormattedStr
+from src.common.functions import toExprStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.app.widgets.colors import Colors
-from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer, AliasTemplate
+from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer
+from src.parsing.parser import AliasTemplate
 from src.algebrasolver.solver import Relation
 
 
@@ -57,6 +59,7 @@ class TextRenderer:
             LexerTokenTypes.BRACE_CLOSE:    Colors.punctuation,
             LexerTokenTypes.BACKTICK:       Colors.punctuation,
             LexerTokenTypes.COMMA:          Colors.punctuation,
+            LexerTokenTypes.COLON:          Colors.punctuation,
             LexerTokenTypes.EQUALS:         Colors.operator,
             LexerTokenTypes.COLON_EQUALS:   Colors.operator,
             LexerTokenTypes.PLUS:           Colors.operator,
@@ -77,16 +80,18 @@ class TextRenderer:
     def _identifierFormat(self, tokens: tuple[LexerToken, ...], tokenIdx: int):
         token = tokens[tokenIdx]
         if self._driver is not None:
-            if token.match in self._driver.getAliases():
+            if token.match in self._driver.getAllAliasNames():
                 return Colors.alias
         if tokenIdx + 1 < len(tokens):
             nextToken = tokens[tokenIdx + 1]
             if nextToken.type in (LexerTokenTypes.PAREN_OPEN, LexerTokenTypes.COLON_EQUALS):
                 return Colors.alias
+            elif nextToken.type is LexerTokenTypes.COLON:
+                return Colors.number
         return Colors.identifier
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False, highlightSyntax: bool = False):
-        relationStr = self._correctExprSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
+        relationStr = f"{toExprStr(relation.leftExpr)} = {toExprStr(relation.rightExpr)}"
         if highlightSyntax:
             relationStr = self.formatLexerSyntax(relationStr)
         linesList = [relationStr]
@@ -120,7 +125,7 @@ class TextRenderer:
             self.formatLexerSyntax(exprStr) if highlightSyntax
                 else exprStr
             for expr in exprs
-            for exprStr in [self._correctExprSyntaxes(str(expr))]
+            for exprStr in [toExprStr(expr)]
         ])
     
     def formatAliasTemplate(self, aliasTemplate: AliasTemplate, *, highlightSyntax: bool = False):
@@ -159,10 +164,7 @@ class TextRenderer:
         
         elif isinstance(exception, MultilineException):
             return self._formatLinesForException(
-                (
-                    self._correctExprSyntaxes(line)
-                    for line in exception.messageLines
-                ),
+                exception.messageLines,
                 exception, 
                 withErrorHeader = withErrorHeader,
             )
@@ -241,10 +243,6 @@ class TextRenderer:
                 formattedStr += token.match
             lastToken = token
         return formattedStr
-    
-    def _correctExprSyntaxes(self, exprStr: str):
-        exprStr = re.compile(r"\*\*").sub("^", exprStr)
-        return exprStr
     
     def _sanitizeInput(self, linesStr: FormattedStr) -> FormattedStr:
         return linesStr.replace("\\", "◊")

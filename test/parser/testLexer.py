@@ -213,6 +213,15 @@ class CommandLexerTester:
                 0
             )
         ], "Lexer did not find a BACKTICK"
+
+        # COLON
+        assert list(lexer.findTokens(":", withEol = False)) == [
+            LexerToken(
+                ":",
+                LexerTokenTypes.COLON,
+                0
+            )
+        ]
         
         # INVALID
         assert list(lexer.findTokens("‡", withEol = False)) == [

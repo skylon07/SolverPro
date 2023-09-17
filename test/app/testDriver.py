@@ -1,7 +1,7 @@
 import sympy
 
 from src.common.functions import runForError
-from src.app.appDriver import AppDriver, ProcessResult, Command, UndefinedIdentifiersException
+from src.app.appDriver import AppDriver, ProcessResult, Command, UndefinedIdentifiersException, RecursiveTemplatesException
 from src.algebrasolver.solver import Relation
 
 
@@ -77,6 +77,8 @@ class AppDriverTester:
             ProcessResult(Command.EVALUATE_EXPRESSION, {1}),
         ), "Driver did not correctly infer first variable in a series of solvable relations"
 
+    # TODO: test getting list of relations
+
     def testDetectsUndefinedIdentifiers(self):
         driver = AppDriver()
 
@@ -99,15 +101,47 @@ class AppDriverTester:
             "Driver did not detect all indexes of the undefined identifier tokens"
         
         def attemptBadCommand3():
-            return tuple(driver.processCommandLines("a + b + defined + c/b*defined^e - f/g"))
+            return tuple(driver.processCommandLines("a + b + defined + c/b*defined^z - f/g"))
         error3 = runForError(attemptBadCommand3)
         assert type(error3) is UndefinedIdentifiersException, \
             "Driver did not throw with multiple unidentified identifiers present"
         assert error3.badTokenIdxs == (0, 2, 6, 8, 12, 14, 16), \
             "Driver did not detect all indexes of all the undidentified identifier tokens"
+        
+    # TODO: test creating aliases
+        
+    def testProcessesAliasTemplateDependencies(self):
+        driver = AppDriver()
 
-    # TODO: test getting list of relations
+        tuple(driver.processCommandLines("quadruple(n) := double(double(n))"))
+        tuple(driver.processCommandLines("double(n) := plus(n, n)"))
+        tuple(driver.processCommandLines("plus(a, b) := a + b"))
 
+        evaluateResults = tuple(driver.processCommandLines("quadruple(2)"))
+        assert evaluateResults == (
+            ProcessResult(Command.EVALUATE_EXPRESSION, {8}),
+        ), "Driver didn't correctly process multi-layered alias templates"
+
+    def testCanSimplifyExpressions(self):
+        driver = AppDriver()
+
+        results1 = tuple(driver.processCommandLines("simplify: x + x - y * y"))
+        assert results1 == (
+            ProcessResult(Command.SIMPLIFY_EXPRESSION, {sympy.parse_expr("x + x - y * y")}),
+        )
+
+    def testThrowsOnRecursiveDependencies(self):
+        driver = AppDriver()
+
+        tuple(driver.processCommandLines("add(a, b) := plus(a, b)"))
+        tuple(driver.processCommandLines("plus(a, b) := add(a, b)"))
+
+        def attemptBadCommand3():
+            return tuple(driver.processCommandLines("plus(1, 2)"))
+        error3 = runForError(attemptBadCommand3)
+        assert type(error3) is RecursiveTemplatesException, \
+            "Driver did not detect recursive templates"
+        
     # TODO: test popping relations
 
     # TODO: add tests for robustness (from old project)

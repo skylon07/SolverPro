@@ -16,6 +16,7 @@ class LexerTokenTypes(Enum):
     BRACE_OPEN      = LexerTokenType("BRACE_OPEN")
     BRACE_CLOSE     = LexerTokenType("BRACE_CLOSE")
     BACKTICK        = LexerTokenType("BACKTICK")
+    COLON           = LexerTokenType("COLON")
     COMMA           = LexerTokenType("COMMA")
     EQUALS          = LexerTokenType("EQUALS")
     COLON_EQUALS    = LexerTokenType("COLON_EQUALS")
@@ -34,6 +35,10 @@ class LexerToken:
         self.type = tokenType
         self.matchIdx = matchIdx
 
+    @property
+    def matchIdxEnd(self):
+        return self.matchIdx + len(self.match)
+
     def __repr__(self):
         return f"LexerToken('{self.match}', {self.type}, {self.matchIdx})"
     
@@ -46,44 +51,21 @@ class LexerToken:
             self.type == other.type and \
             self.matchIdx == other.matchIdx
     
-    def makeWhitespaceTo(self, otherToken: "LexerToken | None"):
+    def spacesBetween(self, otherToken: "LexerToken | None"):
         if otherToken is not None:
             firstToken = self if self.matchIdx < otherToken.matchIdx else otherToken
             secondToken = otherToken if firstToken is self else self
-            positionDiff = secondToken.matchIdx - firstToken.matchIdx
-            numSpaces = positionDiff - len(firstToken.match)
+            firstTokenMatchIdxEnd = firstToken.matchIdx + len(firstToken.match)
+            numSpaces = secondToken.matchIdx - firstTokenMatchIdxEnd
         else:
             numSpaces = self.matchIdx
-        return " " * numSpaces
+        return numSpaces
     
-
-# really this is just here to avoid circular imports, and it sort-of fits here
-class AliasTemplate:
-    def __init__(self, name: str, argNames: tuple[str, ...], templateTokens: tuple[LexerToken, ...]):
-        self.name = name
-        self.argNames = argNames
-        self.numArgs = len(argNames)
-        self.templateTokens = templateTokens
-
-    def __repr__(self):
-        return f"AliasTemplate({self.name}, {self.argNames})"
-    
-    def __call__(self, *argVals):
-        assert len(argVals) == self.numArgs
-        replacements = dict(zip(self.argNames, argVals))
-        finalStr = ""
-        lastToken = None
-        for token in self.templateTokens:
-            finalStr += token.makeWhitespaceTo(lastToken)
-            if token.type is LexerTokenTypes.IDENTIFIER and token.match in replacements:
-                tokenReplacement = replacements[token.match]
-                finalStr += tokenReplacement
-            else:
-                finalStr += token.match
-            lastToken = token
-        return finalStr
+    def makeWhitespaceTo(self, otherToken: "LexerToken | None"):
+        return " " * self.spacesBetween(otherToken)
 
 
+# TODO: make these static methods
 class CommandLexer:
     types = LexerTokenTypes()
     
@@ -145,6 +127,10 @@ class CommandLexer:
                 r"\^",
                 LexerTokenTypes.CARROT
             ),
+            LexerRecognizer(
+                r":",
+                LexerTokenTypes.COLON
+            ),
 
             # lower priority recognizers
             LexerRecognizer(
@@ -152,7 +138,7 @@ class CommandLexer:
                 LexerTokenTypes.FLOAT
             ), # yields to INTEGER or PERIOD
             LexerRecognizer(
-                r"[_a-zA-Z0-9]+",
+                r"[_a-zA-Z0-9]+|√|∛",
                 LexerTokenTypes.IDENTIFIER
             ), # yields to other keywords and INTEGER/FLOAT
         )
@@ -191,7 +177,7 @@ class CommandLexer:
 
     def stripWhitespace(self, lineData: str):
         idx = 0
-        # newline intentionally left out
+        # newline left out to preserve individual lines
         whitespaces = "\t "
         while idx < len(lineData) and lineData[idx] in whitespaces:
             idx += 1

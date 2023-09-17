@@ -1,15 +1,18 @@
-from typing import Iterable
+from typing import Iterable, Callable, TypeVar
 
 import sympy
 
 from src.common.types import Enum, EnumString
 from src.common.exceptions import TracebackException
 from src.app.widgets.colors import Colors
-from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken, AliasTemplate
+from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 
 # so the dang linter doesn't take FOREVER...
 createSymbol = eval("sympy.Symbol")
+exp = eval("sympy.exp")
+log = eval("sympy.log")
+ln = eval("sympy.ln")
 
 
 def isNonSymbolicValue(value: sympy.Basic):
@@ -42,20 +45,74 @@ def freeSymbolsOf(expr: sympy.Expr, *, includeExpressionLists: bool = True) -> s
     }
 
 
+class AliasTemplate:
+    def __init__(self, name: str, argNames: tuple[str, ...], templateTokens: tuple[LexerToken, ...]):
+        self.name = name
+        self.argNames = argNames
+        self.numArgs = len(argNames)
+        self.templateTokens = templateTokens
+
+    def __repr__(self):
+        return f"AliasTemplate({self.name}, {self.argNames})"
+    
+    def evaluate(self, *argVals: str):
+        assert len(argVals) == self.numArgs
+        replacements = dict(zip(self.argNames, argVals))
+        finalStr = ""
+        lastToken = None
+        for token in self.templateTokens:
+            finalStr += token.makeWhitespaceTo(lastToken)
+            if token.type is LexerTokenTypes.IDENTIFIER and token.match in replacements:
+                tokenReplacement = replacements[token.match]
+                finalStr += tokenReplacement
+            else:
+                finalStr += token.match
+            lastToken = token
+        return finalStr
+    
+
+class BuiltinAlias:
+    def __init__(self, name: str, numArgs: int, evalFn: Callable[..., sympy.Expr]):
+        self.name = name
+        self.numArgs = numArgs
+        self._evalFn = evalFn
+
+    def __repr__(self):
+        return f"BuiltinAlias({self.name})"
+    
+    def evaluate(self, *argVals: sympy.Expr):
+        return self._evalFn(*argVals)
+
+
+# TODO: make these static methods
 class CommandParser:
+    builtinAliases = {
+        "pi": BuiltinAlias("pi", 0, lambda: sympy.pi),
+        "e": BuiltinAlias("i", 0, lambda: sympy.E),
+        "exp": BuiltinAlias("exp", 1, lambda pow: exp(pow)),
+        "i": BuiltinAlias("i", 0, lambda: sympy.I),
+        "sqrt": BuiltinAlias("sqrt", 1, lambda expr: sympy.sqrt(expr)),
+        "√": BuiltinAlias("√", 1, lambda expr: sympy.sqrt(expr)),
+        "cbrt": BuiltinAlias("cbrt", 1, lambda expr: sympy.cbrt(expr)),
+        "∛": BuiltinAlias("∛", 1, lambda expr: sympy.cbrt(expr)),
+        "root": BuiltinAlias("root", 2, lambda n, base: sympy.root(n, base)),
+        "log": BuiltinAlias("log", 2, lambda n, base: log(n, base)),
+        "ln": BuiltinAlias("ln", 1, lambda n: ln(n)),
+    }
+
     def parseCommand(self, commandTokens: tuple[LexerToken, ...]):
         while len(commandTokens) > 0:
-            sequencer = _CommandParserSequencer(commandTokens)
+            sequencer = _CommandParserSequencer(commandTokens, self.builtinAliases)
             command = sequencer.sequenceCommand()
             yield command
             commandTokens = commandTokens[sequencer.numTokensParsed:]
 
     def parseExpressionList(self, exprListTokens: tuple[LexerToken, ...]):
-        sequencer = _CommandParserSequencer(exprListTokens)
+        sequencer = _CommandParserSequencer(exprListTokens, self.builtinAliases)
         expressions = sequencer.sequenceExpressionList()
         return expressions
 
-    def preprocessAliases(self, tokens: tuple[LexerToken, ...], aliases: dict[str, AliasTemplate]):
+    def preprocessAliases(self, tokens: tuple[LexerToken, ...], aliases: dict[str, "AliasTemplate"]):
         sequencer = _CommandAliasSequencer(tokens, aliases)
         processedTokens = sequencer.sequenceExpression(isPrimary = True)
         return processedTokens
@@ -124,10 +181,11 @@ class _CommandParserSequencer(_Sequencer):
         LexerTokenTypes.IDENTIFIER,
     )
 
-    def __init__(self, tokens: tuple[LexerToken, ...]):
+    def __init__(self, tokens: tuple[LexerToken, ...], builtinAliases: dict[str, "BuiltinAlias"]):
         super().__init__(tokens)
         self._allowExpressionList = True
         self._allowIdentifierValues = True
+        self._builtinAliases = builtinAliases
 
     def _convertLowPrecExprList(self, lowPrecExprList: list) -> sympy.Expr:
         for (idx, item) in enumerate(lowPrecExprList):
@@ -199,6 +257,15 @@ class _CommandParserSequencer(_Sequencer):
             self._consumeCurrToken(LexerTokenTypes.EOL)
             return Command.empty()
         
+        # branch specialCommand EOL
+        isSpecialCommand = self._currToken.type is LexerTokenTypes.IDENTIFIER and \
+            (self.numTokensParsed + 1) < len(self._tokens) and \
+            self._tokens[self.numTokensParsed + 1].type is LexerTokenTypes.COLON
+        if isSpecialCommand:
+            command = self.sequenceSpecialCommand()
+            self._consumeCurrToken(LexerTokenTypes.EOL)
+            return command
+
         # distinguish branches: relation, expression, aliasTemplate
         idx = self.numTokensParsed
         isRelations = False
@@ -381,8 +448,13 @@ class _CommandParserSequencer(_Sequencer):
             self._consumeCurrToken(LexerTokenTypes.BRACE_CLOSE)
             expressionsStr = ", ".join(str(expr) for expr in expressions)
             return createSymbol(f"{{{expressionsStr}}}")
+        
+        # branch builtinAliasCall
+        elif self._currToken.type is LexerTokenTypes.IDENTIFIER and self._currToken.match in self._builtinAliases:
+            expr = self.sequenceBuiltinAliasCall()
+            return expr
 
-        # # default branch: value/number
+        # default branch: value/number
         if self._allowIdentifierValues:
             (tokenType, valueStr) = self.sequenceValue()
         else:
@@ -394,6 +466,11 @@ class _CommandParserSequencer(_Sequencer):
 
         # (all valid branches)
         if self._currToken.type in self._valueTypes:
+            if self._currToken.type is LexerTokenTypes.IDENTIFIER:
+                if self.numTokensParsed + 1 < len(self._tokens):
+                    nextToken = self._tokens[self.numTokensParsed + 1]
+                    if nextToken.type is LexerTokenTypes.PAREN_OPEN:
+                        raise UnknownAliasException(self._tokens, self.numTokensParsed) 
             valueStr = self._currToken.match
             self._consumeCurrToken(self._currToken.type)
             return (tokenType, valueStr)
@@ -415,6 +492,18 @@ class _CommandParserSequencer(_Sequencer):
         identifier = self._currToken.match
         self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
         return identifier
+    
+    def sequenceSpecialCommand(self):
+        commandName = self._currToken.match.lower()
+        commandTokenIdx = self.numTokensParsed
+        self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
+        self._consumeCurrToken(LexerTokenTypes.COLON)
+
+        if commandName == "simplify":
+            expression = self.sequenceExpression()
+            return Command.simplifyExpression(expression)
+        else:
+            raise UnknownCommandException(self._tokens, commandTokenIdx)
     
     def sequenceAliasTemplate(self):
         # (all branches)
@@ -468,6 +557,59 @@ class _CommandParserSequencer(_Sequencer):
             self._consumeCurrToken(self._currToken.type)
         return templateStr.strip()
     
+    def sequenceBuiltinAliasCall(self):
+        # (all branches)
+        aliasName = self._currToken.match
+        aliasTemplate = self._builtinAliases[aliasName]
+        self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
+
+        # distinguish branches: IDENTIFIER, IDENTIFIER aliasArgs
+        aliasIdxsArgs: tuple[tuple[int, sympy.Expr], ...]
+        if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
+            aliasIdxsArgs = self.sequenceBuiltinAliasCallArgs()
+        else:
+            aliasIdxsArgs = tuple()
+
+        if len(aliasIdxsArgs) != aliasTemplate.numArgs:
+            aliasArgTokenIdxs = [tokenIdx for (tokenIdx, argStr) in aliasIdxsArgs]
+            tooManyArgs = len(aliasIdxsArgs) > aliasTemplate.numArgs
+            if tooManyArgs:
+                unexpectedTokenStartIdx = aliasArgTokenIdxs[aliasTemplate.numArgs]
+                parenCloseIdx = self.numTokensParsed - 1
+                unexpectedTokenIdxs = list(range(unexpectedTokenStartIdx, parenCloseIdx))
+            else:
+                parenCloseIdx = self.numTokensParsed - 1
+                unexpectedTokenIdxs = [parenCloseIdx]
+            raise AliasArgumentCountException(self._tokens, aliasTemplate.numArgs, len(aliasIdxsArgs), unexpectedTokenIdxs)
+
+        # default branch: IDENTIFIER
+        # branch: IDENTIFIER aliasArgs
+        aliasValue = aliasTemplate.evaluate(*[argExpr for (tokenIdx, argExpr) in aliasIdxsArgs])
+        return aliasValue
+    
+    def sequenceBuiltinAliasCallArgs(self):
+        # (all branches)
+        self._consumeCurrToken(LexerTokenTypes.PAREN_OPEN)
+
+        # distinguish branches: PAREN_OPEN PAREN_CLOSE, PAREN_OPEN expression PAREN_CLOSE, ...
+        aliasIdxsArgs: list[tuple[int, sympy.Expr]] = list()
+        if self._currToken.type is not LexerTokenTypes.PAREN_CLOSE:
+            argStartTokenIdx = self.numTokensParsed
+            aliasIdxsArgs.append((argStartTokenIdx, self.sequenceExpression()))
+            while self._currToken.type is LexerTokenTypes.COMMA:
+                argStartTokenIdx = self.numTokensParsed
+                self._consumeCurrToken(LexerTokenTypes.COMMA)
+                aliasIdxsArgs.append((argStartTokenIdx, self.sequenceExpression()))
+
+        # (all branches)
+        self._consumeCurrToken(LexerTokenTypes.PAREN_CLOSE)
+
+        # default branch: PAREN_OPEN PAREN_CLOSE
+        # branch: PAREN_OPEN expression PAREN_CLOSE
+        # branch: PAREN_OPEN expression COMMA expression PAREN_CLOSE
+        # ...
+        return tuple(aliasIdxsArgs)
+    
 
 class _CommandAliasSequencer(_Sequencer):
     _expressionDelimiters = (
@@ -476,7 +618,9 @@ class _CommandAliasSequencer(_Sequencer):
         LexerTokenTypes.EOL,
     )
 
-    def __init__(self, tokens: tuple[LexerToken, ...], aliases: dict[str, AliasTemplate]):
+    _AliasArgType = TypeVar("_AliasArgType")
+
+    def __init__(self, tokens: tuple[LexerToken, ...], aliases: dict[str, "AliasTemplate"]):
         super().__init__(tokens)
         self._aliases = aliases
         self._allowBacktickExpressions = False
@@ -516,8 +660,6 @@ class _CommandAliasSequencer(_Sequencer):
         return exprStr
     
     def sequenceAliasCall(self):
-        from src.app.appDriver import AliasTemplate
-
         # (all branches)
         aliasName = self._currToken.match
         aliasTemplate = self._aliases[aliasName]
@@ -526,7 +668,6 @@ class _CommandAliasSequencer(_Sequencer):
         # distinguish branches: IDENTIFIER, IDENTIFIER aliasArgs
         aliasIdxsArgs: tuple[tuple[int, str], ...]
         if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
-            assert isinstance(aliasTemplate, AliasTemplate)
             aliasIdxsArgs = self.sequenceAliasCallArgs()
         else:
             aliasIdxsArgs = tuple()
@@ -545,7 +686,7 @@ class _CommandAliasSequencer(_Sequencer):
 
         # default branch: IDENTIFIER
         # branch: IDENTIFIER aliasArgs
-        aliasValue = aliasTemplate(*[argStr for (tokenIdx, argStr) in aliasIdxsArgs])
+        aliasValue = aliasTemplate.evaluate(*[argStr for (tokenIdx, argStr) in aliasIdxsArgs])
         return aliasValue
     
     def sequenceAliasCallArgs(self):
@@ -583,6 +724,7 @@ class Command(Enum):
     EMPTY = CommandType("EMPTY")
     RECORD_RELATIONS = CommandType("RECORD_RELATIONS")
     EVALUATE_EXPRESSION = CommandType("EVALUATE_EXPRESSION")
+    SIMPLIFY_EXPRESSION = CommandType("SIMPLIFY_EXPRESSION")
     RECORD_ALIAS = CommandType("RECORD_ALIAS")
 
     def __init__(self, commandType: CommandType, data):
@@ -608,6 +750,10 @@ class Command(Enum):
         return cls(cls.EVALUATE_EXPRESSION, expression)
     
     @classmethod
+    def simplifyExpression(cls, expression: sympy.Expr):
+        return cls(cls.SIMPLIFY_EXPRESSION, expression)
+    
+    @classmethod
     def recordAlias(cls, aliasTemplate: tuple[str, tuple[str, ...], str]):
         return cls(cls.RECORD_ALIAS, aliasTemplate)
 
@@ -630,10 +776,17 @@ class EolException(TracebackException):
             tokens = tokens[:-1]
             eolPosition = lastToken.matchIdx
         else:
-            eolPosition = lastToken.matchIdx + len(lastToken.match)
+            eolPosition = lastToken.matchIdxEnd
         newEolToken = LexerToken(f" ...", LexerTokenTypes.EOL, eolPosition)
         tokens = tokens + (newEolToken,)
         super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [len(tokens) - 1], True)
+
+
+class UnknownAliasException(TracebackException):
+    def __init__(self, tokens: tuple[LexerToken, ...], aliasTokenIdx: int):
+        aliasName = tokens[aliasTokenIdx].match
+        message = f"[@termtip]Alias[/@termtip] [{Colors.textRed.hex}]{aliasName}[/] is not defined"
+        super().__init__(message, tokens, [aliasTokenIdx], True)
 
 
 class AliasArgumentCountException(TracebackException):
@@ -646,3 +799,9 @@ class AliasArgumentCountException(TracebackException):
         gramaticalS = "s" if expectedCount != 1 else ""
         fullMessage = f"[@termtip]Alias[/@termtip] expected [{Colors.textGreen.hex}]{expectedCount} argument{gramaticalS}[/], but [{Colors.textRed.hex}]{receivedGrammarStr}[/]"
         super().__init__(fullMessage, tokens, unexpectedTokenIdxs, True)
+
+class UnknownCommandException(TracebackException):
+    def __init__(self, tokens: tuple[LexerToken, ...], commandIdentifierTokenIdx: int):
+        commandName = tokens[commandIdentifierTokenIdx].match
+        message = f"Unknown [@termtip]command[/@termtip] [{Colors.textRed.hex}]{commandName}[/]"
+        super().__init__(message, tokens, [commandIdentifierTokenIdx], grayOutAfterBadTokens = True)

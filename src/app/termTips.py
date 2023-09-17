@@ -22,8 +22,11 @@ class TermTips:
             'alias': TermTip(
                 "Abstract: Alias Template",
                 (
-                    "Alias templates are fundamentally different than equality relations. " \
-                    "While they both substitute their parameters with values, alias templates " \
+                    "A special expression that allows the substitution of arbitrary " \
+                    "expressions or partial expressions in a repeatable way.",
+
+                    "Alias templates are fundamentally different than evaluating expressions. " \
+                    "While they both substitute their variables with values, alias templates " \
                     "logically perform their substitutions directly into the input string, as " \
                     "if you wrote their evaluated template out by hand. Consider this example:",
 
@@ -53,6 +56,25 @@ class TermTips:
                     self._renderer.formatLexerSyntax("5 squared() + 5"),
 
                     "(Parentheses are optional when the alias takes no arguments)",
+                )
+            ),
+            'built-in alias': TermTip(
+                "Abstract: Built-in Alias",
+                (
+                    "A predefined alias that provides special kinds of expressions.",
+
+                    "Built-in aliases are similar in concept to user-defined alias " \
+                    "templates, however there are two important distinctions.",
+                    
+                    "First, these pre-defined aliases work directly with expressions, " \
+                    "which means they take entire expressions as parameters and can " \
+                    "only be written in places where expressions (or variables) are " \
+                    "permitted. This means you can't pass partial expressions or " \
+                    "backticks as arguments to them, unlike user-defined alias templates.",
+
+                    "Second, because of the above, built-in aliases will appear to be " \
+                    "processed after user-defined alias templates, or in the case of " \
+                    "an error, not at all. This behavior is expected from Solver Pro." 
                 )
             ),
             'identifiers': 'identifier',
@@ -170,7 +192,28 @@ class TermTips:
             'backtick': TermTip(
                 "Punctuation: Backticks",
                 (
-                    # TODO: describe backticks
+                    "A paired punctuation that provides a way to explicitly specify " \
+                    "alias template arguments.",
+
+                    "Alias templates permit partial syntax. That means the parameters " \
+                    "you put in (and the result that comes out) don't have to be valid " \
+                    "expressions. Consider these commands:",
+
+                    self._renderer.formatLexerSyntax("plus(a, b) := a + b"),
+
+                    self._renderer.formatLexerSyntax("plus((1, 2))"),
+
+                    "The second command would result in an error of not enough arguments, "\
+                    "since parenthesized groups are still respected (even though " + \
+                    self._renderer.formatLexerSyntax("1, 2") + " " + \
+                    "is not a valid expression). To get around this, backticks can be used " \
+                    "to define arguments explicitly:",
+
+                    self._renderer.formatLexerSyntax("plus(`(1`, `2)`)"),
+
+                    "which will evaluate to",
+
+                    self._renderer.formatLexerSyntax("(1 + 2)"),
                 )
             ),
             'equals': TermTip(
