@@ -122,6 +122,14 @@ class AppDriverTester:
             ProcessResult(Command.EVALUATE_EXPRESSION, {8}),
         ), "Driver didn't correctly process multi-layered alias templates"
 
+    def testCanSimplifyExpressions(self):
+        driver = AppDriver()
+
+        results1 = tuple(driver.processCommandLines("simplify: x + x - y * y"))
+        assert results1 == (
+            ProcessResult(Command.SIMPLIFY_EXPRESSION, {sympy.parse_expr("x + x - y * y")}),
+        )
+
     def testThrowsOnRecursiveDependencies(self):
         driver = AppDriver()
 

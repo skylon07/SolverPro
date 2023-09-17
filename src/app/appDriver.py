@@ -186,6 +186,12 @@ class AppDriver:
             self._aliases[aliasName] = aliasTemplate
             return ProcessResult(Command.RECORD_ALIAS, aliasTemplate)
         
+        elif command.type is Command.SIMPLIFY_EXPRESSION:
+            expr: sympy.Expr = command.data
+            assert isinstance(expr, sympy.Expr)
+            expr = sympy.simplify(expr)
+            return ProcessResult(Command.SIMPLIFY_EXPRESSION, {expr})
+        
         else:
             raise NotImplementedError(f"Processing command of type {command.type} not implemented")
 

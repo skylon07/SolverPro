@@ -58,6 +58,7 @@ class TextRenderer:
             LexerTokenTypes.BRACE_CLOSE:    Colors.punctuation,
             LexerTokenTypes.BACKTICK:       Colors.punctuation,
             LexerTokenTypes.COMMA:          Colors.punctuation,
+            LexerTokenTypes.COLON:          Colors.punctuation,
             LexerTokenTypes.EQUALS:         Colors.operator,
             LexerTokenTypes.COLON_EQUALS:   Colors.operator,
             LexerTokenTypes.PLUS:           Colors.operator,

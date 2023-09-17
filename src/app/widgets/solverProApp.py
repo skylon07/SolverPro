@@ -122,7 +122,7 @@ class MainScreen(Screen):
                     renderer.formatRelationsRecorded(relationsData, highlightSyntax = True)
                 )
 
-            elif result.type is Command.EVALUATE_EXPRESSION:
+            elif result.type is Command.EVALUATE_EXPRESSION or result.type is Command.SIMPLIFY_EXPRESSION:
                 exprs: set[sympy.Expr] = result.data
                 assert isinstance(exprs, set)
                 self.writeToLogger(
