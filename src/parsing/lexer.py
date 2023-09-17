@@ -138,7 +138,7 @@ class CommandLexer:
                 LexerTokenTypes.FLOAT
             ), # yields to INTEGER or PERIOD
             LexerRecognizer(
-                r"[_a-zA-Z0-9]+|√",
+                r"[_a-zA-Z0-9]+|√|∛",
                 LexerTokenTypes.IDENTIFIER
             ), # yields to other keywords and INTEGER/FLOAT
         )
