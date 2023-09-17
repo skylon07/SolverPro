@@ -1,7 +1,7 @@
 import sympy
 
 from src.common.functions import runForError
-from src.parsing.parser import CommandParser, Command, AliasTemplate, ParseException, EolException, UnknownAliasException, AliasArgumentCountException
+from src.parsing.parser import CommandParser, Command, AliasTemplate, ParseException, EolException, UnknownAliasException, AliasArgumentCountException, UnknownCommandException
 from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
 
 
@@ -745,6 +745,16 @@ class CommandParserTester:
             LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    21),
             LexerToken("",      LexerTokenTypes.EOL,            22),
         ), aliases))))) == [Command.evaluateExpression(createSymbol("{1, 2, 3}") + 1)]
+
+    def testCommandProcessing(self):
+        parser = CommandParser()
+
+        assert list(parser.parseCommand((
+            LexerToken("simplify",  LexerTokenTypes.IDENTIFIER, 0),
+            LexerToken(":",         LexerTokenTypes.COLON,      8),
+            LexerToken("x",         LexerTokenTypes.IDENTIFIER, 9),
+            LexerToken("",          LexerTokenTypes.EOL,        10),
+        ))) == [Command.simplifyExpression(sympy.parse_expr("x"))]
         
     def testEolExceptionsMakeEolVisible(self):
         parser = CommandParser()
@@ -1166,3 +1176,12 @@ class CommandParserTester:
         error18 = runForError(attempt18)
         assert type(error18) is AliasArgumentCountException
         assert error18.badTokenIdxs == [7, 8, 9, 10]
+
+        def attempt19():
+            return list(parser.parseCommand((
+                LexerToken("undefinedCmd",  LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken(":",             LexerTokenTypes.COLON,          11),
+            )))
+        error19 = runForError(attempt19)
+        assert type(error19) is UnknownCommandException
+        assert error19.badTokenIdxs == [0]

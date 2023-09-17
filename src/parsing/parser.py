@@ -255,6 +255,15 @@ class _CommandParserSequencer(_Sequencer):
             self._consumeCurrToken(LexerTokenTypes.EOL)
             return Command.empty()
         
+        # branch specialCommand EOL
+        isSpecialCommand = self._currToken.type is LexerTokenTypes.IDENTIFIER and \
+            (self.numTokensParsed + 1) < len(self._tokens) and \
+            self._tokens[self.numTokensParsed + 1].type is LexerTokenTypes.COLON
+        if isSpecialCommand:
+            command = self.sequenceSpecialCommand()
+            self._consumeCurrToken(LexerTokenTypes.EOL)
+            return command
+
         # distinguish branches: relation, expression, aliasTemplate
         idx = self.numTokensParsed
         isRelations = False
@@ -482,6 +491,18 @@ class _CommandParserSequencer(_Sequencer):
         self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
         return identifier
     
+    def sequenceSpecialCommand(self):
+        commandName = self._currToken.match.lower()
+        commandTokenIdx = self.numTokensParsed
+        self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
+        self._consumeCurrToken(LexerTokenTypes.COLON)
+
+        if commandName == "simplify":
+            expression = self.sequenceExpression()
+            return Command.simplifyExpression(expression)
+        else:
+            raise UnknownCommandException(self._tokens, commandTokenIdx)
+    
     def sequenceAliasTemplate(self):
         # (all branches)
         aliasName = self._currToken.match
@@ -701,6 +722,7 @@ class Command(Enum):
     EMPTY = CommandType("EMPTY")
     RECORD_RELATIONS = CommandType("RECORD_RELATIONS")
     EVALUATE_EXPRESSION = CommandType("EVALUATE_EXPRESSION")
+    SIMPLIFY_EXPRESSION = CommandType("SIMPLIFY_EXPRESSION")
     RECORD_ALIAS = CommandType("RECORD_ALIAS")
 
     def __init__(self, commandType: CommandType, data):
@@ -724,6 +746,10 @@ class Command(Enum):
     @classmethod
     def evaluateExpression(cls, expression: sympy.Expr):
         return cls(cls.EVALUATE_EXPRESSION, expression)
+    
+    @classmethod
+    def simplifyExpression(cls, expression: sympy.Expr):
+        return cls(cls.SIMPLIFY_EXPRESSION, expression)
     
     @classmethod
     def recordAlias(cls, aliasTemplate: tuple[str, tuple[str, ...], str]):
@@ -771,3 +797,9 @@ class AliasArgumentCountException(TracebackException):
         gramaticalS = "s" if expectedCount != 1 else ""
         fullMessage = f"[@termtip]Alias[/@termtip] expected [{Colors.textGreen.hex}]{expectedCount} argument{gramaticalS}[/], but [{Colors.textRed.hex}]{receivedGrammarStr}[/]"
         super().__init__(fullMessage, tokens, unexpectedTokenIdxs, True)
+
+class UnknownCommandException(TracebackException):
+    def __init__(self, tokens: tuple[LexerToken, ...], commandIdentifierTokenIdx: int):
+        commandName = tokens[commandIdentifierTokenIdx].match
+        message = f"Unknown [@termtip]command[/@termtip] [{Colors.textRed.hex}]{commandName}[/]"
+        super().__init__(message, tokens, [commandIdentifierTokenIdx], grayOutAfterBadTokens = True)
