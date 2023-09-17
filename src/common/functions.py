@@ -105,3 +105,6 @@ class SolverProExprPrinter(StrPrinter):
     def _print_exp(self, expr: sympy.exp, rational: bool = False):
         assert len(expr.args) == 1, "exp() didn't take only one argument"
         return self._print_Pow(sympy.E ** expr.args[0], rational)
+    
+    def _print_log(self, expr: sympy.log):
+        return "ln(%s)" % self._print(expr.args[0])

@@ -97,7 +97,7 @@ class CommandParser:
         "∛": BuiltinAlias("∛", 1, lambda expr: sympy.cbrt(expr)),
         "root": BuiltinAlias("root", 2, lambda n, base: sympy.root(n, base)),
         "log": BuiltinAlias("log", 2, lambda n, base: log(n, base)),
-        "ln": BuiltinAlias("log", 1, lambda n: ln(n)),
+        "ln": BuiltinAlias("ln", 1, lambda n: ln(n)),
     }
 
     def parseCommand(self, commandTokens: tuple[LexerToken, ...]):
