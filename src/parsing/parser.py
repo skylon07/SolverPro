@@ -10,6 +10,8 @@ from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 # so the dang linter doesn't take FOREVER...
 createSymbol = eval("sympy.Symbol")
+log = eval("sympy.log")
+ln = eval("sympy.ln")
 
 
 def isNonSymbolicValue(value: sympy.Basic):
@@ -84,7 +86,16 @@ class BuiltinAlias:
 # TODO: make these static methods
 class CommandParser:
     builtinAliases = {
-        "sqrt": BuiltinAlias("sqrt", 1, lambda expr: sympy.sqrt(expr))
+        "pi": BuiltinAlias("pi", 0, lambda: sympy.pi),
+        "e": BuiltinAlias("i", 0, lambda: sympy.E),
+        "i": BuiltinAlias("i", 0, lambda: sympy.I),
+        "sqrt": BuiltinAlias("sqrt", 1, lambda expr: sympy.sqrt(expr)),
+        "√": BuiltinAlias("√", 1, lambda expr: sympy.sqrt(expr)),
+        "cbrt": BuiltinAlias("cbrt", 1, lambda expr: sympy.cbrt(expr)),
+        "∛": BuiltinAlias("∛", 1, lambda expr: sympy.cbrt(expr)),
+        "root": BuiltinAlias("root", 2, lambda n, base: sympy.root(n, base)),
+        "log": BuiltinAlias("log", 2, lambda n, base: log(n, base)),
+        "ln": BuiltinAlias("log", 1, lambda n: ln(n)),
     }
 
     def parseCommand(self, commandTokens: tuple[LexerToken, ...]):

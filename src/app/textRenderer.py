@@ -245,6 +245,10 @@ class TextRenderer:
     
     def _correctExprSyntaxes(self, exprStr: str):
         exprStr = re.compile(r"\*\*").sub("^", exprStr)
+        exprStr = re.compile(r"(?<![a-zA-z0-9])E(?![a-zA-z0-9])").sub("e", exprStr)
+        exprStr = re.compile(r"(?<![a-zA-z0-9])I(?![a-zA-z0-9])").sub("i", exprStr)
+        exprStr = re.compile(r"(?<![a-zA-z0-9])sqrt(?![a-zA-z0-9])").sub("√", exprStr)
+        exprStr = re.compile(r"(?<![a-zA-z0-9])cbrt(?![a-zA-z0-9])").sub("∛", exprStr)
         return exprStr
     
     def _sanitizeInput(self, linesStr: FormattedStr) -> FormattedStr:
