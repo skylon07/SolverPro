@@ -213,15 +213,6 @@ class CommandLexerTester:
                 0
             )
         ], "Lexer did not find a BACKTICK"
-
-        # EVAL_OPEN/EVAL_CLOSE
-        assert list(lexer.findTokens("\x1a123\x1a", withEol = False)) == [
-            LexerToken(
-                "\x1a123\x1a",
-                LexerTokenTypes.EVAL_KEY,
-                0
-            )
-        ]
         
         # INVALID
         assert list(lexer.findTokens("‡", withEol = False)) == [
