@@ -10,6 +10,7 @@ from src.parsing.lexer import LexerTokenType, LexerTokenTypes, LexerToken
 
 # so the dang linter doesn't take FOREVER...
 createSymbol = eval("sympy.Symbol")
+exp = eval("sympy.exp")
 log = eval("sympy.log")
 ln = eval("sympy.ln")
 
@@ -88,6 +89,7 @@ class CommandParser:
     builtinAliases = {
         "pi": BuiltinAlias("pi", 0, lambda: sympy.pi),
         "e": BuiltinAlias("i", 0, lambda: sympy.E),
+        "exp": BuiltinAlias("exp", 1, lambda pow: exp(pow)),
         "i": BuiltinAlias("i", 0, lambda: sympy.I),
         "sqrt": BuiltinAlias("sqrt", 1, lambda expr: sympy.sqrt(expr)),
         "√": BuiltinAlias("√", 1, lambda expr: sympy.sqrt(expr)),

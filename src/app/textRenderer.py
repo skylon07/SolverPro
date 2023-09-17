@@ -7,6 +7,7 @@ from rich.markup import render as renderMarkup
 from rich.text import Text
 
 from src.common.types import FormattedStr
+from src.common.functions import toExprStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.app.widgets.colors import Colors
 from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer
@@ -90,7 +91,7 @@ class TextRenderer:
         return Colors.identifier
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False, highlightSyntax: bool = False):
-        relationStr = self._correctExprSyntaxes(f"{relation.leftExpr} = {relation.rightExpr}")
+        relationStr = f"{toExprStr(relation.leftExpr)} = {toExprStr(relation.rightExpr)}"
         if highlightSyntax:
             relationStr = self.formatLexerSyntax(relationStr)
         linesList = [relationStr]
@@ -124,7 +125,7 @@ class TextRenderer:
             self.formatLexerSyntax(exprStr) if highlightSyntax
                 else exprStr
             for expr in exprs
-            for exprStr in [self._correctExprSyntaxes(str(expr))]
+            for exprStr in [toExprStr(expr)]
         ])
     
     def formatAliasTemplate(self, aliasTemplate: AliasTemplate, *, highlightSyntax: bool = False):
@@ -163,10 +164,7 @@ class TextRenderer:
         
         elif isinstance(exception, MultilineException):
             return self._formatLinesForException(
-                (
-                    self._correctExprSyntaxes(line)
-                    for line in exception.messageLines
-                ),
+                exception.messageLines,
                 exception, 
                 withErrorHeader = withErrorHeader,
             )
@@ -245,14 +243,6 @@ class TextRenderer:
                 formattedStr += token.match
             lastToken = token
         return formattedStr
-    
-    def _correctExprSyntaxes(self, exprStr: str):
-        exprStr = re.compile(r"\*\*").sub("^", exprStr)
-        exprStr = re.compile(r"(?<![a-zA-z0-9])E(?![a-zA-z0-9])").sub("e", exprStr)
-        exprStr = re.compile(r"(?<![a-zA-z0-9])I(?![a-zA-z0-9])").sub("i", exprStr)
-        exprStr = re.compile(r"(?<![a-zA-z0-9])sqrt(?![a-zA-z0-9])").sub("√", exprStr)
-        exprStr = re.compile(r"(?<![a-zA-z0-9])cbrt(?![a-zA-z0-9])").sub("∛", exprStr)
-        return exprStr
     
     def _sanitizeInput(self, linesStr: FormattedStr) -> FormattedStr:
         return linesStr.replace("\\", "◊")

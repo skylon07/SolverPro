@@ -4,7 +4,7 @@ import bisect
 
 import sympy
 
-from src.common.functions import first, surroundJoin
+from src.common.functions import first, surroundJoin, toExprStr
 from src.common.types import FormattedStr
 from src.common.exceptions import MultilineException
 from src.app.widgets.colors import Colors
@@ -758,7 +758,7 @@ class BadRelationException(MultilineException, ABC):
         rightExprFormatted = self.substitutePoorSymbols(contradictingRelation.rightExpr, poorSymbolValues)
         super().__init__((
             message,
-            f"[{Colors.textRed.hex}]{leftExprFormatted} = {rightExprFormatted}[/]",
+            f"[{Colors.textRed.hex}]{toExprStr(leftExprFormatted)} = {toExprStr(rightExprFormatted)}[/]",
             *[
                 f"[{Colors.textYellow.hex}]({poorSymbol} = {first(valueSet)})[/]" if valueSet is not None and len(valueSet) == 1
                     else f"[{Colors.textYellow.hex}]({poorSymbol} = {valueSet})[/]" if valueSet is not None
@@ -775,7 +775,7 @@ class BadRelationException(MultilineException, ABC):
             ", "
         )
     
-    def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> sympy.Basic:
+    def substitutePoorSymbols(self, expr: sympy.Expr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None]) -> sympy.Expr:
         return subsExpr(expr, {
             poorSymbol: createSymbol(f"[{Colors.textYellow.hex}]{poorSymbol}[/]")
             for poorSymbol in poorSymbolValues.keys()
