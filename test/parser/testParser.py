@@ -144,13 +144,13 @@ class CommandParserTester:
             LexerToken("=",     LexerTokenTypes.EQUALS,     14),
             LexerToken("d",     LexerTokenTypes.IDENTIFIER, 16),
             LexerToken("+",     LexerTokenTypes.PLUS,       18),
-            LexerToken("e",     LexerTokenTypes.IDENTIFIER, 20),
+            LexerToken("E",     LexerTokenTypes.IDENTIFIER, 20),
             LexerToken("=",     LexerTokenTypes.EQUALS,     22),
             LexerToken("f",     LexerTokenTypes.IDENTIFIER, 24),
             LexerToken("*",     LexerTokenTypes.STAR,       25),
             LexerToken("g",     LexerTokenTypes.FLOAT,      26),
             LexerToken("",      LexerTokenTypes.EOL,        27),
-        ))) == [Command.recordRelations([sympy.parse_expr("a+b"), sympy.parse_expr("c-12.34"), sympy.parse_expr("d+e"), sympy.parse_expr("f*g")])], \
+        ))) == [Command.recordRelations([sympy.parse_expr("a+b"), sympy.parse_expr("c-12.34"), createSymbol("d") + createSymbol("E"), sympy.parse_expr("f*g")])], \
             "Parser failed to parse 4-term relation"
         
     def testHandlesExpressionListSymbols(self):
@@ -460,7 +460,7 @@ class CommandParserTester:
             LexerToken("*", LexerTokenTypes.STAR,       10),
             LexerToken("d", LexerTokenTypes.IDENTIFIER, 12),
             LexerToken("/", LexerTokenTypes.SLASH,      14),
-            LexerToken("e", LexerTokenTypes.IDENTIFIER, 16),
+            LexerToken("z", LexerTokenTypes.IDENTIFIER, 16),
             LexerToken("^", LexerTokenTypes.CARROT,     18),
             LexerToken("f", LexerTokenTypes.IDENTIFIER, 20),
             LexerToken("-", LexerTokenTypes.DASH,       22),
@@ -480,7 +480,7 @@ class CommandParserTester:
             LexerToken("^", LexerTokenTypes.CARROT,     50),
             LexerToken("7", LexerTokenTypes.INTEGER,    52),
             LexerToken("",  LexerTokenTypes.EOL,        53),
-        ))) == [Command.evaluateExpression(sympy.parse_expr("a-b+c*d/e**f-g+h/a*j/l+4-5**7"))]
+        ))) == [Command.evaluateExpression(sympy.parse_expr("a-b+c*d/z**f-g+h/a*j/l+4-5**7"))]
         
         assert list(parser.parseCommand((
             LexerToken("a", LexerTokenTypes.IDENTIFIER, 0),
@@ -495,9 +495,9 @@ class CommandParserTester:
             LexerToken("d", LexerTokenTypes.IDENTIFIER, 15),
             LexerToken("-", LexerTokenTypes.DASH,       17),
             LexerToken("-", LexerTokenTypes.DASH,       19),
-            LexerToken("e", LexerTokenTypes.IDENTIFIER, 20),
+            LexerToken("z", LexerTokenTypes.IDENTIFIER, 20),
             LexerToken("",  LexerTokenTypes.EOL,        21),
-        ))) == [Command.evaluateExpression(sympy.parse_expr("a+-b*-c/-d--e"))]
+        ))) == [Command.evaluateExpression(sympy.parse_expr("a+-b*-c/-d--z"))]
         
         assert list(parser.parseCommand((
             LexerToken("-", LexerTokenTypes.DASH,       0),
@@ -946,7 +946,7 @@ class CommandParserTester:
                 LexerToken("d", LexerTokenTypes.IDENTIFIER,     18),
                 LexerToken("+", LexerTokenTypes.PLUS,           20),
                 LexerToken("*", LexerTokenTypes.STAR,           21),
-                LexerToken("e", LexerTokenTypes.IDENTIFIER,     22),
+                LexerToken("z", LexerTokenTypes.IDENTIFIER,     22),
                 LexerToken(")", LexerTokenTypes.PAREN_CLOSE,    23),
                 LexerToken("/", LexerTokenTypes.SLASH,          25),
                 LexerToken("d", LexerTokenTypes.IDENTIFIER,     27),
@@ -970,7 +970,7 @@ class CommandParserTester:
             LexerToken("d", LexerTokenTypes.IDENTIFIER,     18),
             LexerToken("+", LexerTokenTypes.PLUS,           20),
             LexerToken("*", LexerTokenTypes.STAR,           21),
-            LexerToken("e", LexerTokenTypes.IDENTIFIER,     22),
+            LexerToken("z", LexerTokenTypes.IDENTIFIER,     22),
             LexerToken(")", LexerTokenTypes.PAREN_CLOSE,    23),
             LexerToken("/", LexerTokenTypes.SLASH,          25),
             LexerToken("d", LexerTokenTypes.IDENTIFIER,     27),

@@ -101,7 +101,7 @@ class AppDriverTester:
             "Driver did not detect all indexes of the undefined identifier tokens"
         
         def attemptBadCommand3():
-            return tuple(driver.processCommandLines("a + b + defined + c/b*defined^e - f/g"))
+            return tuple(driver.processCommandLines("a + b + defined + c/b*defined^z - f/g"))
         error3 = runForError(attemptBadCommand3)
         assert type(error3) is UndefinedIdentifiersException, \
             "Driver did not throw with multiple unidentified identifiers present"
