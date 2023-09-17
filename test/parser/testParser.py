@@ -706,8 +706,45 @@ class CommandParserTester:
         ), aliases))))) == [Command.evaluateExpression(sympy.parse_expr("sqrt(sqrt(4) + 2) + 1 + 1 + sqrt(sqrt(2 + 2) + 2)"))], \
             "Parser failed to correctly process multiple nested aliases of various types"
         
-        # TODO: alias calls with expressions with parenthesis
-        # TODO: alias calls with expression lists (in parenthesis and backticks)
+        assert list(parser.parseCommand(tuple(lexer.findTokens(parser.preprocessAliases((
+            LexerToken("plus",  LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     4),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     5),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        6),
+            LexerToken("-",     LexerTokenTypes.DASH,           7),
+            LexerToken("1",     LexerTokenTypes.INTEGER,        8),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    9),
+            LexerToken(",",     LexerTokenTypes.COMMA,          10),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     12),
+            LexerToken("4",     LexerTokenTypes.INTEGER,        13),
+            LexerToken("-",     LexerTokenTypes.DASH,           14),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        15),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    16),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    17),
+            LexerToken("",      LexerTokenTypes.EOL,            18),
+        ), aliases))))) == [Command.evaluateExpression(sympy.parse_expr("(2-1) + (4-2)"))]
+        
+        assert list(parser.parseCommand(tuple(lexer.findTokens(parser.preprocessAliases((
+            LexerToken("plus",  LexerTokenTypes.IDENTIFIER,     0),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     4),
+            LexerToken("`",     LexerTokenTypes.BACKTICK,       5),
+            LexerToken("(",     LexerTokenTypes.PAREN_OPEN,     6),
+            LexerToken("{",     LexerTokenTypes.BRACE_OPEN,     7),
+            LexerToken("1",     LexerTokenTypes.INTEGER,        8),
+            LexerToken(",",     LexerTokenTypes.COMMA,          9),
+            LexerToken("2",     LexerTokenTypes.INTEGER,        10),
+            LexerToken(",",     LexerTokenTypes.COMMA,          11),
+            LexerToken("3",     LexerTokenTypes.INTEGER,        12),
+            LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    13),
+            LexerToken("`",     LexerTokenTypes.BACKTICK,       14),
+            LexerToken(",",     LexerTokenTypes.COMMA,          15),
+            LexerToken("1",     LexerTokenTypes.INTEGER,        17),
+            LexerToken("`",     LexerTokenTypes.BACKTICK,       18),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    19),
+            LexerToken("`",     LexerTokenTypes.BACKTICK,       20),
+            LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    21),
+            LexerToken("",      LexerTokenTypes.EOL,            22),
+        ), aliases))))) == [Command.evaluateExpression(createSymbol("{1, 2, 3}") + 1)]
         
     def testEolExceptionsMakeEolVisible(self):
         parser = CommandParser()
