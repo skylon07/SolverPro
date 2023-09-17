@@ -108,8 +108,7 @@ class AppDriverTester:
         assert error3.badTokenIdxs == (0, 2, 6, 8, 12, 14, 16), \
             "Driver did not detect all indexes of all the undidentified identifier tokens"
         
-    # TODO: test aliases (creating them, creating with an alias call in the template,
-    #       alias calls with other alias calls as arguments)
+    # TODO: test creating aliases
         
     def testProcessesAliasTemplateDependencies(self):
         driver = AppDriver()
