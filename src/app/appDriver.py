@@ -23,6 +23,8 @@ class AppDriver:
 
         self._aliases: dict[str, AliasTemplate] = dict()
 
+        self._warmUpSimplify()
+
     def processCommandLines(self, commandsStr: str):
         try:
             tokensWithAliases = tuple(self._lexer.findTokens(commandsStr))
@@ -194,6 +196,11 @@ class AppDriver:
         
         else:
             raise NotImplementedError(f"Processing command of type {command.type} not implemented")
+        
+    def _warmUpSimplify(self):
+        # for some reason, the first call to this is a tad slow...
+        # this just gets that out of the way so the app doesn't feel slow
+        return sympy.simplify("x + x")
 
    
 class ProcessResult:

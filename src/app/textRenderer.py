@@ -85,6 +85,8 @@ class TextRenderer:
             nextToken = tokens[tokenIdx + 1]
             if nextToken.type in (LexerTokenTypes.PAREN_OPEN, LexerTokenTypes.COLON_EQUALS):
                 return Colors.alias
+            elif nextToken.type is LexerTokenTypes.COLON:
+                return Colors.number
         return Colors.identifier
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False, highlightSyntax: bool = False):
