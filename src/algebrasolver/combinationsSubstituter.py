@@ -33,8 +33,13 @@ class CombinationsSubstituter:
                 subExpr = self._subsUntilFixed(expression, symbolValueCombination)
                 yield ConditionalValue(subExpr, conditions)
     
-    def substituteForMapping(self) -> dict[sympy.Expr, ConditionalValue[sympy.Expr]]:
-        return dict(self._substituteForMapPairs())
+    def substituteForMapping(self) -> dict[sympy.Expr, set[ConditionalValue[sympy.Expr]]]:
+        result: dict[sympy.Expr, set[ConditionalValue[sympy.Expr]]] = dict()
+        for (expression, conditionalValue) in self._substituteForMapPairs():
+            valueSet = result.get(expression, set())
+            valueSet.add(conditionalValue)
+            result[expression] = valueSet
+        return result
 
     def _substituteForMapPairs(self) -> Generator[tuple[sympy.Expr, ConditionalValue[sympy.Expr]], Any, None]:
         for symbolValueCombination in self._generateCombinations(0, 0):

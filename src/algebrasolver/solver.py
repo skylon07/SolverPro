@@ -245,10 +245,11 @@ class AlgebraSolver:
                         conditionalSolution.conditions
                     )
                 )
-                for (unsubbedSolutionExpr, subbedConditionalSolution) in CombinationsSubstituter(
+                for (unsubbedSolutionExpr, subbedConditionalSolutions) in CombinationsSubstituter(
                     {conditionalSolution.value for conditionalSolution in unsolvedConditionalSolutions},
                     self._symbolValuesDatabase
                 ).substituteForMapping().items()
+                for subbedConditionalSolution in subbedConditionalSolutions
                 for conditionalSolution in conditionalSolutionsWithKnownSymbols
                 if conditionalSolution.value == unsubbedSolutionExpr
             }

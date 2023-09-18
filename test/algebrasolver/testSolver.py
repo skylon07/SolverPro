@@ -699,3 +699,31 @@ class AlgebraSolverTester:
         assert solver6.substituteKnownsFor(sympy.parse_expr("b")) == {7}
         assert solver6.substituteKnownsFor(sympy.parse_expr("c")) == {3}
         assert solver6.substituteKnownsFor(sympy.parse_expr("d")) == {10}
+
+        # x*y = z + 2
+        # x + y = 7
+        # z = 2*(x + 1)
+        solver7 = AlgebraSolver()
+        solver7.recordRelation(Relation(sympy.parse_expr("x*y"), sympy.parse_expr("z + 2")))
+        solver7.recordRelation(Relation(sympy.parse_expr("x + y"), sympy.parse_expr("7")))
+        solver7.recordRelation(Relation(sympy.parse_expr("z"), sympy.parse_expr("2*(x + 1)")))
+        # (x = {4, 1})
+        # (y = {3, 6})
+        # (z = {10, 4})
+        assert solver7.substituteKnownsFor(sympy.parse_expr("x")) == {4, 1}
+        assert solver7.substituteKnownsFor(sympy.parse_expr("y")) == {3, 6}
+        assert solver7.substituteKnownsFor(sympy.parse_expr("z")) == {10, 4}
+
+        # x*y = z + 2
+        # x + y = 11
+        # z = 2*(x + 3)
+        solver8 = AlgebraSolver()
+        solver8.recordRelation(Relation(sympy.parse_expr("x*y"), sympy.parse_expr("z + 2")))
+        solver8.recordRelation(Relation(sympy.parse_expr("x + y"), sympy.parse_expr("11")))
+        solver8.recordRelation(Relation(sympy.parse_expr("z"), sympy.parse_expr("2*(x + 3)")))
+        # (x = {1, 8})
+        # (y = {10, 3})
+        # (z = {8, 22})
+        assert solver8.substituteKnownsFor(sympy.parse_expr("x")) == {1, 8}
+        assert solver8.substituteKnownsFor(sympy.parse_expr("y")) == {10, 3}
+        assert solver8.substituteKnownsFor(sympy.parse_expr("z")) == {8, 22}
