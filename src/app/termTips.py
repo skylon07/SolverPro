@@ -77,6 +77,23 @@ class TermTips:
                     "an error, not at all. This behavior is expected from Solver Pro." 
                 )
             ),
+            'command': TermTip(
+                "Abstract: Command",
+                (
+                    "A special syntax that allows Solver Pro to perform extended " \
+                    "functionality.",
+
+                    "Commands are generally run to perform uncommon actions " \
+                    "(that is, an action that isn't \"solve this\" or \"tell me what " \
+                    "this variable is\"). A command is run by typing its name, " \
+                    "followed by a colon, at the beginning of a line.",
+
+                    "Currently available commands:",
+
+                    self._renderer.formatLexerSyntax("simplify: expr") + "\n" + \
+                    "Processes an expression without substituting known/inferred values.",
+                )
+            ),
             'identifiers': 'identifier',
             'identifier': TermTip(
                 "Abstract: Identifier",
