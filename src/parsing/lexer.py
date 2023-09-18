@@ -1,154 +1,90 @@
-import re
-
-from src.common.types import Enum, EnumString
-
-
-class LexerTokenType(EnumString):
-    pass # intentionally left blank
+from src.parsing.lexerHelpers import *
+from src.parsing.lexerTypes import *
 
 
-class LexerTokenTypes(Enum):
-    IDENTIFIER      = LexerTokenType("IDENTIFIER")
-    INTEGER         = LexerTokenType("INTEGER")
-    FLOAT           = LexerTokenType("FLOAT")
-    PAREN_OPEN      = LexerTokenType("PAREN_OPEN")
-    PAREN_CLOSE     = LexerTokenType("PAREN_CLOSE")
-    BRACE_OPEN      = LexerTokenType("BRACE_OPEN")
-    BRACE_CLOSE     = LexerTokenType("BRACE_CLOSE")
-    BACKTICK        = LexerTokenType("BACKTICK")
-    COLON           = LexerTokenType("COLON")
-    COMMA           = LexerTokenType("COMMA")
-    EQUALS          = LexerTokenType("EQUALS")
-    COLON_EQUALS    = LexerTokenType("COLON_EQUALS")
-    PLUS            = LexerTokenType("PLUS")
-    DASH            = LexerTokenType("DASH")
-    STAR            = LexerTokenType("STAR")
-    SLASH           = LexerTokenType("SLASH")
-    CARROT          = LexerTokenType("CARROT") # TODO: ~~CARROT~~ --> CARET
-    EOL             = LexerTokenType("EOL")
-    INVALID         = LexerTokenType("INVALID")
-
-
-class LexerToken:
-    def __init__(self, matchedStr: str, tokenType: LexerTokenType, matchIdx: int):
-        self.match = matchedStr
-        self.type = tokenType
-        self.matchIdx = matchIdx
-
-    @property
-    def matchIdxEnd(self):
-        return self.matchIdx + len(self.match)
-
-    def __repr__(self):
-        return f"LexerToken('{self.match}', {self.type}, {self.matchIdx})"
-    
-    def __eq__(self, other):
-        if type(other) != LexerToken:
-            return False
-        
-        return \
-            self.match == other.match and \
-            self.type == other.type and \
-            self.matchIdx == other.matchIdx
-    
-    def spacesBetween(self, otherToken: "LexerToken | None"):
-        if otherToken is not None:
-            firstToken = self if self.matchIdx < otherToken.matchIdx else otherToken
-            secondToken = otherToken if firstToken is self else self
-            firstTokenMatchIdxEnd = firstToken.matchIdx + len(firstToken.match)
-            numSpaces = secondToken.matchIdx - firstTokenMatchIdxEnd
-        else:
-            numSpaces = self.matchIdx
-        return numSpaces
-    
-    def makeWhitespaceTo(self, otherToken: "LexerToken | None"):
-        return " " * self.spacesBetween(otherToken)
-
-
-# TODO: make these static methods
 class CommandLexer:
     types = LexerTokenTypes()
     
-    def __init__(self):
-        self._recognizers = (
-            LexerRecognizer(
-                r"(?!_)[0-9_]+(?<!_)",
-                LexerTokenTypes.INTEGER
-            ),
-            LexerRecognizer(
-                r"\(",
-                LexerTokenTypes.PAREN_OPEN
-            ),
-            LexerRecognizer(
-                r"\)",
-                LexerTokenTypes.PAREN_CLOSE
-            ),
-            LexerRecognizer(
-                r"\{",
-                LexerTokenTypes.BRACE_OPEN
-            ),
-            LexerRecognizer(
-                r"\}",
-                LexerTokenTypes.BRACE_CLOSE
-            ),
-            LexerRecognizer(
-                r"`",
-                LexerTokenTypes.BACKTICK
-            ),
-            LexerRecognizer(
-                r",",
-                LexerTokenTypes.COMMA
-            ),
-            LexerRecognizer(
-                r"=",
-                LexerTokenTypes.EQUALS
-            ),
-            LexerRecognizer(
-                r":=",
-                LexerTokenTypes.COLON_EQUALS
-            ),
-            LexerRecognizer(
-                r"\+",
-                LexerTokenTypes.PLUS
-            ),
-            LexerRecognizer(
-                r"-",
-                LexerTokenTypes.DASH
-            ),
-            LexerRecognizer(
-                r"\*",
-                LexerTokenTypes.STAR
-            ),
-            LexerRecognizer(
-                r"/",
-                LexerTokenTypes.SLASH
-            ),
-            LexerRecognizer(
-                r"\^",
-                LexerTokenTypes.CARROT
-            ),
-            LexerRecognizer(
-                r":",
-                LexerTokenTypes.COLON
-            ),
+    _recognizers = (
+        LexerRecognizer(
+            r"(?!_)[0-9_]+(?<!_)",
+            LexerTokenTypes.INTEGER
+        ),
+        LexerRecognizer(
+            r"\(",
+            LexerTokenTypes.PAREN_OPEN
+        ),
+        LexerRecognizer(
+            r"\)",
+            LexerTokenTypes.PAREN_CLOSE
+        ),
+        LexerRecognizer(
+            r"\{",
+            LexerTokenTypes.BRACE_OPEN
+        ),
+        LexerRecognizer(
+            r"\}",
+            LexerTokenTypes.BRACE_CLOSE
+        ),
+        LexerRecognizer(
+            r"`",
+            LexerTokenTypes.BACKTICK
+        ),
+        LexerRecognizer(
+            r",",
+            LexerTokenTypes.COMMA
+        ),
+        LexerRecognizer(
+            r"=",
+            LexerTokenTypes.EQUALS
+        ),
+        LexerRecognizer(
+            r":=",
+            LexerTokenTypes.COLON_EQUALS
+        ),
+        LexerRecognizer(
+            r"\+",
+            LexerTokenTypes.PLUS
+        ),
+        LexerRecognizer(
+            r"-",
+            LexerTokenTypes.DASH
+        ),
+        LexerRecognizer(
+            r"\*",
+            LexerTokenTypes.STAR
+        ),
+        LexerRecognizer(
+            r"/",
+            LexerTokenTypes.SLASH
+        ),
+        LexerRecognizer(
+            r"\^",
+            LexerTokenTypes.CARROT
+        ),
+        LexerRecognizer(
+            r":",
+            LexerTokenTypes.COLON
+        ),
 
-            # lower priority recognizers
-            LexerRecognizer(
-                r"([0-9][0-9_]*(?<!_)[.]?(?!_)[0-9_]*|[0-9_]*(?<!_)[.]?(?!_)[0-9][0-9_]*)(?<!_)([eE][+-]?(?!_)[0-9_]+(?<!_))?",
-                LexerTokenTypes.FLOAT
-            ), # yields to INTEGER or PERIOD
-            LexerRecognizer(
-                r"[_a-zA-Z0-9]+|√|∛",
-                LexerTokenTypes.IDENTIFIER
-            ), # yields to other keywords and INTEGER/FLOAT
-        )
+        # lower priority recognizers
+        LexerRecognizer(
+            r"([0-9][0-9_]*(?<!_)[.]?(?!_)[0-9_]*|[0-9_]*(?<!_)[.]?(?!_)[0-9][0-9_]*)(?<!_)([eE][+-]?(?!_)[0-9_]+(?<!_))?",
+            LexerTokenTypes.FLOAT
+        ), # yields to INTEGER or PERIOD
+        LexerRecognizer(
+            r"[_a-zA-Z0-9]+|√|∛",
+            LexerTokenTypes.IDENTIFIER
+        ), # yields to other keywords and INTEGER/FLOAT
+    )
 
-    def findTokens(self, data: str, withEol = True):
+    @classmethod
+    def findTokens(cls, data: str, withEol = True):
         dataCharsProcessed = 0
         for lineData in data.split("\n"):
             while len(lineData) > 0:
                 lenBeforeStrip = len(lineData)
-                lineData = self.stripWhitespace(lineData)
+                lineData = cls.stripWhitespace(lineData)
                 lenAfterStrip = len(lineData)
                 numCharsStripped = lenBeforeStrip - lenAfterStrip
                 dataCharsProcessed += numCharsStripped
@@ -156,8 +92,8 @@ class CommandLexer:
                 if len(lineData) == 0:
                     break
 
-                maxResult = LexerRecognizerResult(0, LexerTokenTypes.INVALID)
-                for recognizer in self._recognizers:
+                maxResult = LexerRecognizer.invalidResult
+                for recognizer in cls._recognizers:
                     result = recognizer.match(lineData)
                     if result.numMatched > maxResult.numMatched:
                         maxResult = result
@@ -172,33 +108,14 @@ class CommandLexer:
                 lineData = lineData[len(matchedStr):]
                 dataCharsProcessed += len(matchedStr)
             if withEol:
-                yield LexerToken("", self.types.EOL, dataCharsProcessed)
+                yield LexerToken("", cls.types.EOL, dataCharsProcessed)
             dataCharsProcessed += len("\n")
 
-    def stripWhitespace(self, lineData: str):
+    @classmethod
+    def stripWhitespace(cls, lineData: str):
         idx = 0
         # newline left out to preserve individual lines
         whitespaces = "\t "
         while idx < len(lineData) and lineData[idx] in whitespaces:
             idx += 1
         return lineData[idx:]
-
-
-class LexerRecognizer:
-    def __init__(self, regex: str, matchType: LexerTokenType):
-        self.regex = re.compile(regex)
-        self.matchType = matchType
-
-    def __repr__(self):
-        return f"LexerRecognizer({self.regex}, {self.matchType})"
-
-    def match(self, data: str):
-        result = self.regex.match(data)
-        numMatched = (result.end() - result.start()) if result is not None else 0
-        return LexerRecognizerResult(numMatched, self.matchType)
-
-
-class LexerRecognizerResult:
-    def __init__(self, numMatched: int, matchType: LexerTokenType):
-        self.numMatched = numMatched
-        self.matchType = matchType

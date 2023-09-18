@@ -7,9 +7,9 @@ from rich.markup import render as renderMarkup
 from rich.text import Text
 
 from src.common.types import FormattedStr
-from src.common.functions import toExprStr
 from src.common.exceptions import TracebackException, HandledException, MultilineException
 from src.app.widgets.colors import Colors
+from src.app.exprPrinter import SolverProExprPrinter
 from src.parsing.lexer import LexerToken, LexerTokenTypes, CommandLexer
 from src.parsing.parser import AliasTemplate
 from src.algebrasolver.solver import Relation
@@ -19,13 +19,17 @@ TokenFormatFn = Callable[[tuple[LexerToken, ...], int], Color]
 
 
 class TextRenderer:
-    _instance = None
+    _instanceInitialized = False
 
     def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance.__init__()
-        return cls._instance
+        # instance is shared so token formatting works across the app
+        # (because formatting depends on the driver's knowledge of aliases)
+        if cls._instanceInitialized == False:
+            cls.instance = super().__new__(cls)
+            cls.instance.__init__()
+            cls._instanceInitialized = True
+        else:
+            raise RuntimeError("TextRenderer should not be constructed; access using `TextRenderer.instance` instead")
 
     def __init__(self):
         isAlreadyInitialized = getattr(self, "_initialized", False)
@@ -33,7 +37,6 @@ class TextRenderer:
             return
         
         self._initialized = True
-        self._lexer = CommandLexer()
         self._driver = None
 
     def useAliasProvider(self, aliasProvider):
@@ -69,7 +72,7 @@ class TextRenderer:
             LexerTokenTypes.CARROT:         Colors.operator,
             LexerTokenTypes.INVALID:        Colors.textRed,
         }
-        tokens = tuple(self._lexer.findTokens(text))
+        tokens = tuple(CommandLexer.findTokens(text))
         replacements = {
             tokenIdx: tokenFormats[token.type]
             for (tokenIdx, token) in enumerate(tokens)
@@ -91,7 +94,7 @@ class TextRenderer:
         return Colors.identifier
 
     def formatRelation(self, relation: Relation, *, warnRedundant: bool = False, highlightSyntax: bool = False):
-        relationStr = f"{toExprStr(relation.leftExpr)} = {toExprStr(relation.rightExpr)}"
+        relationStr = f"{self._convertExprToString(relation.leftExpr)} = {self._convertExprToString(relation.rightExpr)}"
         if highlightSyntax:
             relationStr = self.formatLexerSyntax(relationStr)
         linesList = [relationStr]
@@ -125,7 +128,7 @@ class TextRenderer:
             self.formatLexerSyntax(exprStr) if highlightSyntax
                 else exprStr
             for expr in exprs
-            for exprStr in [toExprStr(expr)]
+            for exprStr in [self._convertExprToString(expr)]
         ])
     
     def formatAliasTemplate(self, aliasTemplate: AliasTemplate, *, highlightSyntax: bool = False):
@@ -262,3 +265,8 @@ class TextRenderer:
             textAfterMatch = text[matchEndIdx:]
             text = f"{textBeforeMatch}[@click=showTermTip('{term}')][underline]{term}[/underline][/@click]{textAfterMatch}"
         return text
+    
+    def _convertExprToString(self, expr: sympy.Expr):
+        return SolverProExprPrinter().doprint(expr)
+
+TextRenderer()

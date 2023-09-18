@@ -6,7 +6,10 @@ from src.parsing.lexer import LexerToken
 
 
 class HandledException(Exception, ABC):
-    pass # intentionally blank type
+    @property
+    def renderer(self):
+        from src.app.textRenderer import TextRenderer
+        return TextRenderer.instance
 
 
 class TracebackException(HandledException, ABC):

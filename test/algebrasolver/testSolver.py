@@ -1,11 +1,8 @@
 import sympy
 
 from src.common.functions import runForError
+from src.common.sympyLinterFixes import createSymbol
 from src.algebrasolver.solver import AlgebraSolver, ConditionalValue, Relation, ContradictionException, NoSolutionException
-
-
-# as always, to prevent the linter from FREAKING OUT
-createSymbol = eval("sympy.Symbol")
 
 
 class AlgebraSolverTester:

@@ -17,7 +17,7 @@ class TermTip:
 
 class TermTips:
     def __init__(self):
-        self._renderer = TextRenderer()
+        self._renderer = TextRenderer.instance
         self._terms: dict[str, TermTip | str] = {
             'alias': TermTip(
                 "Abstract: Alias Template",

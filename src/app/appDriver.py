@@ -14,8 +14,6 @@ from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplat
 class AppDriver:
     def __init__(self):
         self._solver = AlgebraSolver()
-        self._lexer = CommandLexer()
-        self._parser = CommandParser()
 
         self._inputHistory: list[str] = list()
         self._historySearchTerm: str = ""
@@ -27,7 +25,7 @@ class AppDriver:
 
     def processCommandLines(self, commandsStr: str):
         try:
-            tokensWithAliases = tuple(self._lexer.findTokens(commandsStr))
+            tokensWithAliases = tuple(CommandLexer.findTokens(commandsStr))
 
             shouldParseAliases = not any(token.type is LexerTokenTypes.COLON_EQUALS for token in tokensWithAliases)
             if shouldParseAliases:
@@ -36,8 +34,8 @@ class AppDriver:
                 roundCount = 0
                 while processedTokens != lastProcessedTokens:
                     lastProcessedTokens = processedTokens
-                    processedCommandsStr = self._parser.preprocessAliases(processedTokens, self._aliases)
-                    processedTokens = tuple(self._lexer.findTokens(processedCommandsStr))
+                    processedCommandsStr = CommandParser.preprocessAliases(processedTokens, self._aliases)
+                    processedTokens = tuple(CommandLexer.findTokens(processedCommandsStr))
                     roundCount += 1
                     if roundCount == 999:
                         raise RecursiveTemplatesException()
@@ -45,7 +43,7 @@ class AppDriver:
                 processedTokens = tokensWithAliases
 
             anyNonEmptyCommands = False
-            for command in self._parser.parseCommand(processedTokens):
+            for command in CommandParser.parseCommand(processedTokens):
                 if command.type is not Command.EMPTY:
                     anyNonEmptyCommands = True
                 yield self._processCommand(command, processedTokens)
@@ -89,7 +87,7 @@ class AppDriver:
             raise exception
         
     def getAllAliasNames(self):
-        return tuple(self._aliases.keys()) + tuple(self._parser.builtinAliases.keys())
+        return tuple(self._aliases.keys()) + tuple(CommandParser.builtinAliases.keys())
         
     def getInputHistory(self):
         return tuple(self._inputHistory)
@@ -184,7 +182,7 @@ class AppDriver:
             assert type(aliasName) is str
             assert isinstance(aliasArgs, tuple)
             assert type(aliasTemplateStr) is str
-            aliasTemplate = AliasTemplate(aliasName, aliasArgs, tuple(self._lexer.findTokens(aliasTemplateStr)))
+            aliasTemplate = AliasTemplate(aliasName, aliasArgs, tuple(CommandLexer.findTokens(aliasTemplateStr)))
             self._aliases[aliasName] = aliasTemplate
             return ProcessResult(Command.RECORD_ALIAS, aliasTemplate)
         
@@ -238,7 +236,7 @@ class NotARelationException(MultilineException):
     def __init__(self, oldRelation: Relation, nonRelationStr: str | None):
         if nonRelationStr is None or nonRelationStr == "":
             nonRelationStr = "(empty input)"
-        renderer = TextRenderer()
+        renderer = TextRenderer.instance
         super().__init__((
             "Cannot replace relation",
             renderer.formatRelation(oldRelation, highlightSyntax = True),
@@ -249,7 +247,7 @@ class NotARelationException(MultilineException):
 
 class TooManyRelationsException(MultilineException):
     def __init__(self, oldRelation: Relation, relationsStr: str):
-        renderer = TextRenderer()
+        renderer = TextRenderer.instance
         super().__init__((
             "Cannot replace single relation",
             renderer.formatRelation(oldRelation, highlightSyntax = True),

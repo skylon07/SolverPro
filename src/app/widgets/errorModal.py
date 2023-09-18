@@ -69,7 +69,8 @@ class ErrorModal(ModalScreen):
 
     def compose(self):
         assert self.error is not None
-        renderedError = TextRenderer().renderException(self.error, withErrorHeader = False)
+        renderer = TextRenderer.instance
+        renderedError = renderer.render(renderer.formatException(self.error, withErrorHeader = False))
         with VerticalScroll(id = 'content'):
             yield Label(f"[{Colors.textRed.hex}]Error![/]", id = 'title')
             yield Label(renderedError, id = 'body')

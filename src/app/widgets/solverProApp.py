@@ -197,7 +197,7 @@ class SolverProApp(App):
     """
 
     driver: var[AppDriver] = var(lambda: AppDriver())
-    textRenderer: var[TextRenderer] = var(lambda: TextRenderer())
+    textRenderer: var[TextRenderer] = var(lambda: TextRenderer.instance)
     termTips: var[TermTips] = var(lambda: TermTips())
 
     mainScreen: var[MainScreen] = var(lambda: MainScreen())
