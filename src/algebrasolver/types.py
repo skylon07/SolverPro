@@ -15,6 +15,20 @@ SolutionSet = set[sympy.Expr]
 
 _ValueType = TypeVar("_ValueType")
 class ConditionalValue(Generic[_ValueType]):
+    """
+    This class ultimately just represents a single value of any type, but also
+    attaches some data representing "conditions" on that value. Each "condition"
+    is just a mapping of some symbol to some expression it should be equal to.
+
+    This is mainly useful when doing substitution, but it is also used in some
+    other places. See the `CombinationsSubstituter` for details on this.
+    Basically, each condition is treated as a mini-relation that must be true in
+    order for the substitution algorithm to proceed. The truth-ness of these
+    mini-relations ends up keeping track of which symbol-value combinations
+    depend on whatever other symbols, and ultimately filters out invalid
+    symbol-value combinations when substituting.
+    """
+    
     def __init__(self, value: _ValueType, conditions: dict[sympy.Symbol, sympy.Expr]):
         self.value = value
         self.conditions = conditions
@@ -36,6 +50,12 @@ class ConditionalValue(Generic[_ValueType]):
     
 
 class Relation:
+    """
+    Represents an equality between two expressions.
+
+    (Could I use `sympy.Eq`? Probably. But I made this first, so whatever.)
+    """
+    
     def __init__(self, leftExpr: sympy.Expr, rightExpr: sympy.Expr):
         if not isinstance(leftExpr, sympy.Expr) and type(leftExpr) in (int, float):
             leftExpr = sympy.parse_expr(str(leftExpr))
@@ -63,6 +83,8 @@ class Relation:
 
 
 class BadRelationException(MultilineException, ABC):
+    """An extension of MultilineException that handles "bad" relations of some kind"""
+    
     @abstractmethod
     def __init__(self, message: FormattedStr, poorSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None], contradictingRelation: Relation):
         self.poorSymbolValues = poorSymbolValues
@@ -94,6 +116,8 @@ class BadRelationException(MultilineException, ABC):
         })
 
 class ContradictionException(BadRelationException):
+    """Represents a relation that implies contradictory values to one or more already known symbols"""
+
     def __init__(self, contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None], badRelation: Relation):
         symbolsStr = f" for {self.formatPoorSymbols(contradictedSymbolValues)}" \
             if len(contradictedSymbolValues) > 0 else ""
@@ -104,6 +128,8 @@ class ContradictionException(BadRelationException):
         )
 
 class NoSolutionException(BadRelationException):
+    """Represents a relation that makes it impossible to extract values for some symbol"""
+
     def __init__(self, symbolsMissingSolutions: Collection[sympy.Symbol], badSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None], badRelation: Relation):
         symbolsStr = f" for {self.formatPoorSymbols({symbol: None for symbol in symbolsMissingSolutions})}" \
             if len(symbolsMissingSolutions) > 0 else ""

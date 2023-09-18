@@ -5,6 +5,27 @@ import sympy
 from src.algebrasolver.types import *
 
 class RelationSymbolTable:
+    """
+    Dictionaries are cool, but they only map keys to values. What if you
+    want a two-way dictionary that records pairs of symbols and relations?
+    Well then, you probably want this table.
+
+    As it was suggested, if I have a table initialized as such
+
+    ```raw
+    (a, b) = sympy.symbols("a, b")
+    table[a] = Relation(a + b, 6)
+    table[Relation(b, a - 2)] = b
+    ```
+
+    then it follows that
+
+    ```raw
+    assert table[Relation(a + b, 6)] == a
+    assert table[b] == Relation(b, a - 2)
+    ```
+    """
+
     _DefaultType = TypeVar("_DefaultType")
 
     def __init__(self):

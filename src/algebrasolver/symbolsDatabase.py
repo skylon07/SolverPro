@@ -10,7 +10,9 @@ class SymbolsDatabase:
     """
     A database for known symbols. Logically this is a union between two dictionaries:
     1. An initially empty dictionary of variable/value mappings, added to as values are inferred
-    2. An infinite dictionary mapping "expression list symbols" to a list of actual expressions 
+    2. An infinite dictionary mapping "expression list symbols" to a list of actual expressions
+
+    (Where an "expression list symbol" is a symbol that looks like `Symbol("{1,2,3}")`.)
     """
 
     _DefaultType = TypeVar("_DefaultType")

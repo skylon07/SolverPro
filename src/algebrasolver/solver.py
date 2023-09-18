@@ -14,6 +14,26 @@ from src.algebrasolver.types import *
 
 
 class AlgebraSolver:
+    """
+    This is the solving engine that puts everything in this module together.
+    Things outside this module should interact with an instance of this.
+    This solver is responsible for inferring variable values from given
+    relations and substituting symbols in arbitrary expressions with those
+    known values.
+
+    All of this is one beast of a process; the AlgebraSolver really is a kind of
+    mini math engine with more moving parts than anything else in Solver Pro.
+    To summarize its behavior, the AlgebraSolver is used like such:
+        - Relations are recorded with `recordRelation()`
+            - Any variables whose values can be inferred are solved for using
+              back substitution
+        - Relations may be optionally deleted
+            - This will also subsequently "forget" any inferred values that
+              depended on this relation
+        - Arbitrary expressions can be given to the solver for substitution of
+          known symbols with their values (one symbol *can* map to many values)
+    """
+
     def __init__(self):
         # a list of relational expressions with an implied equality to zero
         self._recordedRelations: list[Relation] = list()
@@ -26,6 +46,53 @@ class AlgebraSolver:
         self._contradictedSymbolValues: dict[sympy.Symbol, set[sympy.Expr] | None] = dict()
 
     def recordRelation(self, relation: Relation):
+        """
+        Records a relation and tries to infer numeric values from any symbols
+        this relation might provide information on.
+
+        In some cases, the solver will detect "bad" relations when an attempt to
+        record them is made. These are relations that imply values for symbols
+        that are contradictory to what was already recorded, and relations that
+        make it impossible to infer values for some symbol. Some relations don't
+        provide any useful information to make inferences on but also aren't
+        contradictory; these are known as "redundant" relations. This function
+        returns a boolean indicating if a relation is "redundant" in this way.
+
+        Some examples of contradictory relations:
+        
+        ```raw
+        a = 5
+        a = 5 + 1   <-- Contradiction! (since a = 5)
+
+        x * y = z + 2
+        x + y = 7
+        z = 2*(x + 1)
+        x = z - 4   <-- Contradiction! (since x = 4, z = 10)
+        ```
+
+        An example of some "unsolvable" relations:
+
+        ```raw
+        x/(y - 2) = 6
+        y = 2       <-- Unsolvable! (x/0 = 6)
+        ```
+
+        (Although you could easily fix the above by reorganizing the first
+        relation to something like `x = 6*(y - 2)` or something similar.)
+
+        Some examples of redundant relations:
+        
+        ```raw
+        a = 5
+        2*a = 10    <-- (Redundant...)
+
+        x * y = z + 2
+        x + y = 7
+        z = 2*(x + 1)
+        x = z - 6   <-- (Redundant...)
+        ```
+        """
+
         # TODO: use transactional data types that can be reversed more efficiently
         #       (this API also needs to be public for the driver -- there's a TODO about this)
         relationsBackup = list(self._recordedRelations)
@@ -123,6 +190,20 @@ class AlgebraSolver:
         )
     
     def popRelation(self, relation: Relation):
+        """
+        This function is logically the inverse of `recordRelation()`; That is,
+        if `recordRelation()` remembers a relation and infers certain symbols
+        from known relations, then this function forgets a relation and deletes
+        values for certain symbols depending on the known relations left over.
+
+        The algorithm is fairly straightforward: Pop the relation and the
+        symbol. Check every other symbol's conditions. If the popped symbol ever
+        shows up in any of those conditions, those symbols are dependent on the
+        popped symbol and should be popped as well. Then just keep repeating
+        that process until there aren't any more dependent symbols in the
+        database.
+        """
+        
         self._recordedRelations.remove(relation)
         self._recordedRelationsSorted.remove(relation)
         inferredSymbol = self._inferenceTable.get(relation)
@@ -148,6 +229,15 @@ class AlgebraSolver:
         self._inferSymbolValuesFromRelations()
     
     def substituteKnownsFor(self, expression: sympy.Expr):
+        """
+        Takes an expression and substitutes its symbols with any values that
+        might be known about them. Expression lists (aka symbols that look like
+        `Symbol("{1,2,3}")`) are always treated as known symbols (since their
+        name is literally the set of values they represent). Multiple
+        expressions may be returned if one or more symbols evaluate to multiple
+        values.
+        """
+        
         conditionals = CombinationsSubstituter({expression}, self._symbolValuesDatabase).substitute()
         values = {
             conditional.value
@@ -156,15 +246,33 @@ class AlgebraSolver:
         return values
     
     def substituteKnownsWithConditions(self, expression: sympy.Expr):
+        """
+        This function performs the exact same operation as
+        `substituteKnownsFor()`, except each expression also has its conditions
+        tied to it (given as a `ConditionalValue` instance).
+        """
+        
         conditionals = CombinationsSubstituter({expression}, self._symbolValuesDatabase).substitute()
         return set(conditionals)
     
     def _setInferredSolutions(self, symbol: sympy.Symbol, solutions: set[ConditionalValue[sympy.Expr]], associatedRelation: Relation):
+        """
+        Sets a symbol's solutions by keeping the database and relation-symbol
+        table in sync. This should *always* be used instead of modifying the
+        database/table directly.
+        """
+
         assert all(isNonSymbolicValue(solution.value) for solution in solutions), "Solver tried to set a variable's inferred values to an unsolved expression"
         self._symbolValuesDatabase[symbol] = solutions
         self._inferenceTable[symbol] = associatedRelation
 
     def _popInferredSolutions(self, symbol: sympy.Symbol):
+        """
+        Removes a symbol's solutions from both the database and relation-symbol
+        table, keeping them in sync. This should *always* be used instead of
+        modifying the database/table directly.
+        """
+
         solutions = self._symbolValuesDatabase.pop(symbol)
         associatedRelation = self._inferenceTable.pop(symbol)
         return (solutions, associatedRelation)
@@ -181,6 +289,12 @@ class AlgebraSolver:
         return (True, isRedundantWithContradictions)
     
     def _dependsOnExpressionListSymbols(self, symbol: sympy.Symbol, symbolsChecked: set[sympy.Symbol] | None = None):
+        """
+        Checks if a symbol depends on an expression list (or a symbol that
+        depends on one, or a symbol that depends on a symbol that depends on
+        one, etc.)
+        """
+        
         if symbolsChecked is None:
             symbolsChecked = set()
         
@@ -196,6 +310,22 @@ class AlgebraSolver:
         return first(self._forwardSolveSymbols([(symbol, relation)], isRestrictRedefSolve = True))
 
     def _inferSymbolValuesFromRelations(self):
+        """
+        This is the main "brain" function of the solver. There are four logical
+        stages to how symbol values are inferred:
+        1. Find the "inference orders" in the relations that list the
+           symbol/relation pairs to solve with
+        2. Forward-solve symbolically each relation with its paired symbol
+           until you get to the last symbol, which should provide a set of
+           numeric values
+        3. Back-substitute through the inference orders backwards, chaining
+           the substitutions of the symbols with numeric values
+        4. Check for contradictions (not actually sure if this is necessary...)
+
+        Each step is described in more detail in the documentation of its
+        associated function.
+        """
+        
         symbolsToSolve = None
         firstLoop = True
         while symbolsToSolve is not None or firstLoop:
@@ -209,6 +339,41 @@ class AlgebraSolver:
         self._contradictedSymbolValues = dict()
 
     def _forwardSolveSymbols(self, symbolsToSolve: Iterable[tuple[sympy.Symbol, Relation]], database: SymbolsDatabase | None = None, *, isRestrictRedefSolve: bool = False) -> Generator[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation], Any, None]:
+        """
+        Forward-solving symbols is the process of repeatedly solving a relation
+        for a given symbol and substituting that symbol in all future relations.
+        Eventually (assuming the "inference order" `symbolsToSolve` is complete)
+        this will lead to solving the last symbol and getting back a numeric
+        value, which marks the end of this algorithm.
+
+        Here's the process conceptually:
+
+        ```raw
+        a*c/2 = 9           (solve for: a)
+        a + b = c + 6       (solve for: b)
+        c/2 = a             (solve for: c)
+
+        a*c/2 = 9           (solve for: a)
+        a*c   = 18
+        a = 18/c
+
+           a   + b = c + 6  (solve for: b)
+        (18/c) + b = c + 6
+        b +  18/c  = c + 6
+        b = c + 6 - 18/c
+
+        c/2 =    a          (solve for: c)
+        c/2 = (18/c)
+        c   =  36/c
+        c^2 =  36
+        c = {6, -6}
+        ```
+
+        And we're done! After going through that, the function returns all of
+        the symbols, their symbolic (or numeric) values, and their paired
+        relations.
+        """
+        
         if database is None:
             database = self._symbolValuesDatabase.copy()
         
@@ -225,6 +390,38 @@ class AlgebraSolver:
             yield (symbol, flattenedConditionalSolutions, relation)
 
     def _backSubstituteSymbols(self, symbolsToBackSubstitute: Iterable[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation]]):
+        """
+        This substitution function takes a partially solved inference order (as
+        `symbolsToBackSubstitute` -- note that it should be reversed) and
+        completes the back-substitution solver algorithm by substituting the
+        known symbols' values back into previous relations, revealing the values
+        of more symbols. Continuing from the example in
+        `_forwardSolveSymbols()`:
+
+        ```raw
+        a*c/2 = 9           (solve for: a)
+        a + b = c + 6       (solve for: b)
+        c/2 = a             (solve for: c)
+
+        c = {6, -6}
+
+        b =     c     + 6 - 18/    c
+        b = ({6, -6}) + 6 - 18/({6, -6})
+        b = {(6) + 6 - 18/(6), (-6) + 6 - 18/(-6)}
+        b = {   12   -   3   ,      0   -   -3   }
+        b = {9, 3}
+
+        a = 18/    c
+        a = 18/({6, -6})
+        a = {3, -3}
+        ```
+
+        The result is all the symbols being fully solved: `a = 3; b = 9; c = 6`
+        and `a = -3; b = 3; c = -6`. Substituting these values back into the
+        original relations shows these values are true statements (so long as
+        you don't accidentally swap variables between the two scenarios!).
+        """
+        
         for (symbol, unsolvedConditionalSolutions, relationKnownFrom) in symbolsToBackSubstitute:
             conditionalSolutionsWithKnownSymbols = {
                 ConditionalValue(
@@ -281,6 +478,8 @@ class AlgebraSolver:
                 raise ContradictionException(self._contradictedSymbolValues, relation)
             
     def _solveRelationForSymbol(self, relationsWithKnownsSubbed: Iterable[ConditionalValue[sympy.Expr]], fromRelation: Relation, unknownSymbol: sympy.Symbol):
+        """This function just serves as a simple wrapper around `sympy.solveSet()`"""
+        
         for relationExprCondition in relationsWithKnownsSubbed:
             relationExpr = relationExprCondition.value
             solution = solveSet(relationExpr, unknownSymbol)
@@ -288,6 +487,7 @@ class AlgebraSolver:
             yield ConditionalValue(solutionSet, relationExprCondition.conditions)
 
     def _interpretSympySolution(self, symbol: sympy.Symbol, solution: sympy.Set, fromRelation: Relation) -> set[sympy.Expr]:
+        """Converts a sympy `solveSet()` result into something the solver can use"""
         # normal solutions to problem
         # example:
         #   a^2 = 4; a = {2, -2}
