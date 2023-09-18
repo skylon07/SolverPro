@@ -69,7 +69,7 @@ class TextRenderer:
             LexerTokenTypes.DASH:           Colors.operator,
             LexerTokenTypes.STAR:           Colors.operator,
             LexerTokenTypes.SLASH:          Colors.operator,
-            LexerTokenTypes.CARROT:         Colors.operator,
+            LexerTokenTypes.CARET:         Colors.operator,
             LexerTokenTypes.INVALID:        Colors.textRed,
         }
         tokens = tuple(CommandLexer.findTokens(text))

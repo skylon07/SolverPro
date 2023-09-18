@@ -150,7 +150,7 @@ class CommandLexerTester:
             )
         ], "Lexer did not find a PAREN_CLOSE"
         
-        # EQUALS/PLUS/MINUS/STAR/DASH/CARROT
+        # EQUALS/PLUS/MINUS/STAR/DASH/CARET
         assert list(CommandLexer.findTokens("=", withEol = False)) == [
             LexerToken(
                 "=",
@@ -189,10 +189,10 @@ class CommandLexerTester:
         assert list(CommandLexer.findTokens("^", withEol = False)) == [
             LexerToken(
                 "^",
-                LexerTokenTypes.CARROT,
+                LexerTokenTypes.CARET,
                 0
             )
-        ], "Lexer did not find a CARROT"
+        ], "Lexer did not find a CARET"
 
         # COLON_EQUALS/BACKTICKS
         assert list(CommandLexer.findTokens(":=", withEol = False)) == [
@@ -282,7 +282,7 @@ class CommandLexerTester:
             LexerToken("5", LexerTokenTypes.INTEGER,    10),
             LexerToken("/", LexerTokenTypes.SLASH,      11),
             LexerToken("2", LexerTokenTypes.INTEGER,    12),
-            LexerToken("^", LexerTokenTypes.CARROT,     13),
+            LexerToken("^", LexerTokenTypes.CARET,      13),
             LexerToken("6", LexerTokenTypes.INTEGER,    14),
             LexerToken("*", LexerTokenTypes.STAR,       15),
             LexerToken("4", LexerTokenTypes.INTEGER,    16),
@@ -342,7 +342,7 @@ class CommandLexerTester:
             LexerToken("+",     LexerTokenTypes.PLUS,           5),
             LexerToken("2",     LexerTokenTypes.INTEGER,        7),
             LexerToken(")",     LexerTokenTypes.PAREN_CLOSE,    8),
-            LexerToken("^",     LexerTokenTypes.CARROT,         9),
+            LexerToken("^",     LexerTokenTypes.CARET,          9),
             LexerToken("2",     LexerTokenTypes.INTEGER,        10),
             LexerToken(",",     LexerTokenTypes.COMMA,          11),
             LexerToken("a",     LexerTokenTypes.IDENTIFIER,     13),
@@ -350,15 +350,15 @@ class CommandLexerTester:
             LexerToken("4",     LexerTokenTypes.INTEGER,        17),
             LexerToken(",",     LexerTokenTypes.COMMA,          18),
             LexerToken("a",     LexerTokenTypes.IDENTIFIER,     20),
-            LexerToken("^",     LexerTokenTypes.CARROT,         21),
+            LexerToken("^",     LexerTokenTypes.CARET,          21),
             LexerToken("2",     LexerTokenTypes.INTEGER,        22),
             LexerToken("+",     LexerTokenTypes.PLUS,           24),
             LexerToken("b",     LexerTokenTypes.IDENTIFIER,     26),
-            LexerToken("^",     LexerTokenTypes.CARROT,         27),
+            LexerToken("^",     LexerTokenTypes.CARET,          27),
             LexerToken("2",     LexerTokenTypes.INTEGER,        28),
             LexerToken("=",     LexerTokenTypes.EQUALS,         30),
             LexerToken("c",     LexerTokenTypes.IDENTIFIER,     32),
-            LexerToken("^",     LexerTokenTypes.CARROT,         33),
+            LexerToken("^",     LexerTokenTypes.CARET,          33),
             LexerToken("2",     LexerTokenTypes.INTEGER,        34),
             LexerToken("}",     LexerTokenTypes.BRACE_CLOSE,    35),
         ], "Lexer did not correctly process expression list of various kinds of expressions"

@@ -57,7 +57,7 @@ class CommandParserSequencer(Sequencer):
         LexerTokenTypes.DASH,
     )
     _highPrecBinaryOpers = (
-        LexerTokenTypes.CARROT,
+        LexerTokenTypes.CARET,
     )
     _numberTypes = (
         LexerTokenTypes.INTEGER,
@@ -130,7 +130,7 @@ class CommandParserSequencer(Sequencer):
                     finalExpr = +finalExpr
                 elif operToken.type is LexerTokenTypes.DASH:
                     finalExpr = -finalExpr
-                elif operToken.type is LexerTokenTypes.CARROT:
+                elif operToken.type is LexerTokenTypes.CARET:
                     operand = highPrecExprList[idx - 1]
                     finalExpr = operand ** finalExpr
                 else:
@@ -306,7 +306,7 @@ class CommandParserSequencer(Sequencer):
         return self._throwUnexpectedToken(self._highPrecUnaryOpers)
     
     def sequenceBinaryOperHigh(self):
-        # branch: CARROT
+        # branch: CARET
         if self._currToken.type in self._highPrecBinaryOpers:
             highPrecOperToken = self._currToken
             self._consumeCurrToken(self._currToken.type)

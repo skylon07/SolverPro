@@ -60,7 +60,7 @@ class CommandLexer:
         ),
         LexerRecognizer(
             r"\^",
-            LexerTokenTypes.CARROT
+            LexerTokenTypes.CARET
         ),
         LexerRecognizer(
             r":",

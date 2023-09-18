@@ -22,7 +22,7 @@ class LexerTokenTypes(Enum):
     DASH            = LexerTokenType("DASH")
     STAR            = LexerTokenType("STAR")
     SLASH           = LexerTokenType("SLASH")
-    CARROT          = LexerTokenType("CARROT") # TODO: ~~CARROT~~ --> CARET
+    CARET           = LexerTokenType("CARET")
     EOL             = LexerTokenType("EOL")
     INVALID         = LexerTokenType("INVALID")
 

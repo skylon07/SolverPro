@@ -290,8 +290,8 @@ class TermTips:
                     "Division: " + self._renderer.formatLexerSyntax("a/b"),
                 )
             ),
-            'carrot': TermTip(
-                "Operator: Carrot",
+            'caret': TermTip(
+                "Operator: Caret",
                 (
                     "A binary operator signifying the exponentiation of two values.",
 
