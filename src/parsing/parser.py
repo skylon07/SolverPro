@@ -45,7 +45,7 @@ class CommandParser:
 
     @classmethod
     def parseExpressionList(cls, exprListTokens: tuple[LexerToken, ...]):
-        sequencer = CommandParserSequencer(exprListTokens, cls.builtinAliases)
+        sequencer = NumericExpressionSequencer(exprListTokens)
         expressions = sequencer.sequenceExpressionList()
         return expressions
 

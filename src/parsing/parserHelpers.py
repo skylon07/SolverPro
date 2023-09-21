@@ -43,7 +43,7 @@ class Sequencer:
         raise EolException(self._tokens)
 
 
-class CommandParserSequencer(Sequencer):
+class NumericExpressionSequencer(Sequencer):
     _lowPrecOpers = (
         LexerTokenTypes.PLUS,
         LexerTokenTypes.DASH,
@@ -63,140 +63,11 @@ class CommandParserSequencer(Sequencer):
         LexerTokenTypes.INTEGER,
         LexerTokenTypes.FLOAT,
     )
-    _valueTypes = _numberTypes + (
-        LexerTokenTypes.IDENTIFIER,
-    )
 
-    def __init__(self, tokens: tuple[LexerToken, ...], builtinAliases: dict[str, BuiltinAlias]):
+    def __init__(self, tokens: tuple[LexerToken, ...]):
         super().__init__(tokens)
         self._allowExpressionList = True
-        self._allowIdentifierValues = True
-        self._builtinAliases = builtinAliases
 
-    def _convertLowPrecExprList(self, lowPrecExprList: list) -> sympy.Expr:
-        for (idx, item) in enumerate(lowPrecExprList):
-            if type(item) is list:
-                midPrecExprList = item
-                lowPrecExprList[idx] = self._convertMidPrecExprList(midPrecExprList)
-        
-        finalExpr: sympy.Expr = lowPrecExprList[0]
-        for (idx, operToken) in enumerate(lowPrecExprList):
-            if type(operToken) is LexerToken:
-                if operToken.type is LexerTokenTypes.PLUS:
-                    operand = lowPrecExprList[idx + 1]
-                    finalExpr = finalExpr + operand
-                elif operToken.type is LexerTokenTypes.DASH:
-                    operand = lowPrecExprList[idx + 1]
-                    finalExpr = finalExpr - operand
-                else:
-                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(low prec)")
-        return finalExpr
-
-    def _convertMidPrecExprList(self, midPrecExprList: list) -> sympy.Expr:
-        for (idx, item) in enumerate(midPrecExprList):
-            if type(item) is list:
-                highPrecExprList = item
-                midPrecExprList[idx] = self._convertHighPrecExprList(highPrecExprList)
-        
-        finalExpr: sympy.Expr = midPrecExprList[0]
-        for (idx, operToken) in enumerate(midPrecExprList):
-            if type(operToken) is LexerToken:
-                if operToken.type is LexerTokenTypes.STAR:
-                    operand = midPrecExprList[idx + 1]
-                    finalExpr = finalExpr * operand
-                elif operToken.type is LexerTokenTypes.SLASH:
-                    operand = midPrecExprList[idx + 1]
-                    finalExpr = finalExpr / operand
-                else:
-                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(mid prec)")
-        return finalExpr
-
-    def _convertHighPrecExprList(self, highPrecExprList: list) -> sympy.Expr:
-        for (idx, valuePair) in enumerate(highPrecExprList):
-            if type(valuePair) is tuple:
-                (valueType, valueStr) = valuePair
-                if valueType is LexerTokenTypes.IDENTIFIER:
-                    value = createSymbol(valueStr)
-                else:
-                    value = sympy.parse_expr(valueStr)
-                highPrecExprList[idx] = value
-        
-        # reversed since these operators parse right-to-left
-        finalExpr: sympy.Expr = highPrecExprList[-1]
-        for (revIdx, operToken) in enumerate(reversed(highPrecExprList)):
-            if type(operToken) is LexerToken:
-                idx = -(revIdx + 1)
-                if operToken.type is LexerTokenTypes.PLUS:
-                    finalExpr = +finalExpr
-                elif operToken.type is LexerTokenTypes.DASH:
-                    finalExpr = -finalExpr
-                elif operToken.type is LexerTokenTypes.CARET:
-                    operand = highPrecExprList[idx - 1]
-                    finalExpr = operand ** finalExpr
-                else:
-                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(high prec)")
-        return finalExpr
-
-    def sequenceCommand(self):
-        # branch: EOL
-        if self._currToken.type is LexerTokenTypes.EOL:
-            self._consumeCurrToken(LexerTokenTypes.EOL)
-            return Command.empty()
-        
-        # branch specialCommand EOL
-        isSpecialCommand = self._currToken.type is LexerTokenTypes.IDENTIFIER and \
-            (self.numTokensParsed + 1) < len(self._tokens) and \
-            self._tokens[self.numTokensParsed + 1].type is LexerTokenTypes.COLON
-        if isSpecialCommand:
-            command = self.sequenceSpecialCommand()
-            self._consumeCurrToken(LexerTokenTypes.EOL)
-            return command
-
-        # distinguish branches: relation, expression, aliasTemplate
-        idx = self.numTokensParsed
-        isRelations = False
-        isAliasTemplate = False
-        while idx < len(self._tokens):
-            token = self._tokens[idx]
-            if token.type is LexerTokenTypes.EQUALS:
-                isRelations = True
-                break
-            elif token.type is LexerTokenTypes.COLON_EQUALS:
-                isAliasTemplate = True
-                break
-            idx += 1
-
-        # branch: relations EOL
-        if isRelations:
-            relations = self.sequenceRelations()
-            self._consumeCurrToken(LexerTokenTypes.EOL)
-            return Command.recordRelations(relations)
-        
-        # branch: aliasTemplate EOL
-        if isAliasTemplate:
-            aliasTemplate = self.sequenceAliasTemplate()
-            self._consumeCurrToken(LexerTokenTypes.EOL)
-            return Command.recordAlias(aliasTemplate)
-        
-        # default branch: expression EOL
-        expression = self.sequenceExpression()
-        self._consumeCurrToken(LexerTokenTypes.EOL)
-        return Command.evaluateExpression(expression)
-    
-    def sequenceRelations(self):
-        # (all branches)
-        expr = self.sequenceExpression()
-        
-        # branch: expression EQUALS relations
-        if self._currToken.type is LexerTokenTypes.EQUALS:
-            self._consumeCurrToken(LexerTokenTypes.EQUALS)
-            exprList = self.sequenceRelations()
-            exprList.insert(0, expr)
-            return exprList
-
-        # default branch: expression
-        return [expr]
-    
     def sequenceExpression(self):
         # default branch: lowPrecExpr
         lowPrecExprList = self.sequenceLowPrecExpr()
@@ -314,7 +185,7 @@ class CommandParserSequencer(Sequencer):
         
         return self._throwUnexpectedToken(self._highPrecBinaryOpers)
 
-    def sequenceEvaluation(self) -> sympy.Expr | tuple[LexerTokenType, str]:
+    def sequenceEvaluation(self) -> sympy.Expr:
         # branch: PAREN_OPEN expression PAREN_CLOSE
         if self._currToken.type is LexerTokenTypes.PAREN_OPEN:
             self._consumeCurrToken(LexerTokenTypes.PAREN_OPEN)
@@ -326,53 +197,195 @@ class CommandParserSequencer(Sequencer):
         elif self._currToken.type is LexerTokenTypes.BRACE_OPEN and self._allowExpressionList:
             self._consumeCurrToken(LexerTokenTypes.BRACE_OPEN)
             self._allowExpressionList = False
-            self._allowIdentifierValues = False
             expressions = self.sequenceExpressionList()
             expressions.sort() # type: ignore (it does work)
-            self._allowIdentifierValues = True
             self._allowExpressionList = True
             self._consumeCurrToken(LexerTokenTypes.BRACE_CLOSE)
             expressionsStr = ", ".join(str(expr) for expr in expressions)
             return createSymbol(f"{{{expressionsStr}}}")
-        
-        # branch builtinAliasCall
-        elif self._currToken.type is LexerTokenTypes.IDENTIFIER and self._currToken.match in self._builtinAliases:
-            expr = self.sequenceBuiltinAliasCall()
-            return expr
 
-        # default branch: value/number
-        if self._allowIdentifierValues:
-            (tokenType, valueStr) = self.sequenceValue()
-        else:
-            (tokenType, valueStr) = self.sequenceNumber()
-        return (tokenType, valueStr)
-
-    def sequenceValue(self):
-        tokenType = self._currToken.type
-
-        # (all valid branches)
-        if self._currToken.type in self._valueTypes:
-            if self._currToken.type is LexerTokenTypes.IDENTIFIER:
-                if self.numTokensParsed + 1 < len(self._tokens):
-                    nextToken = self._tokens[self.numTokensParsed + 1]
-                    if nextToken.type is LexerTokenTypes.PAREN_OPEN:
-                        raise UnknownAliasException(self._tokens, self.numTokensParsed) 
-            valueStr = self._currToken.match
-            self._consumeCurrToken(self._currToken.type)
-            return (tokenType, valueStr)
-        
-        return self._throwUnexpectedToken(self._valueTypes)
+        # default branch: number
+        number = self.sequenceNumber()
+        return number
     
     def sequenceNumber(self):
-        tokenType = self._currToken.type
-
         # (all valid branches)
         if self._currToken.type in self._numberTypes:
             numberStr = self._currToken.match
             self._consumeCurrToken(self._currToken.type)
-            return (tokenType, numberStr)
+            return sympy.parse_expr(numberStr)
         
         return self._throwUnexpectedToken(self._numberTypes)
+
+    def _convertLowPrecExprList(self, lowPrecExprList: list) -> sympy.Expr:
+        for (idx, item) in enumerate(lowPrecExprList):
+            if type(item) is list:
+                midPrecExprList = item
+                lowPrecExprList[idx] = self._convertMidPrecExprList(midPrecExprList)
+        
+        finalExpr: sympy.Expr = lowPrecExprList[0]
+        for (idx, operToken) in enumerate(lowPrecExprList):
+            if type(operToken) is LexerToken:
+                if operToken.type is LexerTokenTypes.PLUS:
+                    operand = lowPrecExprList[idx + 1]
+                    finalExpr = finalExpr + operand
+                elif operToken.type is LexerTokenTypes.DASH:
+                    operand = lowPrecExprList[idx + 1]
+                    finalExpr = finalExpr - operand
+                else:
+                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(low prec)")
+        return finalExpr
+
+    def _convertMidPrecExprList(self, midPrecExprList: list) -> sympy.Expr:
+        for (idx, item) in enumerate(midPrecExprList):
+            if type(item) is list:
+                highPrecExprList = item
+                midPrecExprList[idx] = self._convertHighPrecExprList(highPrecExprList)
+        
+        finalExpr: sympy.Expr = midPrecExprList[0]
+        for (idx, operToken) in enumerate(midPrecExprList):
+            if type(operToken) is LexerToken:
+                if operToken.type is LexerTokenTypes.STAR:
+                    operand = midPrecExprList[idx + 1]
+                    finalExpr = finalExpr * operand
+                elif operToken.type is LexerTokenTypes.SLASH:
+                    operand = midPrecExprList[idx + 1]
+                    finalExpr = finalExpr / operand
+                else:
+                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(mid prec)")
+        return finalExpr
+
+    def _convertHighPrecExprList(self, highPrecExprList: list) -> sympy.Expr:
+        assert all(isinstance(value, (sympy.Expr, LexerToken)) for value in highPrecExprList)
+        
+        # reversed since these operators parse right-to-left
+        finalExpr: sympy.Expr = highPrecExprList[-1]
+        for (revIdx, operToken) in enumerate(reversed(highPrecExprList)):
+            if type(operToken) is LexerToken:
+                idx = -(revIdx + 1)
+                if operToken.type is LexerTokenTypes.PLUS:
+                    finalExpr = +finalExpr
+                elif operToken.type is LexerTokenTypes.DASH:
+                    finalExpr = -finalExpr
+                elif operToken.type is LexerTokenTypes.CARET:
+                    operand = highPrecExprList[idx - 1]
+                    finalExpr = operand ** finalExpr
+                else:
+                    raise NotImplementedError(f"Unconsidered token type {operToken.type}(high prec)")
+        return finalExpr
+
+class CommandParserSequencer(NumericExpressionSequencer):
+    def __init__(self, tokens: tuple[LexerToken, ...], idTypes: dict[str, IdType], builtinAliases: dict[str, BuiltinAlias]):
+        super().__init__(tokens)
+        self._idTypes = idTypes
+        self._builtinAliases = builtinAliases
+        self._allowIdentifierValues = True
+
+    def sequenceCommand(self):
+        # branch: EOL
+        if self._currToken.type is LexerTokenTypes.EOL:
+            self._consumeCurrToken(LexerTokenTypes.EOL)
+            return Command.empty()
+        
+        # branch specialCommand EOL
+        isSpecialCommand = self._currToken.type is LexerTokenTypes.IDENTIFIER and \
+            (self.numTokensParsed + 1) < len(self._tokens) and \
+            self._tokens[self.numTokensParsed + 1].type is LexerTokenTypes.COLON
+        if isSpecialCommand:
+            command = self.sequenceSpecialCommand()
+            self._consumeCurrToken(LexerTokenTypes.EOL)
+            return command
+
+        # distinguish branches: relation, expression, aliasTemplate
+        idx = self.numTokensParsed
+        isRelations = False
+        isAliasTemplate = False
+        while idx < len(self._tokens):
+            token = self._tokens[idx]
+            if token.type is LexerTokenTypes.EQUALS:
+                isRelations = True
+                break
+            elif token.type is LexerTokenTypes.COLON_EQUALS:
+                isAliasTemplate = True
+                break
+            idx += 1
+
+        # branch: relations EOL
+        if isRelations:
+            relations = self.sequenceRelations()
+            self._consumeCurrToken(LexerTokenTypes.EOL)
+            return Command.recordRelations(relations)
+        
+        # branch: aliasTemplate EOL
+        if isAliasTemplate:
+            aliasTemplate = self.sequenceAliasTemplate()
+            self._consumeCurrToken(LexerTokenTypes.EOL)
+            return Command.recordAlias(aliasTemplate)
+        
+        # default branch: expression EOL
+        expression = self.sequenceExpression()
+        self._consumeCurrToken(LexerTokenTypes.EOL)
+        return Command.evaluateExpression(expression)
+    
+    def sequenceRelations(self):
+        # (all branches)
+        expr = self.sequenceExpression()
+        
+        # branch: expression EQUALS relations
+        if self._currToken.type is LexerTokenTypes.EQUALS:
+            self._consumeCurrToken(LexerTokenTypes.EQUALS)
+            exprList = self.sequenceRelations()
+            exprList.insert(0, expr)
+            return exprList
+
+        # default branch: expression
+        return [expr]
+    
+    def sequenceEvaluation(self) -> sympy.Expr | tuple[LexerTokenType, str]:
+        # branch: BRACE_OPEN expressionList BRACE_CLOSE
+        if self._currToken.type is LexerTokenTypes.BRACE_OPEN and self._allowExpressionList:
+            # identifiers aren't allowed in expression lists for two reasons:
+            # 1. The NumericExpressionSequencer can't have the details necessary
+            #    for identifier parsing because it is used by `SymbolsDatabase`
+            #    to parse expression list symbols (and `SymbolsDatabase`
+            #    shouldn't know about any "identifier types")
+            # 2. Solving/substituting for variables inside expression lists gets
+            #    really messy considering the `(expr) -> List[expr]` nature of
+            #    substitution, as well as there not being a good way to handle
+            #    undefined variables left over to solve (expression lists are
+            #    assumed known over all branches), so identifiers are just 
+            #    disallowed altogether since it isn't needed for the general
+            #    purpose of expression lists (that is, to assign/restrict
+            #    variables to multiple numeric values)
+            self._allowIdentifierValues = False
+            expressionListSymbol = super().sequenceEvaluation()
+            self._allowIdentifierValues = True
+            return expressionListSymbol
+
+        # branch: IDENTIFIER, builtinAliasCall
+        if self._currToken.type is LexerTokenTypes.IDENTIFIER and self._allowIdentifierValues:
+            if self._currToken.type is LexerTokenTypes.IDENTIFIER and self._currToken.match in self._builtinAliases:
+                expr = self.sequenceBuiltinAliasCall()
+                return expr
+            
+            if self.numTokensParsed + 1 < len(self._tokens):
+                nextToken = self._tokens[self.numTokensParsed + 1]
+                if nextToken.type is LexerTokenTypes.PAREN_OPEN:
+                    idType = self._idTypes.get(self._currToken.match, None)
+                    assert idType is not IdTypes.ALIAS, \
+                        "Parser detected an uncaught/unprocessed alias"
+                    couldBeAliasIfDefined = idType is None
+                    if couldBeAliasIfDefined:
+                        raise UnknownAliasException(self._tokens, self.numTokensParsed) 
+                    else:
+                        raise IdentifierTypeException(self._tokens, self.numTokensParsed, idType, IdTypes.ALIAS)
+            
+            valueStr = self.sequenceIdentifier()
+            symbol = createSymbol(valueStr)
+            return symbol
+        
+        # default branch: <delegate>
+        return super().sequenceEvaluation()
     
     def sequenceIdentifier(self):
         identifier = self._currToken.match
