@@ -44,6 +44,16 @@ class BuiltinAlias:
     
     def evaluate(self, *argVals: sympy.Expr):
         return self._evalFn(*argVals)
+    
+
+class IdType(EnumString):
+    pass # intentionally left blank
+
+
+class IdTypes(Enum):
+    SYMBOL          = IdType("SYMBOL")
+    ALIAS           = IdType("ALIAS")
+    BUILTIN_ALIAS   = IdType("BUILTIN_ALIAS")
 
 
 class CommandType(EnumString):

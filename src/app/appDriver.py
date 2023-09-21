@@ -8,7 +8,7 @@ from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
 from src.algebrasolver.solver import AlgebraSolver, Relation
 from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
-from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplate, freeSymbolsOf
+from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplate, IdType, IdTypes, freeSymbolsOf
 
 
 class AppDriver:
@@ -18,6 +18,8 @@ class AppDriver:
         self._inputHistory: list[str] = list()
         self._historySearchTerm: str = ""
         self._currHistoryIdx: int = -1
+
+        self._idTypes: dict[str, IdType] = dict()
 
         self._aliases: dict[str, AliasTemplate] = dict()
 
@@ -155,6 +157,16 @@ class AppDriver:
                 ]
                 if leftExprIdx + 1 < len(command.data)
             ]
+            
+            for relation in relations:
+                for symbol in freeSymbolsOf(relation.asExprEqToZero, includeExpressionLists = False):
+                    identifierPath = str(symbol)
+                    if identifierPath not in self._idTypes:
+                        # relations define new symbols
+                        assert self._idTypes.get(identifierPath, IdTypes.SYMBOL) is IdTypes.SYMBOL, \
+                            "Parser did not throw when trying to change identifier type to SYMBOL"
+                        self._idTypes[identifierPath] = IdTypes.SYMBOL
+            
             relationsWithRedundancies = [
                 (relation, isRedundant)
                 for relation in relations
@@ -165,14 +177,20 @@ class AppDriver:
         elif command.type is Command.EVALUATE_EXPRESSION:
             expr: sympy.Expr = command.data
             assert isinstance(expr, sympy.Expr)
+
             undefinedSymbolStrs: list[str] = list()
             for symbol in freeSymbolsOf(expr, includeExpressionLists = False):
-                relations = self._solver.getRelationsWithSymbol(symbol)
-                noRelationsForSymbol = len(relations) == 0
-                if noRelationsForSymbol:
+                symbolUnknown = symbol not in self._idTypes
+                if symbolUnknown:
                     undefinedSymbolStrs.append(str(symbol))
+                    assert len(self._solver.getRelationsWithSymbol(symbol)) == 0
+                else:
+                    assert self._idTypes[symbol] is IdTypes.SYMBOL
+                    assert len(self._solver.getRelationsWithSymbol(symbol)) > 0
+            
             if len(undefinedSymbolStrs) > 0:
                 raise UndefinedIdentifiersException(tokens, undefinedSymbolStrs)
+            
             subExprs = self._solver.substituteKnownsFor(expr)
             return ProcessResult(Command.EVALUATE_EXPRESSION, subExprs)
         
@@ -182,6 +200,11 @@ class AppDriver:
             assert type(aliasName) is str
             assert isinstance(aliasArgs, tuple)
             assert type(aliasTemplateStr) is str
+
+            assert self._idTypes.get(aliasName, IdTypes.ALIAS) is IdTypes.ALIAS, \
+                "Parser did not throw when trying to change identifier type to ALIAS"
+            self._idTypes[aliasName] = IdTypes.ALIAS
+
             aliasTemplate = AliasTemplate(aliasName, aliasArgs, tuple(CommandLexer.findTokens(aliasTemplateStr)))
             self._aliases[aliasName] = aliasTemplate
             return ProcessResult(Command.RECORD_ALIAS, aliasTemplate)
@@ -197,7 +220,7 @@ class AppDriver:
         
     def _warmUpSimplify(self):
         # for some reason, the first call to this is a tad slow...
-        # this just gets that out of the way so the app doesn't feel slow
+        # this just gets that out of the way so the app doesn't feel sluggish
         return sympy.simplify("x + x")
 
    
