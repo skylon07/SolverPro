@@ -378,7 +378,8 @@ class AlgebraSolver:
             database = self._symbolValuesDatabase.copy()
         
         for (symbol, relation) in symbolsToSolve:
-            restrictRedefSymbol = None if not isRestrictRedefSolve \
+            restrictRedefSymbol = \
+                None if not isRestrictRedefSolve \
                 else symbol
             relationsWithKnownsAndInferredSubbed = CombinationsSubstituter({relation.asExprEqToZero}, database, restrictRedefSymbol = restrictRedefSymbol).substitute()
             flattenedConditionalSolutions = {
@@ -387,7 +388,8 @@ class AlgebraSolver:
                 for solution in conditionalSolutions.value
             }
             database[symbol] = flattenedConditionalSolutions
-            self._contradictedSymbolValues[symbol] = {conditional.value for conditional in flattenedConditionalSolutions}
+            if not isRestrictRedefSolve:
+                self._contradictedSymbolValues[symbol] = {conditional.value for conditional in flattenedConditionalSolutions}
             yield (symbol, flattenedConditionalSolutions, relation)
 
     def _backSubstituteSymbols(self, symbolsToBackSubstitute: Iterable[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation]]):
