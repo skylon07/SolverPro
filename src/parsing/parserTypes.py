@@ -51,11 +51,11 @@ class CommandType(EnumString):
 
 
 class Command(Enum):
-    EMPTY = CommandType("EMPTY")
-    RECORD_RELATIONS = CommandType("RECORD_RELATIONS")
+    EMPTY               = CommandType("EMPTY")
+    RECORD_RELATIONS    = CommandType("RECORD_RELATIONS")
     EVALUATE_EXPRESSION = CommandType("EVALUATE_EXPRESSION")
     SIMPLIFY_EXPRESSION = CommandType("SIMPLIFY_EXPRESSION")
-    RECORD_ALIAS = CommandType("RECORD_ALIAS")
+    RECORD_ALIAS        = CommandType("RECORD_ALIAS")
 
     def __init__(self, commandType: CommandType, data):
         self.type = commandType
