@@ -3,12 +3,13 @@ from typing import Collection
 import sympy
 
 from src.common.functions import surroundJoin, first
+from src.common.sympyLinterFixes import log, ln, exp
 from src.common.exceptions import TracebackException, MultilineException
 from src.app.textRenderer import TextRenderer
 from src.app.widgets.colors import Colors
 from src.algebrasolver.solver import AlgebraSolver, Relation
 from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
-from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplate, IdType, IdTypes, freeSymbolsOf
+from src.parsing.parser import CommandParser, Command, CommandType, AliasTemplate, BuiltinAlias, IdType, IdTypes, freeSymbolsOf
 
 
 class AppDriver:
@@ -19,9 +20,24 @@ class AppDriver:
         self._historySearchTerm: str = ""
         self._currHistoryIdx: int = -1
 
-        self._idTypes: dict[str, IdType] = dict()
-
         self._aliases: dict[str, AliasTemplate] = dict()
+        self._builtinAliases = {
+            "pi": BuiltinAlias("pi", 0, lambda: sympy.pi),
+            "e": BuiltinAlias("i", 0, lambda: sympy.E),
+            "exp": BuiltinAlias("exp", 1, lambda pow: exp(pow)),
+            "i": BuiltinAlias("i", 0, lambda: sympy.I),
+            "sqrt": BuiltinAlias("sqrt", 1, lambda expr: sympy.sqrt(expr)),
+            "√": BuiltinAlias("√", 1, lambda expr: sympy.sqrt(expr)),
+            "cbrt": BuiltinAlias("cbrt", 1, lambda expr: sympy.cbrt(expr)),
+            "∛": BuiltinAlias("∛", 1, lambda expr: sympy.cbrt(expr)),
+            "root": BuiltinAlias("root", 2, lambda n, base: sympy.root(n, base)),
+            "log": BuiltinAlias("log", 2, lambda n, base: log(n, base)),
+            "ln": BuiltinAlias("ln", 1, lambda n: ln(n)),
+        }
+        self._idTypes: dict[str, IdType] = {
+            aliasName: IdTypes.BUILTIN_ALIAS
+            for aliasName in self._builtinAliases
+        }
 
         self._warmUpSimplify()
 
@@ -89,7 +105,10 @@ class AppDriver:
             raise exception
         
     def getAllAliasNames(self):
-        return tuple(self._aliases.keys()) + tuple(CommandParser.builtinAliases.keys())
+        return tuple((
+            *self._builtinAliases.keys(),
+            *self._aliases.keys(),
+        ))
         
     def getInputHistory(self):
         return tuple(self._inputHistory)

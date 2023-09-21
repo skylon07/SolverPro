@@ -1,6 +1,5 @@
 import sympy
 
-from src.common.sympyLinterFixes import log, ln, exp
 from src.parsing.parserHelpers import *
 from src.parsing.parserTypes import *
 
@@ -36,20 +35,6 @@ def freeSymbolsOf(expr: sympy.Expr, *, includeExpressionLists: bool = True) -> s
 
 
 class CommandParser:
-    builtinAliases = {
-        "pi": BuiltinAlias("pi", 0, lambda: sympy.pi),
-        "e": BuiltinAlias("i", 0, lambda: sympy.E),
-        "exp": BuiltinAlias("exp", 1, lambda pow: exp(pow)),
-        "i": BuiltinAlias("i", 0, lambda: sympy.I),
-        "sqrt": BuiltinAlias("sqrt", 1, lambda expr: sympy.sqrt(expr)),
-        "√": BuiltinAlias("√", 1, lambda expr: sympy.sqrt(expr)),
-        "cbrt": BuiltinAlias("cbrt", 1, lambda expr: sympy.cbrt(expr)),
-        "∛": BuiltinAlias("∛", 1, lambda expr: sympy.cbrt(expr)),
-        "root": BuiltinAlias("root", 2, lambda n, base: sympy.root(n, base)),
-        "log": BuiltinAlias("log", 2, lambda n, base: log(n, base)),
-        "ln": BuiltinAlias("ln", 1, lambda n: ln(n)),
-    }
-
     @classmethod
     def parseCommand(cls, commandTokens: tuple[LexerToken, ...]):
         while len(commandTokens) > 0:
