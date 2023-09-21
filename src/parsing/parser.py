@@ -36,9 +36,9 @@ def freeSymbolsOf(expr: sympy.Expr, *, includeExpressionLists: bool = True) -> s
 
 class CommandParser:
     @classmethod
-    def parseCommand(cls, commandTokens: tuple[LexerToken, ...]):
+    def parseCommand(cls, commandTokens: tuple[LexerToken, ...], idTypes: dict[str, IdType], builtinAliases: dict[str, BuiltinAlias]):
         while len(commandTokens) > 0:
-            sequencer = CommandParserSequencer(commandTokens, cls.builtinAliases)
+            sequencer = CommandParserSequencer(commandTokens, idTypes, builtinAliases)
             command = sequencer.sequenceCommand()
             yield command
             commandTokens = commandTokens[sequencer.numTokensParsed:]

@@ -94,6 +94,8 @@ class TermTips:
                     "Processes an expression without substituting known/inferred values.",
                 )
             ),
+            'symbol identifier': 'identifier',
+            'alias identifier': 'identifier',
             'identifiers': 'identifier',
             'identifier': TermTip(
                 "Abstract: Identifier",

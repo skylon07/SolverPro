@@ -61,7 +61,7 @@ class AppDriver:
                 processedTokens = tokensWithAliases
 
             anyNonEmptyCommands = False
-            for command in CommandParser.parseCommand(processedTokens):
+            for command in CommandParser.parseCommand(processedTokens, self._idTypes, self._builtinAliases):
                 if command.type is not Command.EMPTY:
                     anyNonEmptyCommands = True
                 yield self._processCommand(command, processedTokens)
@@ -199,12 +199,13 @@ class AppDriver:
 
             undefinedSymbolStrs: list[str] = list()
             for symbol in freeSymbolsOf(expr, includeExpressionLists = False):
-                symbolUnknown = symbol not in self._idTypes
+                symbolIdPath = str(symbol)
+                symbolUnknown = symbolIdPath not in self._idTypes
                 if symbolUnknown:
                     undefinedSymbolStrs.append(str(symbol))
                     assert len(self._solver.getRelationsWithSymbol(symbol)) == 0
                 else:
-                    assert self._idTypes[symbol] is IdTypes.SYMBOL
+                    assert self._idTypes[symbolIdPath] is IdTypes.SYMBOL
                     assert len(self._solver.getRelationsWithSymbol(symbol)) > 0
             
             if len(undefinedSymbolStrs) > 0:

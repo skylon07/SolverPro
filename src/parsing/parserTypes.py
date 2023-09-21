@@ -122,6 +122,16 @@ class EolException(TracebackException):
         super().__init__(f"Unexpected [{Colors.textRed.hex}][@termtip]end of line[/@termtip][/]", tokens, [len(tokens) - 1], True)
 
 
+class IdentifierTypeException(TracebackException):
+    def __init__(self, tokens: tuple[LexerToken, ...], badIdentifierIdx: int, gotIdType: IdType, expectedIdType: IdType):
+        identifierName = tokens[badIdentifierIdx].match
+        gotIdTypeName = str(gotIdType).lower()
+        expectedIdTypeName = str(expectedIdType).lower()
+        grammaticalN = "n" if expectedIdTypeName[0] in "aeiou" else ""
+        message = f"Cannot interpret [@termtip]{gotIdTypeName} identifier[/@termtip] [{Colors.textRed.hex}]{identifierName}[/] as a{grammaticalN} [@termtip]{expectedIdTypeName} identifier[/@termtip]"
+        super().__init__(message, tokens, [badIdentifierIdx], True)
+
+
 class UnknownAliasException(TracebackException):
     def __init__(self, tokens: tuple[LexerToken, ...], aliasTokenIdx: int):
         aliasName = tokens[aliasTokenIdx].match
