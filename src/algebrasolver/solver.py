@@ -387,6 +387,7 @@ class AlgebraSolver:
                 for solution in conditionalSolutions.value
             }
             database[symbol] = flattenedConditionalSolutions
+            self._contradictedSymbolValues[symbol] = {conditional.value for conditional in flattenedConditionalSolutions}
             yield (symbol, flattenedConditionalSolutions, relation)
 
     def _backSubstituteSymbols(self, symbolsToBackSubstitute: Iterable[tuple[sympy.Symbol, set[ConditionalValue[sympy.Expr]], Relation]]):
