@@ -407,7 +407,11 @@ class CommandParserSequencer(NumericExpressionSequencer):
     def sequenceAliasTemplate(self):
         # (all branches)
         aliasName = self._currToken.match
+        idPath = aliasName
+        if self._idTypes.get(idPath, IdTypes.ALIAS) is not IdTypes.ALIAS:
+            raise IdentifierTypeException(self._tokens, self.numTokensParsed, self._idTypes[idPath], IdTypes.ALIAS)
         self._consumeCurrToken(LexerTokenTypes.IDENTIFIER)
+        
 
         # distinguish branches: IDENTIFIER COLON_EQUALS aliasTemplateStr, IDENTIFIER aliasTemplateArgs COLON_EQUALS aliasTemplateStr
         aliasArgs: tuple[str, ...]

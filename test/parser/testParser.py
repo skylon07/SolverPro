@@ -2,7 +2,7 @@ import sympy
 
 from src.common.functions import runForError
 from src.common.sympyLinterFixes import createSymbol
-from src.parsing.parser import CommandParser, Command, AliasTemplate, BuiltinAlias, ParseException, EolException, UnknownAliasException, AliasArgumentCountException, UnknownCommandException
+from src.parsing.parser import CommandParser, Command, AliasTemplate, BuiltinAlias, ParseException, EolException, UnknownAliasException, AliasArgumentCountException, UnknownCommandException, IdentifierTypeException, IdTypes
 from src.parsing.lexer import CommandLexer, LexerToken, LexerTokenTypes
 
 
@@ -1150,9 +1150,38 @@ class CommandParserTester:
             return list(CommandParser.parseCommand((
                 LexerToken("undefinedCmd",  LexerTokenTypes.IDENTIFIER,     0),
                 LexerToken(":",             LexerTokenTypes.COLON,          11),
+                LexerToken("",              LexerTokenTypes.EOL,            12),
             ), dict(), dict()))
         error19 = runForError(attempt19)
         assert type(error19) is UnknownCommandException
         assert error19.badTokenIdxs == [0]
 
-        # TODO: test defining an alias over a variable name
+        def attempt20():
+            idTypes = {
+                "x": IdTypes.SYMBOL,
+            }
+
+            return list(CommandParser.parseCommand((
+                LexerToken("x", LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken("(", LexerTokenTypes.PAREN_OPEN,     1),
+                LexerToken(")", LexerTokenTypes.PAREN_CLOSE,    2),
+                LexerToken("",  LexerTokenTypes.EOL,            3),
+            ), idTypes, dict()))
+        error20 = runForError(attempt20)
+        assert type(error20) is IdentifierTypeException
+        assert error20.badTokenIdxs == [0]
+
+        def attempt21():
+            idTypes = {
+                "x": IdTypes.SYMBOL,
+            }
+
+            return list(CommandParser.parseCommand((
+                LexerToken("x",     LexerTokenTypes.IDENTIFIER,     0),
+                LexerToken(":=",    LexerTokenTypes.COLON_EQUALS,   1),
+                LexerToken("5",     LexerTokenTypes.INTEGER,        3),
+                LexerToken("",      LexerTokenTypes.EOL,            4),
+            ), idTypes, dict()))
+        error21 = runForError(attempt21)
+        assert type(error21) is IdentifierTypeException
+        assert error21.badTokenIdxs == [0]
